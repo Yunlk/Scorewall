@@ -124,10 +124,13 @@ const server = http.createServer((req, res) => {
 
     const file = COLLECTIONS[rest];
     if (file && existsSync(join(FIX, file + '.json'))) {
-      const base = fixture(file);
-      if (liveMode && rest === 'submissions') return json(res, base.concat(LIVE.subs));
-      if (liveMode && rest === 'judgements') return json(res, base.concat(LIVE.judges));
-      return json(res, base);
+      if (liveMode && rest === 'submissions') return json(res, LIVE.subs);
+      if (liveMode && rest === 'judgements') return json(res, LIVE.judges);
+      if (liveMode && rest === 'state') {
+        return json(res, { id: '1', started: '2026-01-01T00:00:00.000Z', ended: null,
+                           frozen: null, thawed: null, finalized: null, end_of_updates: null });
+      }
+      return json(res, fixture(file));
     }
     return json(res, { error: 'not_found', rest }, 404);
   }
