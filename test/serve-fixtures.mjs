@@ -16,6 +16,31 @@ import { fileURLToPath } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url));
 const SRC = join(here, '..', 'src');
 const FIXES = { 1: join(here,'fixtures','smoke'), 2: join(here,'fixtures','scroll') };
+
+// ---- 实时模拟：每 3 秒来一条提交，2.5 秒后出判题 ----
+const LIVE = { subs: [], judges: [], clients: new Set(), n: 0 };
+const TEAMS = ['t1','t2','t3'];
+const PROBS = ['A','B','C'];
+function emit(obj) {
+  const line = JSON.stringify(obj) + '\n';
+  for (const c of LIVE.clients) { try { c.write(line); } catch (_) {} }
+}
+function tick() {
+  const i = LIVE.n++;
+  const sec = 60 + i * 30;
+  const mm = Math.floor(sec / 60), ss = sec % 60;
+  const rel = `0:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}.000`;
+  const sub = { id: 'L' + i, team_id: TEAMS[i % 3], problem_id: PROBS[i % 3], contest_time: rel };
+  LIVE.subs.push(sub);
+  emit({ type: 'submissions', id: sub.id, data: sub });
+  const verdict = i % 3 === 0 ? 'WA' : 'AC';
+  setTimeout(() => {
+    const j = { id: 'JL' + i, submission_id: sub.id, judgement_type_id: verdict };
+    LIVE.judges.push(j);
+    emit({ type: 'judgements', id: j.id, data: j });
+  }, 2500);
+}
+setInterval(tick, 3000);
 let FIX = FIXES[1];
 const PORT = Number(process.argv[2] || 8090);
 
@@ -59,6 +84,7 @@ const server = http.createServer((req, res) => {
   const m = path.match(/^\/api\/contests\/(\d+)/);
   if (m) {
     FIX = FIXES[m[1]] || FIXES[1];
+    const liveMode = m[1] === '3';
     const rest = path.slice(m[0].length).replace(/^\//, '');
 
     if (rest === '') return json(res, fixture('contest'));
@@ -85,13 +111,23 @@ const server = http.createServer((req, res) => {
       const beat = setInterval(() => {
         try { res.write('\n'); } catch (_) { clearInterval(beat); }
       }, 15000);
-      req.on('close', () => clearInterval(beat));
+      for (const sub of LIVE.subs) {
+        try { res.write(JSON.stringify({ type: 'submissions', id: sub.id, data: sub }) + '\n'); } catch (_) {}
+      }
+      for (const j of LIVE.judges) {
+        try { res.write(JSON.stringify({ type: 'judgements', id: j.id, data: j }) + '\n'); } catch (_) {}
+      }
+      LIVE.clients.add(res);
+      req.on('close', () => { clearInterval(beat); LIVE.clients.delete(res); });
       return;
     }
 
     const file = COLLECTIONS[rest];
     if (file && existsSync(join(FIX, file + '.json'))) {
-      return json(res, fixture(file));
+      const base = fixture(file);
+      if (liveMode && rest === 'submissions') return json(res, base.concat(LIVE.subs));
+      if (liveMode && rest === 'judgements') return json(res, base.concat(LIVE.judges));
+      return json(res, base);
     }
     return json(res, { error: 'not_found', rest }, 404);
   }

@@ -46,26 +46,33 @@ export class Animator {
     this.t = 0;
   }
 
-  setTarget(xTarget) {
-    if (xTarget === this.xTarget) return;     // 目标没变就不要重启动画
-    const x = this.getValue();
-    this.xInitial = x;
-    this.xTarget = xTarget;
-    this.t = 0;
+  getVelocity() {
+    const { t1, tCoast, acc, xTarget, xInitial, move } = this;
+    const sgn = Math.sign(xTarget - xInitial);
+    let tt = this.t / 1000;
+    if (tt < t1) return acc * tt;
+    if (tt < t1 + tCoast) return move.maxSpeed * sgn;
+    const total = t1 * 2 + tCoast;
+    if (tt < total) { tt = total - tt; return acc * tt; }
+    return 0;
+  }
 
-    const d = xTarget - x;
-    const sgn = Math.sign(d) || 1;
-    const accAbs = this.move.acceleration;
-    this.acc = accAbs * sgn;                  // 关键：加速度带方向
-    const vmax = this.move.maxSpeed;
-    const dist = Math.abs(d);
-    const t1 = vmax / accAbs;
-    const dAcc = accAbs * t1 * t1;            // 加速+减速覆盖的距离
-    if (dist >= dAcc) {
-      this.t1 = t1;
-      this.tCoast = (dist - dAcc) / vmax;
+  /** Animator.setTarget(x, v) —— 带初速度的曲线修正 */
+  setTarget(xTarget, vTarget = 0) {
+    if (xTarget === this.xTarget && vTarget === this.vTarget) return;
+
+    this.vTarget = vTarget;
+    let acc = this.move.acceleration;
+    if (xTarget < this.xInitial) acc = -this.move.acceleration;
+    this.acc = acc;
+
+    this.t1 = Math.sqrt(Math.abs(xTarget - this.xInitial) / this.move.acceleration);
+    const mt = this.move.maxSpeed / this.move.acceleration;
+    if (this.t1 > mt) {
+      const d = this.move.acceleration * mt * mt;
+      this.tCoast = (Math.abs(xTarget - this.xInitial) - d) / this.move.maxSpeed;
+      this.t1 = mt;
     } else {
-      this.t1 = Math.sqrt(dist / accAbs);     // 太短走三角形
       this.tCoast = 0;
     }
   }
