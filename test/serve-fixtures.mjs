@@ -18,7 +18,7 @@ const SRC = join(here, '..', 'src');
 const FIXES = { 1: join(here,'fixtures','smoke'), 2: join(here,'fixtures','scroll') };
 
 // ---- 实时模拟：每 3 秒来一条提交，2.5 秒后出判题 ----
-const LIVE = { subs: [], judges: [], clients: new Set(), n: 0 };
+const LIVE = { subs: [], judges: [], pending: [], clients: new Set(), n: 0 };
 const TEAMS = ['t1','t2','t3'];
 const PROBS = ['A','B','C'];
 function emit(obj) {
@@ -33,14 +33,21 @@ function tick() {
   const sub = { id: 'L' + i, team_id: TEAMS[i % 3], problem_id: PROBS[i % 3], contest_time: rel };
   LIVE.subs.push(sub);
   emit({ type: 'submissions', id: sub.id, data: sub });
+  LIVE.pending.push(sub);            // 进判题队列
+}
+
+// 串行判题：一次只判一条（DOMjudge 判题机行为），判完再取下一条
+function judgeTick() {
+  const sub = LIVE.pending.shift();
+  if (!sub) return;
+  const i = Number(sub.id.slice(1));
   const verdict = i % 3 === 0 ? 'WA' : 'AC';
-  setTimeout(() => {
-    const j = { id: 'JL' + i, submission_id: sub.id, judgement_type_id: verdict };
-    LIVE.judges.push(j);
-    emit({ type: 'judgements', id: j.id, data: j });
-  }, 2500);
+  const j = { id: 'JL' + i, submission_id: sub.id, judgement_type_id: verdict };
+  LIVE.judges.push(j);
+  emit({ type: 'judgements', id: j.id, data: j });
 }
 setInterval(tick, 3000);
+setInterval(judgeTick, 2500);
 let FIX = FIXES[1];
 const PORT = Number(process.argv[2] || 8090);
 

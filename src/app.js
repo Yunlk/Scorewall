@@ -351,10 +351,11 @@ function renderJudge(pane) {
     const r = rowOf(sr.submission, M, byTeam, pidx);
     r.y = sr.anim.getValue();
     r.alpha = q.alphaOf(sr);
+    r.currentAgeMs = sr.fullAge;        // 记录在队列里的年龄 → 决定是否脉动
     return r;
   });
 
-  drawJudgeFrame(ctx, L, rows, data.probs, times, { frozen });
+  drawJudgeFrame(ctx, L, rows, data.probs, times, { frozen, now });
 }
 
 /** #15 带工位状态的倒计时 */

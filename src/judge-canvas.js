@@ -19,6 +19,30 @@ const ROWS = 12;
 const FONT_FAMILY = '"ICPCFont", Arial, "Microsoft YaHei", sans-serif';
 const f = (px, bold) => `${bold ? 'bold ' : ''}${px}px ${FONT_FAMILY}`;
 
+const CCOUNT = 15;
+const RECENT_MS = 20000;           // ContestUtil.isRecent 的窗口（近似）
+
+const BASE = {
+  solved: [0, 230, 0],
+  failed: [240, 0, 0],
+  pending: [66, 114, 245],
+};
+
+/** ShadedRectangle.getPaint：recent 时在 base 与 alphaDarker(base,128,0.5) 之间来回取色 */
+function pulseColor(status, recent, tMs) {
+  const c = BASE[status] || BASE.pending;
+  let k;
+  if (recent) {
+    k = Math.floor(((tMs * 45) / 1000) % (CCOUNT * 2));
+    if (k > CCOUNT - 1) k = CCOUNT * 2 - 1 - k;
+  } else {
+    k = Math.floor(CCOUNT / 3);
+  }
+  const f = 1 - 0.5 * (k / (CCOUNT - 1));          // 颜色 ×0.5
+  const a = 1 - 0.5 * (k / (CCOUNT - 1));          // alpha 255→128
+  return `rgba(${Math.round(c[0] * f)},${Math.round(c[1] * f)},${Math.round(c[2] * f)},${a.toFixed(3)})`;
+}
+
 const C = {
   solved: 'rgb(0,230,0)',
   failed: 'rgb(240,0,0)',
@@ -103,6 +127,12 @@ export function drawJudgeFrame(ctx, L, rows, probs, times, opts = {}) {
     ctx.fillRect(0, contentTop + i * rowH, W, rowH);
   }
 
+  // ---------- 内容区裁剪：行滑出时不能盖住标题带 ----------
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, contentTop, W, H - contentTop);
+  ctx.clip();
+
   // ---------- 度量（Java 用 FontMetrics 现算） ----------
   const fr = f(L.rowFont, true);
   const w199 = widthOf(ctx, fr, '199');
@@ -167,7 +197,8 @@ export function drawJudgeFrame(ctx, L, rows, probs, times, opts = {}) {
 
       if (isCurrent) {
         const st = r.currentStatus;
-        ctx.fillStyle = st === 'solved' ? C.solved : st === 'failed' ? C.failed : C.pending;
+        const recent = (r.currentAgeMs !== undefined) && (r.currentAgeMs < RECENT_MS);
+        ctx.fillStyle = pulseColor(st, recent, opts.now || 0);
         roundRect(ctx, x, cubTop, cubeW, cubeH, ARC);
         ctx.fill();
         ctx.fillStyle = '#fff';
@@ -195,6 +226,8 @@ export function drawJudgeFrame(ctx, L, rows, probs, times, opts = {}) {
 
     ctx.restore();
   }
+
+  ctx.restore();          // 解除内容区裁剪
 }
 
 /** 一条提交 → 一行 */
@@ -208,6 +241,7 @@ export function rowOf(sub, model, byTeam, pidx) {
   const status = !jt ? 'pending' : jt.solved ? 'solved' : jt.penalty ? 'failed' : 'pending';
   const sec = rel2sec(sub.contest_time);
   return {
+    currentAgeMs: sub._ageMs,          // 由调用方填
     teamName: st ? st.team.name : sub.team_id,
     rank: st ? st.rank : '-',
     solved: st ? st.solved : 0,
