@@ -56,20 +56,26 @@ function drawStatus(ctx, W, H, px, py, label, status) {
  * @param remainMs 剩余毫秒（负数=还没开始）
  * @param running 比赛是否进行中
  */
-export function drawCountdown(ctx, W, H, sites, remainMs, running) {
+export function drawCountdown(ctx, W, H, sites, remainMs, running, verticalOffset = 0) {
   ctx.fillStyle = '#000';
   ctx.fillRect(0, 0, W, H);
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
 
-  // 七段数字：DigitalFont 移植，灭段用暗灰一起画（仪表盘观感）
-  const str = fmtClock(remainMs, true);
-  let digitH = H * 0.30;
-  let w = digitalWidth(str, digitH);
-  const avail = W * 0.90;
-  if (w > avail) { digitH *= avail / w; w = digitalWidth(str, digitH); }
-  const bottomY = H * 0.56 + digitH / 2;          // 左下角 y
-  drawDigital(ctx, str, (W - w) / 2, bottomY, digitH, '#fff', '#1e1e1e');
+  // 七段数字 —— ClockPresentation.paint
+  //   yh = min(0.225*width, height*0.55)，超宽再缩
+  //   x = (width-w)/2，y = (height + height/2.5)/2（左下角）
+  //   非负数补 '+'，负数用 '-'
+  //   bg = DARK_GRAY
+  let time = fmtClock(remainMs, true);
+  if (!time.startsWith('-')) time = '+' + time;      // ClockPresentation:74
+
+  let yh = Math.min(0.225 * W, H * 0.55);
+  let w = digitalWidth(time, yh);
+  if (w > W) { yh = yh * W / w; w = digitalWidth(time, yh); }
+
+  const bottomY = (H + H / 2.5) / 2 - verticalOffset;
+  drawDigital(ctx, time, (W - w) / 2, bottomY, yh, '#fff', 'rgb(64,64,64)');
 
   // 状态文字（源码：y = (H + H/2.5)/2 + fm.getHeight()*2）
   let s = 'Status: Go';

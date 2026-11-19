@@ -22,6 +22,14 @@ const SEGMENTS = [
 const COLON_TOP = [[1210, -7406], [1210, -8499], [2303, -8499], [2303, -7406]];
 const COLON_BOTTOM = [[1210, -1501], [1210, -2491], [2303, -2491], [2303, -1501]];
 
+// 加号：4 块（源码 index 10-13）
+const PLUS_PARTS = [
+  [[3863, -5845], [3324, -5306], [2770, -5845], [2770, -6997], [3324, -7551], [3863, -6997]],
+  [[5758, -5102], [5219, -4562], [4067, -4562], [3513, -5102], [4067, -5642], [5219, -5642]],
+  [[3119, -5102], [2566, -4562], [1414, -4562], [874, -5102], [1414, -5642], [2566, -5642]],
+  [[3863, -3193], [3324, -2653], [2770, -3193], [2770, -4359], [3324, -4898], [3863, -4359]],
+];
+
 // 减号
 const MINUS = [[5219, -5642], [5758, -5102], [5219, -4562], [1414, -4562], [874, -5102], [1414, -5642]];
 
@@ -94,6 +102,11 @@ export function drawDigital(ctx, s, x, y, h, fg, bg) {
       poly(ctx, MINUS, cur, y, scale);
       cur += ADVANCE_MINUS * scale;            // 130
 
+    } else if (c === '+') {
+      ctx.fillStyle = fg;
+      for (const part of PLUS_PARTS) poly(ctx, part, cur, y, scale);
+      cur += ADVANCE_MINUS * scale;
+
     } else if (c === '.') {
       ctx.fillStyle = fg;
       poly(ctx, COLON_BOTTOM, cur, y, scale);
@@ -113,7 +126,7 @@ export function digitalWidth(s, h) {
   for (const c of s) {
     if (DIGIT_MAP[c]) w += ADVANCE_DIGIT;
     else if (c === ':') w += ADVANCE_COLON;
-    else if (c === '-') w += ADVANCE_MINUS;
+    else if (c === '-' || c === '+') w += ADVANCE_MINUS;
     else if (c === '.') w += ADVANCE_COLON;
   }
   return w * scale;
