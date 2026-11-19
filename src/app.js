@@ -111,6 +111,7 @@ function fitFont(s, px, avail, min = 0.55) {
 // ---------------- 总榜视图（canvas） ----------------
 const scroll = { page: 0, lastSwitch: 0, from: 0, to: 0, animStart: 0 };
 const shownAt = performance.now();
+const FORCE_PAGE = Q.get('page') !== null ? parseInt(Q.get('page'), 10) : null;
 const FADE_IN_MS = 800;
 
 function ensureCanvas(pane) {
@@ -156,26 +157,44 @@ function renderStandings(pane, data) {
     remainText: fmtClock(t.remain, true),
   };
 
-  // 翻页滚动：每 MS_PER_PAGE 翻一页，SCROLL_MS 内平滑过渡
-  const pages = Math.max(1, Math.ceil(data.rows.length / 12));
+  // ---- 对齐 AbstractScrollingScoreboardPresentation ----
+  // MS_PER_PAGE=12000  FADE_IN_MS=1000  INITIAL_DELAY_MS=3000  FADE_OUT_MS=1000
+  // getRepeat() = MS_PER_PAGE * pages + INITIAL_DELAY_MS + FADE_OUT_MS
+  // getNumPages() = (teams + teamsPerScreen) / teamsPerScreen   ← 整数除
+  const FADE_IN_MS = 1000, INITIAL_DELAY_MS = 3000, FADE_OUT_MS = 1000;
+  const pages = Math.max(1, Math.floor((data.rows.length + 12) / 12));
   const now = performance.now();
-  if (!scroll.lastSwitch) scroll.lastSwitch = now;
-  if (now - scroll.lastSwitch >= MS_PER_PAGE && pages > 1) {
-    scroll.page = (scroll.page + 1) % pages;
-    scroll.from = scroll.page === 0 ? (pages - 1) * 12 * L.rowH : (scroll.page - 1) * 12 * L.rowH;
-    scroll.to = scroll.page * 12 * L.rowH;
-    scroll.animStart = now;
-    scroll.lastSwitch = now;
-  }
-  let scrollPx = 0;
-  if (pages > 1) {
-    const k = Math.min(1, (now - scroll.animStart) / SCROLL_MS);
-    const ease = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
-    scrollPx = scroll.from + (scroll.to - scroll.from) * ease;
+  const tt = (now - shownAt) % (MS_PER_PAGE * pages + INITIAL_DELAY_MS + FADE_OUT_MS);
+
+  if (FORCE_PAGE !== null && FORCE_PAGE >= 0 && FORCE_PAGE < pages) {
+    drawFrame(ctx, L, data.rows, data.probs, times,
+      FORCE_PAGE * 12 * L.rowH, perProblemStats(data), 1);
+    return;
   }
 
-  const fade = Math.min(1, (performance.now() - shownAt) / FADE_IN_MS);
-  drawFrame(ctx, L, data.rows, data.probs, times, scrollPx, perProblemStats(data), fade);
+  // 淡入 → 停留 → 淡出
+  const endTime = MS_PER_PAGE * pages + INITIAL_DELAY_MS;
+  let fade = 1;
+  if (tt < FADE_IN_MS) fade = tt / FADE_IN_MS;
+  else if (tt > endTime) fade = Math.max(0, 1 - (tt - endTime) / FADE_OUT_MS);
+
+  // 翻页：ScrollAnimator(INITIAL_DELAY_MS, MS_PER_PAGE, 1500) 的等价实现
+  let scrollPx = 0;
+  if (pages > 1 && tt > INITIAL_DELAY_MS) {
+    const k = Math.min(pages, (tt - INITIAL_DELAY_MS) / MS_PER_PAGE);
+    let page = Math.min(pages - 1, Math.floor(k));
+    const frac = k - Math.floor(k);
+    const anim = SCROLL_MS / MS_PER_PAGE;          // 1500 / 12000 = 0.125
+    if (frac > 1 - anim) {
+      const q = (frac - (1 - anim)) / anim;
+      const ease = q < 0.5 ? 2 * q * q : 1 - Math.pow(-2 * q + 2, 2) / 2;
+      page = Math.min(pages - 1, page + ease);
+    }
+    scrollPx = page * 12 * L.rowH;
+  }
+
+  drawFrame(ctx, L, data.rows, data.probs, times, scrollPx,
+    perProblemStats(data), Math.max(0, Math.min(1, fade)));
 }
 
 function esc(s) {

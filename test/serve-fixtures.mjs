@@ -15,7 +15,8 @@ import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const SRC = join(here, '..', 'src');
-const FIX = join(here, 'fixtures', 'contest');
+const FIXES = { 1: join(here,'fixtures','smoke'), 2: join(here,'fixtures','scroll') };
+let FIX = FIXES[1];
 const PORT = Number(process.argv[2] || 8090);
 
 const MIME = {
@@ -54,8 +55,10 @@ const server = http.createServer((req, res) => {
   const path = url.pathname;
 
   // ---- 假 CCS API ----
-  if (path.startsWith('/api/contests/1')) {
-    const rest = path.slice('/api/contests/1'.length).replace(/^\//, '');
+  const m = path.match(/^\/api\/contests\/(\d+)/);
+  if (m) {
+    FIX = FIXES[m[1]] || FIXES[1];
+    const rest = path.slice(m[0].length).replace(/^\//, '');
 
     if (rest === '') return json(res, fixture('contest'));
 

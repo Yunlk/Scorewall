@@ -82,14 +82,26 @@ export function drawFrame(ctx, L, rows, probs, times, scrollPx, perProblem, fade
   const indent = BORDER + measure(ctx, '199 ', f(L.rowFont, true)) + rowH;
 
   // ---------- 标题带（TitledPresentation） ----------
-  ctx.textBaseline = 'middle';
+  // 源码：drawString(s, x, fm.getAscent())，时钟 +CLOCK_MARGIN(2)
+  ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = '#fff';
+  ctx.textAlign = 'left';
+  const ascentOf = (font) => {
+    ctx.font = font;
+    const m = ctx.measureText('Mg');
+    return m.actualBoundingBoxAscent || m.fontBoundingBoxAscent || 0;
+  };
+  const clockF = f(L.clockFont, true);
+  const titleF = f(L.titleFont, true);
+  const clockAsc = ascentOf(clockF) + 2;
+  const titleAsc = ascentOf(titleF);
+
+  ctx.font = clockF;
   ctx.textAlign = 'center';
-  ctx.font = f(L.clockFont, true);
-  ctx.fillText(times.elapsedText, W / 12, titleH / 2);
-  ctx.fillText(times.remainText, W * 11 / 12, titleH / 2);
-  ctx.font = f(L.titleFont, true);
-  ctx.fillText('Current Standings', W / 2, titleH / 2);
+  ctx.fillText(times.elapsedText, W / 12, clockAsc);
+  ctx.fillText(times.remainText, W * 11 / 12, clockAsc);
+  ctx.font = titleF;
+  ctx.fillText('Current Standings', W / 2, titleAsc);
   ctx.textAlign = 'left';
 
   // ---------- 表头（drawHeader）—— 位于标题带之下 ----------
@@ -107,7 +119,7 @@ export function drawFrame(ctx, L, rows, probs, times, scrollPx, perProblem, fade
 
   ctx.fillStyle = '#000';
   ctx.fillRect(0, titleH, W, headerH + 2);
-  const hy = titleH + headerH - 3;
+  const hy = titleH + headerH - 3;   // 源码：表头带内 y = headerHeight - 3
   ctx.fillStyle = '#fff';
 
   ctx.font = fhi;
@@ -144,14 +156,16 @@ export function drawFrame(ctx, L, rows, probs, times, scrollPx, perProblem, fade
   for (let i = rows.length - 1; i >= 0; i--) {
     const r = rows[i];
     const y = i * barH;
-    if (y + barH <= 0 || y >= H - contentTop) continue;
+    // 滚动后可见窗口是 [scrollPx, scrollPx + contentH]
+    const contentH = H - contentTop;
+    if (y + barH <= scrollPx || y >= scrollPx + contentH) continue;
     drawRow(ctx, L, r, probs, y, indent);
   }
 
   // ---------- 底部两行统计（drawStatsRow） ----------
   const sy = rows.length * barH;
   const statY = (int => 0)(0) + Math.floor(rowH * 0.6);
-  ctx.font = f(L.rowItalics, true);
+  ctx.font = f(L.statusFont, true);   // ShadedRectangle 内部用 statusFont
   ctx.textAlign = 'center';
   ctx.fillStyle = COLORS.statsText;
   for (let p = 0; p < probs.length; p++) {
@@ -186,14 +200,17 @@ export function drawFrame(ctx, L, rows, probs, times, scrollPx, perProblem, fade
 
   ctx.restore();
 
+  ctx.save();
+  ctx.globalAlpha = fadeAlpha;
   drawLegend(ctx, W, H);
+  ctx.restore();
 }
 
 
 /** 右下角图例（Legend.drawLegend）—— 字号固定 24，不随屏幕缩放 */
 const LEGEND = {
   MARGIN: 15, H_SPACING: 10, V_SPACING: 15, FONT_PX: 24,
-  TEXT: ['First to solve', 'Solved', 'Rejected', 'Pending'],
+  TEXT: ['First to Solve', 'Solved Problem', 'Rejected Submission', 'Pending Submission'],
 };
 
 function drawLegend(ctx, W, H) {
@@ -291,11 +308,14 @@ function drawRow(ctx, L, r, probs, y, indent) {
   for (let p = 0; p < probs.length; p++) {
     const c = r.cells[p];
     const x = indent + p * (cubeW + CUBE_INSET);
-    let bg = COLORS.cellBg, text = probs[p].label, fs = L.problemFont, tc = COLORS.cellText;
+    let bg = COLORS.cellBg, text = probs[p].label, fs = L.problemFont, tc = COLORS.cellText, outline = null;
 
     if (c && c.solvedAt !== null) {
-      bg = COLORS.solved; tc = '#fff'; fs = cellFont;
+      // 一血：深绿填充 + SOLVED_COLOR 2px 描边（ShadedRectangle.drawRoundRect）
+      bg = c.isFTS ? COLORS.fts : COLORS.solved;
+      tc = '#fff'; fs = cellFont;
       text = `${c.subs}\u200A-\u200A${Math.floor(c.solvedAt / 60)}`;
+      if (c.isFTS) outline = COLORS.solved;
     } else if (c && c.pending) {
       bg = COLORS.pending; tc = '#fff'; fs = cellFont;
       text = `${c.subs}\u200A-\u200A${Math.floor(c.lastAt / 60)}`;
@@ -307,6 +327,12 @@ function drawRow(ctx, L, r, probs, y, indent) {
     ctx.fillStyle = bg;
     roundRect(ctx, x, cellTop, cubeW, cubeH, ARC);
     ctx.fill();
+    if (outline) {
+      ctx.strokeStyle = outline;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.lineWidth = 1;
+    }
     ctx.fillStyle = tc;
     ctx.font = f(fs, bg !== COLORS.cellBg);
     ctx.fillText(text, x + cubeW / 2, cellTop + cubeH / 2 + 1);

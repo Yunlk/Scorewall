@@ -1,0 +1,93 @@
+[
+  {
+    "id": "A",
+    "label": "A",
+    "ordinal": 0,
+    "rgb": "#FF7109",
+    "color": "#FF7109"
+  },
+  {
+    "id": "B",
+    "label": "B",
+    "ordinal": 1,
+    "rgb": "#008100",
+    "color": "#008100"
+  },
+  {
+    "id": "C",
+    "label": "C",
+    "ordinal": 2,
+    "rgb": "#E93603",
+    "color": "#E93603"
+  },
+  {
+    "id": "D",
+    "label": "D",
+    "ordinal": 3,
+    "rgb": "#541298",
+    "color": "#541298"
+  },
+  {
+    "id": "E",
+    "label": "E",
+    "ordinal": 4,
+    "rgb": "#9B630C",
+    "color": "#9B630C"
+  },
+  {
+    "id": "F",
+    "label": "F",
+    "ordinal": 5,
+    "rgb": "#9486EA",
+    "color": "#9486EA"
+  },
+  {
+    "id": "G",
+    "label": "G",
+    "ordinal": 6,
+    "rgb": "#81D8CF",
+    "color": "#81D8CF"
+  },
+  {
+    "id": "H",
+    "label": "H",
+    "ordinal": 7,
+    "rgb": "#FFFF00",
+    "color": "#FFFF00"
+  },
+  {
+    "id": "I",
+    "label": "I",
+    "ordinal": 8,
+    "rgb": "#0F52BA",
+    "color": "#0F52BA"
+  },
+  {
+    "id": "J",
+    "label": "J",
+    "ordinal": 9,
+    "rgb": "#FF2A85",
+    "color": "#FF2A85"
+  },
+  {
+    "id": "K",
+    "label": "K",
+    "ordinal": 10,
+    "rgb": "#1E9E50",
+    "color": "#1E9E50"
+  },
+  {
+    "id": "L",
+    "label": "L",
+    "ordinal": 11,
+    "rgb": "#FBA3B8",
+    "color": "#FBA3B8"
+  },
+  {
+    "id": "M",
+    "label": "M",
+    "ordinal": 12,
+    "rgb": "#ADD8E6",
+    "color": "#ADD8E6"
+  }
+]

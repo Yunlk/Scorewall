@@ -6,7 +6,7 @@ import { dirname, join } from 'node:path';
 import { computeStandings, rel2sec, fmtClock, resolveUrl } from '../src/scoring.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const load = n => JSON.parse(readFileSync(join(here, 'fixtures/contest', n + '.json'), 'utf8'));
+const load = n => JSON.parse(readFileSync(join(here, 'fixtures/smoke', n + '.json'), 'utf8'));
 const toMap = arr => new Map(arr.map(x => [x.id, x]));
 
 function model() {

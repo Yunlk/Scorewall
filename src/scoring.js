@@ -85,6 +85,20 @@ export function computeStandings(model) {
     ti[pi] = c;
   }
 
+  // 一血：每题最早通过的那支队（源码 Result.isFirstToSolve）
+  for (let pi = 0; pi < probs.length; pi++) {
+    let best = null;
+    for (const [, list] of cells) {
+      const c = list[pi];
+      if (c && c.solvedAt !== null && (best === null || c.solvedAt < best)) best = c.solvedAt;
+    }
+    if (best === null) continue;
+    for (const [, list] of cells) {
+      const c = list[pi];
+      if (c && c.solvedAt === best) { c.isFTS = true; break; }   // 并列只标一个
+    }
+  }
+
   const rows = [];
   for (const [tid, list] of cells) {
     const t = teams.get(tid) || { id: tid };
