@@ -10,6 +10,7 @@
 'use strict';
 
 import { rel2sec, fmtClock, computeStandings, resolveUrl } from './scoring.js';
+import { makeLayout, drawFrame, MS_PER_PAGE, SCROLL_MS } from './standings-canvas.js';
 
 const Q = new URLSearchParams(location.search);
 const SRC = (Q.get('src') || 'http://127.0.0.1:8081/api/contests/144333').replace(/\/$/, '');
@@ -107,76 +108,74 @@ function fitFont(s, px, avail, min = 0.55) {
   return w <= avail ? px : Math.max(px * min, px * avail / w);
 }
 
-// ---------------- 总榜视图 ----------------
-function renderStandings(pane, data) {
+// ---------------- 总榜视图（canvas） ----------------
+const scroll = { page: 0, lastSwitch: 0, from: 0, to: 0, animStart: 0 };
+const shownAt = performance.now();
+const FADE_IN_MS = 800;
+
+function ensureCanvas(pane) {
+  let c = pane.querySelector('canvas');
+  if (!c) {
+    pane.innerHTML = '';
+    c = document.createElement('canvas');
+    c.style.cssText = 'width:100%;height:100%;display:block';
+    pane.appendChild(c);
+  }
+  const dpr = window.devicePixelRatio || 1;
   const W = pane.clientWidth, H = pane.clientHeight;
-  if (!W || !H) return;
-  const { rows, probs } = data;
-  const m = metrics(W, H, probs.length);
-  applyVars(pane, m);
+  if (c.width !== Math.round(W * dpr) || c.height !== Math.round(H * dpr)) {
+    c.width = Math.round(W * dpr);
+    c.height = Math.round(H * dpr);
+  }
+  const ctx = c.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { ctx, W, H };
+}
 
-  const t = contestTimes();
-  const rankW = textW('199', m.rowFont);
-  const indent = BORDER + textW('199 ', m.rowFont) + m.rowH;
-
-  let html = `
-    <div class="title-band">
-      <div class="clock left">${fmtClock(t.elapsed, true)}</div>
-      <div class="title">Current Standings</div>
-      <div class="clock right">${fmtClock(t.remain, true)}</div>
-    </div>
-    <div class="header-band">
-      <div class="h" style="left:${BORDER + (rankW - textW('RANK', m.headerFont)) / 2}px">RANK</div>
-      <div class="h" style="left:${indent}px">NAME</div>
-      <div class="h" style="left:${W - BORDER - textW(' 9999', m.rowFont) - (textW('SOLVED', m.headerFont) + textW('99', m.rowFont)) / 2 - 12}px">SOLVED</div>
-      <div class="h" style="left:${W - BORDER - (textW('TIME', m.headerFont) + textW('9999', m.rowFont)) / 2}px">TIME</div>
-      <div class="rule"></div>
-    </div>
-    <div class="rows"><div class="rows-inner">`;
-
-  const cellFont = Math.min(
-    m.statusFont,
-    m.statusFont * (m.cubeW - 8) / Math.max(1, textW('44\u200A-\u200A1267', m.statusFont))
-  );
-  const cellTop = m.rowH * 0.6 + CUBE_INSET / 2 - 1;
-
-  rows.forEach((r, idx) => {
-    const t2 = r.team || {};
-    const name = t2.display_name || t2.name || t2.id;
-    const avail = Math.max(40, W - BORDER - textW('199 9 9999 ', m.rowFont) - m.rowH - indent);
-    const nameFs = fitFont(name, m.rowFont, avail);
-    const parts = [];
-    parts.push(`<div class="rank" style="left:${BORDER + (rankW - textW(r.rank, m.rowFont)) / 2}px;width:${rankW}px">${r.rank}</div>`);
-    parts.push(`<div class="name" style="left:${indent}px;font-size:${nameFs}px;max-width:${avail}px">${esc(name)}</div>`);
-    if (r.solved > 0)
-      parts.push(`<div class="solved" style="left:${W - BORDER - textW(' 9999', m.rowFont) - (textW('99', m.rowFont) + textW(String(r.solved), m.rowFont)) / 2}px">${r.solved}</div>`);
-    if (r.penalty > 0)
-      parts.push(`<div class="time" style="left:${W - BORDER - (textW('9999', m.rowFont) + textW(String(Math.floor(r.penalty / 60)), m.rowFont)) / 2}px">${Math.floor(r.penalty / 60)}</div>`);
-
-    probs.forEach((p, i) => {
+function perProblemStats(data) {
+  return data.probs.map((_, i) => {
+    let pending = 0, solved = 0;
+    for (const r of data.rows) {
       const c = r.cells[i];
-      let cls = 'empty', inner = `<span class="label">${esc(p.label)}</span>`;
-      // 源码：只要有提交就显示「次数-分钟」，颜色区分状态，没有问号
-      if (c && c.solvedAt !== null) {
-        cls = 'solved';
-        inner = `${c.subs}\u200A-\u200A${Math.floor(c.solvedAt / 60)}`;
-      } else if (c && c.pending) {
-        cls = 'pending';
-        inner = `${c.subs}\u200A-\u200A${Math.floor(c.lastAt / 60)}`;
-      } else if (c && c.subs) {
-        cls = 'failed';
-        inner = `${c.subs}\u200A-\u200A${Math.floor(c.lastAt / 60)}`;
-      }
-      const x = indent + i * (m.cubeW + CUBE_INSET);
-      parts.push(`<div class="cube ${cls}" style="left:${x}px;top:${cellTop}px;
-        width:${m.cubeW}px;font-size:${cellFont}px">${inner}</div>`);
-    });
-
-    html += `<div class="row${idx % 2 === 0 ? ' odd' : ''}" style="top:${idx * m.rowH}px">${parts.join('')}</div>`;
+      if (!c) continue;
+      if (c.solvedAt !== null) solved++;
+      else if (c.pending) pending++;
+    }
+    return { pending, solved };
   });
+}
 
-  html += `</div></div>`;
-  pane.innerHTML = html;
+function renderStandings(pane, data) {
+  const { ctx, W, H } = ensureCanvas(pane);
+  if (!W || !H) return;
+
+  const L = makeLayout(W, H, data.probs.length);
+  const t = contestTimes();
+  const times = {
+    elapsedText: fmtClock(t.elapsed, true),
+    remainText: fmtClock(t.remain, true),
+  };
+
+  // 翻页滚动：每 MS_PER_PAGE 翻一页，SCROLL_MS 内平滑过渡
+  const pages = Math.max(1, Math.ceil(data.rows.length / 12));
+  const now = performance.now();
+  if (!scroll.lastSwitch) scroll.lastSwitch = now;
+  if (now - scroll.lastSwitch >= MS_PER_PAGE && pages > 1) {
+    scroll.page = (scroll.page + 1) % pages;
+    scroll.from = scroll.page === 0 ? (pages - 1) * 12 * L.rowH : (scroll.page - 1) * 12 * L.rowH;
+    scroll.to = scroll.page * 12 * L.rowH;
+    scroll.animStart = now;
+    scroll.lastSwitch = now;
+  }
+  let scrollPx = 0;
+  if (pages > 1) {
+    const k = Math.min(1, (now - scroll.animStart) / SCROLL_MS);
+    const ease = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+    scrollPx = scroll.from + (scroll.to - scroll.from) * ease;
+  }
+
+  const fade = Math.min(1, (performance.now() - shownAt) / FADE_IN_MS);
+  drawFrame(ctx, L, data.rows, data.probs, times, scrollPx, perProblemStats(data), fade);
 }
 
 function esc(s) {
@@ -211,10 +210,10 @@ function layout() {
 }
 
 function draw() {
-  if (!dirty) return;
-  dirty = false;
+  // 有滚动动画，必须每帧重画（对齐 Java 的立即模式）
   const data = computeStandings(M);
   renderStandings(paneA, data);
+  dirty = false;
 }
 
 async function bootstrap() {

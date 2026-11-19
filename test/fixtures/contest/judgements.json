@@ -2,31 +2,55 @@
   {
     "id": "js1",
     "submission_id": "s1",
-    "judgement_type_id": "AC"
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:01:00.000",
+    "end_contest_time": "0:01:00.000",
+    "start_time": "2026-01-01T00:01:00.000Z",
+    "end_time": "2026-01-01T00:01:00.000Z"
   },
   {
     "id": "js2",
     "submission_id": "s2",
-    "judgement_type_id": "WA"
+    "judgement_type_id": "WA",
+    "start_contest_time": "0:01:30.000",
+    "end_contest_time": "0:01:30.000",
+    "start_time": "2026-01-01T00:01:30.000Z",
+    "end_time": "2026-01-01T00:01:30.000Z"
   },
   {
     "id": "js3",
     "submission_id": "s3",
-    "judgement_type_id": "WA"
+    "judgement_type_id": "WA",
+    "start_contest_time": "0:02:30.000",
+    "end_contest_time": "0:02:30.000",
+    "start_time": "2026-01-01T00:02:30.000Z",
+    "end_time": "2026-01-01T00:02:30.000Z"
   },
   {
     "id": "js4",
     "submission_id": "s4",
-    "judgement_type_id": "AC"
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:05:00.000",
+    "end_contest_time": "0:05:00.000",
+    "start_time": "2026-01-01T00:05:00.000Z",
+    "end_time": "2026-01-01T00:05:00.000Z"
   },
   {
     "id": "js5",
     "submission_id": "s5",
-    "judgement_type_id": "CE"
+    "judgement_type_id": "CE",
+    "start_contest_time": "0:00:40.000",
+    "end_contest_time": "0:00:40.000",
+    "start_time": "2026-01-01T00:00:40.000Z",
+    "end_time": "2026-01-01T00:00:40.000Z"
   },
   {
     "id": "js6",
     "submission_id": "s6",
-    "judgement_type_id": "AC"
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:02:00.000",
+    "end_contest_time": "0:02:00.000",
+    "start_time": "2026-01-01T00:02:00.000Z",
+    "end_time": "2026-01-01T00:02:00.000Z"
   }
 ]
