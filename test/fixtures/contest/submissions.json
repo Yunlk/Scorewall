@@ -1,0 +1,44 @@
+[
+  {
+    "id": "s1",
+    "team_id": "t1",
+    "problem_id": "A",
+    "contest_time": "0:01:00.000"
+  },
+  {
+    "id": "s2",
+    "team_id": "t2",
+    "problem_id": "A",
+    "contest_time": "0:01:30.000"
+  },
+  {
+    "id": "s3",
+    "team_id": "t2",
+    "problem_id": "A",
+    "contest_time": "0:02:30.000"
+  },
+  {
+    "id": "s4",
+    "team_id": "t2",
+    "problem_id": "A",
+    "contest_time": "0:05:00.000"
+  },
+  {
+    "id": "s5",
+    "team_id": "t3",
+    "problem_id": "A",
+    "contest_time": "0:00:40.000"
+  },
+  {
+    "id": "s6",
+    "team_id": "t3",
+    "problem_id": "A",
+    "contest_time": "0:02:00.000"
+  },
+  {
+    "id": "s7",
+    "team_id": "t3",
+    "problem_id": "B",
+    "contest_time": "0:03:00.000"
+  }
+]

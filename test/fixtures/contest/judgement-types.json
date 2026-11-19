@@ -1,0 +1,20 @@
+[
+  {
+    "id": "AC",
+    "name": "Accepted",
+    "solved": true,
+    "penalty": false
+  },
+  {
+    "id": "WA",
+    "name": "Wrong Answer",
+    "solved": false,
+    "penalty": true
+  },
+  {
+    "id": "CE",
+    "name": "Compile Error",
+    "solved": false,
+    "penalty": false
+  }
+]

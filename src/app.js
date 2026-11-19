@@ -9,6 +9,8 @@
  */
 'use strict';
 
+import { rel2sec, fmtClock, computeStandings, resolveUrl } from './scoring.js';
+
 const Q = new URLSearchParams(location.search);
 const SRC = (Q.get('src') || 'http://127.0.0.1:8081/api/contests/144333').replace(/\/$/, '');
 const VIEW = Q.get('view') || 'standings';
@@ -55,96 +57,6 @@ const BAGS = {
 };
 
 // ---------------- 时间 ----------------
-/** RelativeTime "0:13:07.000" -> 秒 */
-function rel2sec(s) {
-  const a = String(s || '0:0:0.000').replace(/^[-+]/, '').split(':');
-  return Math.floor(+a[0] * 3600 + +a[1] * 60 + parseFloat(a[2] || 0));
-}
-
-/** AbstractICPCPresentation.getTime：h:mm:ss，未开始加负号 */
-function fmtClock(ms, floor) {
-  let sec = ms / 1000;
-  sec = floor ? Math.floor(sec) : Math.round(sec);
-  const neg = sec < 0;
-  const a = Math.abs(sec);
-  const h = Math.floor(a / 3600) % 48;
-  const m = Math.floor(a / 60) % 60;
-  const s = Math.floor(a) % 60;
-  const p = n => String(n).padStart(2, '0');
-  return (neg && h === 0 ? '-' : '') + h + ':' + p(m) + ':' + p(s);
-}
-
-function contestTimes() {
-  const c = M.contest;
-  const start = c.start_time ? Date.parse(c.start_time) : Date.now();
-  const dur = (() => {
-    const d = String(c.duration || '5:00:00').split(':');
-    return (+d[0] * 3600 + +d[1] * 60 + (+d[2] || 0)) * 1000;
-  })();
-  const now = Date.now();
-  return { elapsed: now - start, remain: start + dur - now };
-}
-
-// ---------------- 排名（ICPC 规则） ----------------
-function computeStandings() {
-  const probs = [...M.problems.values()].sort((a, b) => a.ordinal - b.ordinal);
-  const pidx = new Map(probs.map((p, i) => [p.id, i]));
-  const penaltySec = (M.contest.penalty_time || 20) * 60;
-
-  // 每条提交的判题结论
-  const verdict = new Map();          // submission id -> judgement
-  for (const j of M.judgements.values()) verdict.set(j.submission_id, j);
-
-  const cells = new Map();            // teamId -> [{solvedAt, attempts, pending}]
-  for (const t of M.teams.keys()) cells.set(t, probs.map(() => null));
-
-  const subs = [...M.submissions.values()]
-    .sort((a, b) => rel2sec(a.contest_time) - rel2sec(b.contest_time));
-
-  // 判题类型表：solved / penalty 由数据决定，不硬编码类型名
-  const jtMap = M.judgementTypes;
-
-  for (const sub of subs) {
-    const ti = cells.get(sub.team_id);
-    const pi = pidx.get(sub.problem_id);
-    if (!ti || pi === undefined) continue;
-    const j = verdict.get(sub.id);
-    const jtId = j ? (j.judgement_type_id || '') : null;
-    const jt = jtId ? jtMap.get(jtId) : null;
-    const ct = rel2sec(sub.contest_time);
-    const c = ti[pi] || { attempts: 0, solvedAt: null, pending: false };
-
-    if (c.solvedAt !== null) continue;            // 已通过，后续忽略
-
-    if (!jtId) {                                  // 没有判题结论
-      c.pending = true;
-    } else if (jt && jt.solved) {                 // 通过
-      c.solvedAt = ct;
-      c.pending = false;
-    } else if (!jt || jt.penalty) {               // 计罚时的失败（含未知类型）
-      c.attempts++;
-      c.lastAt = ct;
-    }                                             // 其它：不计尝试不计罚时
-    ti[pi] = c;
-  }
-
-  const rows = [];
-  for (const [tid, list] of cells) {
-    const t = M.teams.get(tid);
-    let solved = 0, penalty = 0;
-    list.forEach((c, i) => {
-      if (c && c.solvedAt !== null) {
-        solved++;
-        penalty += c.solvedAt + c.attempts * penaltySec;
-      }
-    });
-    rows.push({ team: t, cells: list, solved, penalty });
-  }
-  rows.sort((a, b) => b.solved - a.solved || a.penalty - b.penalty);
-  rows.forEach((r, i) => { r.rank = i + 1; });
-  return { rows, probs };
-}
-
 // ---------------- 布局（AbstractScoreboardPresentation.setup） ----------------
 const ROWS = 12, CUBE_INSET = 5, BORDER = 8;
 
@@ -285,7 +197,7 @@ function layout() {
 function draw() {
   if (!dirty) return;
   dirty = false;
-  const data = computeStandings();
+  const data = computeStandings(M);
   renderStandings(paneA, data);
 }
 

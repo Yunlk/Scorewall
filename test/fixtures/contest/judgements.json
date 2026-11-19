@@ -1,0 +1,32 @@
+[
+  {
+    "id": "js1",
+    "submission_id": "s1",
+    "judgement_type_id": "AC"
+  },
+  {
+    "id": "js2",
+    "submission_id": "s2",
+    "judgement_type_id": "WA"
+  },
+  {
+    "id": "js3",
+    "submission_id": "s3",
+    "judgement_type_id": "WA"
+  },
+  {
+    "id": "js4",
+    "submission_id": "s4",
+    "judgement_type_id": "AC"
+  },
+  {
+    "id": "js5",
+    "submission_id": "s5",
+    "judgement_type_id": "CE"
+  },
+  {
+    "id": "js6",
+    "submission_id": "s6",
+    "judgement_type_id": "AC"
+  }
+]

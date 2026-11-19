@@ -1,0 +1,17 @@
+[
+  {
+    "id": "A",
+    "label": "A",
+    "ordinal": 0
+  },
+  {
+    "id": "B",
+    "label": "B",
+    "ordinal": 1
+  },
+  {
+    "id": "C",
+    "label": "C",
+    "ordinal": 2
+  }
+]
