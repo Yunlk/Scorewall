@@ -112,10 +112,14 @@ export class JudgeQueue {
     this.records = [];
     this.reservedRows = 0;
     this.opts = opts;
+    // Java: 这两个是实例字段，外部可调
+    this.timeToKeepFailed = opts.timeToKeepFailed ?? TIME_TO_KEEP_FAILED;
+    this.timeToKeepSolved = opts.timeToKeepSolved ?? TIME_TO_KEEP_SOLVED;
   }
 
   /** 新提交进队（JudgePresentation.createSubmissionRecord） */
   add(submission) {
+    // Java handleSubmission：已存在就刷新引用，不新建
     const existing = this.records.find(r => r.submission.id === submission.id);
     if (existing) { existing.submission = submission; return existing; }
 
@@ -135,6 +139,13 @@ export class JudgeQueue {
     return sr;
   }
 
+  /** 对应 Java listener：同一 id 的对象更新时刷新记录 */
+  refresh(submission) {
+    const r = this.records.find(x => x.submission.id === submission.id);
+    if (r) { r.submission = submission; return true; }
+    return false;
+  }
+
   /** JudgePresentation.updateTargets */
   updateTargets(force) {
     const { judged, solved, frozen } = this.opts;
@@ -148,9 +159,9 @@ export class JudgeQueue {
       let target = 0;
       if (this.reservedRows === 0) {
         target = count;
-        if (sr.action === Action.MOVE_UP && sr.actionAge > TIME_TO_KEEP_SOLVED) {
+        if (sr.action === Action.MOVE_UP && sr.actionAge > this.timeToKeepSolved) {
           target = -TEAMS_PER_SCREEN;
-        } else if (sr.action === Action.MOVE_DOWN && sr.actionAge > TIME_TO_KEEP_FAILED) {
+        } else if (sr.action === Action.MOVE_DOWN && sr.actionAge > this.timeToKeepFailed) {
           target = TEAMS_PER_SCREEN * 2;
         } else if (sr.action === Action.MOVE_OUT && sr.actionAge > TIME_TO_FADE_RECENT / 3) {
           // 滑出中不占行
@@ -159,7 +170,7 @@ export class JudgeQueue {
         }
       } else {
         if (sr.action === Action.MOVE_UP) {
-          if (sr.actionAge > TIME_TO_KEEP_SOLVED || numSolved > this.reservedRows) {
+          if (sr.actionAge > this.timeToKeepSolved || numSolved > this.reservedRows) {
             target = -TEAMS_PER_SCREEN;
             numSolved--;
           } else target = count++;
@@ -212,7 +223,7 @@ export class JudgeQueue {
   alphaOf(sr) {
     if (sr.action === Action.MOVE_DOWN) {
       return Math.min(1.0, Math.max(0.1,
-        1.0 - (sr.actionAge - TIME_TO_KEEP_FAILED * 0.75) * 2.0 / TIME_TO_KEEP_FAILED));
+        1.0 - (sr.actionAge - this.timeToKeepFailed * 0.75) * 2.0 / this.timeToKeepFailed));
     }
     if (sr.action === Action.MOVE_OUT) {
       return Math.max(0, 1.0 - sr.actionAge / TIME_TO_FADE_RECENT);

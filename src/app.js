@@ -340,6 +340,7 @@ function renderJudge(pane) {
 
   for (const sub of M.submissions.values()) {
     if (!judgeSeen.has(sub.id)) { judgeSeen.add(sub.id); q.add(sub); }
+    else q.refresh(sub);          // Java listener：对象更新也走 handleSubmission
   }
 
   const dt = Math.min(200, Math.max(0, now - judgeLast));
