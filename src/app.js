@@ -10,7 +10,7 @@
 'use strict';
 
 import { rel2sec, fmtClock, computeStandings, resolveUrl } from './scoring.js';
-import { makeLayout, drawFrame, MS_PER_PAGE, SCROLL_MS } from './standings-canvas.js';
+import { makeLayout, drawFrame, MS_PER_PAGE, SCROLL_MS } from './standings-canvas.js?v=3';
 
 const Q = new URLSearchParams(location.search);
 const SRC = (Q.get('src') || 'http://127.0.0.1:8081/api/contests/144333').replace(/\/$/, '');

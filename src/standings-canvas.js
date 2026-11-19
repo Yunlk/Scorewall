@@ -16,7 +16,9 @@ export function makeLayout(W, H, nProb) {
   const headerH = Math.floor(H / 50);
   const titleH = Math.floor(H / 30);
   const rowH = (H - headerH - titleH) / ROWS;
-  const base = rowH * 36 * 0.95 / 96;
+  // 源码：base 用 H/teamsPerScreen，不是真实 rowHeight；size0 先取整
+  const size0 = Math.trunc(H * 72 * 0.028 / 96);
+  const base = (H / ROWS) * 36 * 0.95 / 96;
   const cubeH = Math.floor(rowH / 2.5) - CUBE_INSET;
   let cubeW = Math.floor(((rowH / 1.8) - CUBE_INSET) * 10);
   while (cubeW > 30 && (cubeW + CUBE_INSET) * nProb > W - rowH * 3 - 70) cubeW -= 2;
@@ -24,11 +26,11 @@ export function makeLayout(W, H, nProb) {
   return {
     W, H, headerH, titleH, rowH, cubeH, cubeW, nProb,
     rowFont: base * 1.25,
-    rowItalics: base * 1.25,
+    rowItalics: base * 1.25,   // 同 rowFont，无斜体
     statusFont: base * 0.7,
     problemFont: base * 0.5,
-    headerFont: Math.min(H * 0.021, base * 0.85),
-    headerItalics: Math.min(H * 0.021, base * 0.85),
+    headerFont: Math.min(size0, base * 0.85),
+    headerItalics: Math.min(size0, base * 0.85),   // 同 headerFont，无斜体
     titleFont: (H * 0.021) * 2.2,
     clockFont: (H * 0.021) * 1.25,
     indent: BORDER + 0 + 0,      // 下面补
@@ -94,7 +96,7 @@ export function drawFrame(ctx, L, rows, probs, times, scrollPx, perProblem, fade
   // 规则：每个字符串用它实际绘制的那个字号去量，不要交叉
   const fr = f(L.rowFont, true);                 // 数字用 rowFont
   const fh = f(L.headerFont, true);              // NAME / TIME
-  const fhi = f(L.headerItalics, true, true);    // RANK / SOLVED（斜体）
+  const fhi = f(L.headerItalics, true);          // 源码无斜体
   const w = (txt, font) => measure(ctx, txt, font);
 
   const w199 = w('199', fr);
@@ -109,13 +111,13 @@ export function drawFrame(ctx, L, rows, probs, times, scrollPx, perProblem, fade
   ctx.fillStyle = '#fff';
 
   ctx.font = fhi;
-  ctx.fillText('RANK', BORDER + (w199 - w('RANK', fhi)) / 2, hy);
+  ctx.fillText('Rank', BORDER + (w199 - w('Rank', fhi)) / 2, hy);
   ctx.font = fh;
-  ctx.fillText('NAME', BORDER + w199sp + rowH, hy);
+  ctx.fillText('Name', BORDER + w199sp + rowH, hy);
   ctx.font = fhi;
-  ctx.fillText('SOLVED', W - BORDER - w9999sp - (w('SOLVED', fhi) + w99) / 2, hy);
+  ctx.fillText('Solved', W - BORDER - w9999sp - (w('Solved', fhi) + w99) / 2, hy);
   ctx.font = fh;
-  ctx.fillText('TIME', W - BORDER - (w('TIME', fh) + w9999) / 2, hy);
+  ctx.fillText('Time', W - BORDER - (w('Time', fh) + w9999) / 2, hy);
 
   ctx.fillStyle = '#fff';
   ctx.fillRect(0, titleH + headerH - 1, W, 1);
@@ -149,7 +151,7 @@ export function drawFrame(ctx, L, rows, probs, times, scrollPx, perProblem, fade
   // ---------- 底部两行统计（drawStatsRow） ----------
   const sy = rows.length * barH;
   const statY = (int => 0)(0) + Math.floor(rowH * 0.6);
-  ctx.font = f(L.rowItalics, true, true);
+  ctx.font = f(L.rowItalics, true);
   ctx.textAlign = 'center';
   ctx.fillStyle = COLORS.statsText;
   for (let p = 0; p < probs.length; p++) {

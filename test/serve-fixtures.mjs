@@ -100,6 +100,9 @@ const server = http.createServer((req, res) => {
   res.writeHead(200, {
     'Content-Type': MIME[extname(full)] || 'application/octet-stream',
     'Content-Length': body.length,
+    'Cache-Control': 'no-store, must-revalidate',
+    Pragma: 'no-cache',
+    Expires: '0',
   });
   res.end(body);
 });
