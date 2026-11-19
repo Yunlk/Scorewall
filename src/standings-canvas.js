@@ -9,7 +9,7 @@
 const ROWS = 12, CUBE_INSET = 5, BORDER = 8, ARC = 7;
 const MS_PER_PAGE = 12000, SCROLL_MS = 1500;
 
-const FONT = 'Arial, Helvetica, "Microsoft YaHei", sans-serif';
+const FONT = '"ICPCFont", Arial, "Microsoft YaHei", sans-serif';
 const f = (px, bold, italic) => `${italic ? 'italic ' : ''}${bold ? 'bold ' : ''}${px}px ${FONT}`;
 
 export function makeLayout(W, H, nProb) {

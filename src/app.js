@@ -266,6 +266,14 @@ function loop() {
 
 window.addEventListener('resize', () => { dirty = true; });
 layout();
+(async () => {
+  // 字体没加载完就画，第一帧会落到 Arial 上，度量全错
+  try {
+    await document.fonts.load('20px ICPCFont');
+    await document.fonts.load('bold 20px ICPCFont');
+    await document.fonts.ready;
+  } catch (_) {}
+})();
 bootstrap().then(() => {
   dirty = true;
   draw();          // 先把快照画出来，不等 SSE

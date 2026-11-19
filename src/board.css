@@ -1,3 +1,12 @@
+/* ICPC Tools 自带字体（从 presentations.jar 取出，font/Helvetica-Plain.ttf） */
+@font-face {
+  font-family: 'ICPCFont';
+  src: url('fonts/Helvetica-Plain.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
+}
+
 /* Scorewall —— ICPC Tools 视觉复刻
  *
  * 所有数值来自上游源码（见 docs/presentation-constants.md），不要凭感觉调。
