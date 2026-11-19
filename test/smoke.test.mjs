@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { computeStandings, rel2sec, fmtClock, resolveUrl } from '../src/scoring.js';
+import { makeState, freezeAtSec, isJudgementHidden } from '../src/state.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const load = n => JSON.parse(readFileSync(join(here, 'fixtures/smoke', n + '.json'), 'utf8'));
@@ -68,4 +69,51 @@ test('已通过后再次提交被忽略', () => {
   const alpha = rows.find(r => r.team.name === 'Alpha');
   assert.equal(alpha.solved, 1);
   assert.equal(alpha.penalty, 60, '通过后的失败不计罚时');
+});
+
+
+test('state 判据（源码：字段有无，不是布尔）', () => {
+  const running = makeState({ started: '2026-01-01T00:00:00.000Z' });
+  assert.equal(running.isRunning(), true);
+  assert.equal(running.isFrozen(), false);
+
+  const frozen = makeState({ started: '2026-01-01T00:00:00.000Z', frozen: '2026-01-01T04:00:00.000Z' });
+  assert.equal(frozen.isRunning(), true);
+  assert.equal(frozen.isFrozen(), true);
+
+  const ended = makeState({ started: '2026-01-01T00:00:00.000Z', ended: '2026-01-01T05:00:00.000Z' });
+  assert.equal(ended.isRunning(), false);
+
+  const thawed = makeState({ frozen: '2026-01-01T04:00:00.000Z', thawed: '2026-01-01T05:00:00.000Z' });
+  assert.equal(thawed.isFrozen(), false);
+});
+
+test('FreezeFilter：封榜后提交的判题被隐藏', () => {
+  const st = makeState({ started: '2026-01-01T00:00:00.000Z', frozen: '2026-01-01T04:00:00.000Z' });
+  const at = freezeAtSec(5 * 3600 * 1000, 3600 * 1000);   // 5h 比赛，封榜 1h → 4h 处
+  assert.equal(at, 4 * 3600);
+  assert.equal(isJudgementHidden(st, 3 * 3600, at), false);   // 封榜前
+  assert.equal(isJudgementHidden(st, 4 * 3600, at), true);    // 正好封榜（>=）
+  assert.equal(isJudgementHidden(st, 5 * 3600, at), true);    // 封榜后
+
+  // 没封榜就不隐藏
+  const running = makeState({ started: '2026-01-01T00:00:00.000Z' });
+  assert.equal(isJudgementHidden(running, 5 * 3600, at), false);
+});
+
+test('封榜时排名不把封榜后的 AC 算进去', () => {
+  const m = model();
+  // t1 在 4:30 又过一题，但封榜起点是 4h
+  m.submissions.set('s10', { id: 's10', team_id: 't1', problem_id: 'C', contest_time: '4:30:00.000' });
+  m.judgements.set('j10', { id: 'j10', submission_id: 's10', judgement_type_id: 'AC' });
+  const st = makeState({ started: '2026-01-01T00:00:00.000Z', frozen: '2026-01-01T04:00:00.000Z' });
+  const at = freezeAtSec(5 * 3600 * 1000, 3600 * 1000);
+
+  const open = computeStandings(m).rows.find(r => r.team.name === 'Alpha');
+  assert.equal(open.solved, 2, '未封榜时算 2 题');
+
+  const frozen = computeStandings(m, {
+    hideJudgement: sub => isJudgementHidden(st, rel2sec(sub.contest_time), at),
+  }).rows.find(r => r.team.name === 'Alpha');
+  assert.equal(frozen.solved, 1, '封榜后只算 1 题');
 });

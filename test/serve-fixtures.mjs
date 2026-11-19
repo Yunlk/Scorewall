@@ -38,6 +38,7 @@ const COLLECTIONS = {
   organizations: null,
   'judgement-types': 'judgement-types',
   'start-status': 'start-status',
+  state: 'state',
 };
 
 function json(res, obj, code = 200) {

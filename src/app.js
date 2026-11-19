@@ -12,6 +12,7 @@
 import { rel2sec, fmtClock, computeStandings, resolveUrl } from './scoring.js';
 import { makeLayout, drawFrame, MS_PER_PAGE, SCROLL_MS } from './standings-canvas.js?v=3';
 import { drawCountdown } from './countdown-canvas.js';
+import { makeState, freezeAtSec, isJudgementHidden } from './state.js';
 
 const Q = new URLSearchParams(location.search);
 const SRC = (Q.get('src') || 'http://127.0.0.1:8081/api/contests/144333').replace(/\/$/, '');
@@ -29,6 +30,8 @@ const M = {
   orgs: new Map(),
   startStatus: new Map(),
   judgementTypes: new Map(),
+  state: null,
+  info: {},
 };
 
 function apply(type, id, data) {
@@ -50,6 +53,25 @@ const BAGS = {
 };
 
 // ---------------- 时间 ----------------
+/** 时长与封榜时长（毫秒），来源 info.scoreboard_freeze_duration */
+function durationMs() {
+  const d = String(M.contest.duration || '5:00:00').split(':');
+  return (+d[0] * 3600 + +d[1] * 60 + (+d[2] || 0)) * 1000;
+}
+function freezeMs() {
+  const v = M.contest.scoreboard_freeze_duration || M.info.scoreboard_freeze_duration;
+  if (!v) return null;
+  if (typeof v === 'number') return v * 1000;
+  const d = String(v).split(':');
+  return (+d[0] * 3600 + +d[1] * 60 + (+d[2] || 0)) * 1000;
+}
+function syncContestExtras() {
+  try {
+    const one = p => fetch(`${SRC}/${p}`).then(r => r.ok ? r.json() : null).catch(() => null);
+    one('').then(c => { if (c && c.scoreboard_freeze_duration) M.contest.scoreboard_freeze_duration = c.scoreboard_freeze_duration; });
+  } catch (_) {}
+}
+
 /** 已用时 / 剩余时间（毫秒） */
 function contestTimes() {
   const c = M.contest;
@@ -198,7 +220,8 @@ function renderStandings(pane, data) {
   }
 
   const alpha = FORCE_FADE !== null ? FORCE_FADE : Math.max(0, Math.min(1, fade));
-  drawFrame(ctx, L, data.rows, data.probs, times, scrollPx, perProblemStats(data), alpha);
+  drawFrame(ctx, L, data.rows, data.probs, times, scrollPx, perProblemStats(data), alpha,
+    { frozen: !!(M.state && M.state.isFrozen()) });
 }
 
 function esc(s) {
@@ -235,7 +258,10 @@ function layout() {
 function draw() {
   if (VIEW === 'countdown') { renderCountdown(paneA); dirty = false; return; }
   // 有滚动动画，必须每帧重画（对齐 Java 的立即模式）
-  const data = computeStandings(M);
+  const at = freezeAtSec(durationMs(), freezeMs());
+  const data = computeStandings(M, {
+    hideJudgement: sub => isJudgementHidden(M.state, rel2sec(sub.contest_time), at),
+  });
   renderStandings(paneA, data);
   dirty = false;
 }
@@ -268,9 +294,9 @@ async function bootstrap() {
       return await r.json();
     } catch (_) { return null; }
   };
-  const [teams, problems, subs, judges, orgs, jtypes, sites] = await Promise.all(
+  const [teams, problems, subs, judges, orgs, jtypes, sites, st] = await Promise.all(
     ['teams', 'problems', 'submissions', 'judgements', 'organizations',
-     'judgement-types', 'start-status'].map(one));
+     'judgement-types', 'start-status', 'state'].map(one));
   (teams || []).forEach(t => M.teams.set(t.id, t));
   (problems || []).forEach(p => M.problems.set(p.id, p));
   (subs || []).forEach(s => M.submissions.set(s.id, s));
@@ -278,6 +304,8 @@ async function bootstrap() {
   (orgs || []).forEach(o => M.orgs.set(o.id, o));
   (jtypes || []).forEach(t => M.judgementTypes.set(t.id, t));
   (sites || []).forEach(s => M.startStatus.set(s.id, s));
+  M.state = makeState(st);
+  syncContestExtras();
   dirty = true;
 }
 

@@ -38,8 +38,10 @@ export function resolveUrl(base, href) {
  * @param model { contest, teams:Map, problems:Map, submissions:Map, judgements:Map, judgementTypes:Map }
  * @returns { rows, probs }
  */
-export function computeStandings(model) {
+export function computeStandings(model, opts = {}) {
   const { contest = {}, teams, problems, submissions, judgements } = model;
+  // 封榜：FreezeFilter —— contestTime >= freezeAt 的判题视为不存在
+  const hideJudgement = opts.hideJudgement || (() => false);
   const jtMap = model.judgementTypes || new Map();
 
   const probs = [...problems.values()].sort((a, b) => a.ordinal - b.ordinal);
@@ -62,7 +64,8 @@ export function computeStandings(model) {
     const pi = pidx.get(sub.problem_id);
     if (!ti || pi === undefined) continue;
 
-    const j = verdict.get(sub.id);
+    let j = verdict.get(sub.id);
+    if (j && hideJudgement(sub)) j = null;      // 封榜隐藏
     const jtId = j ? (j.judgement_type_id || '') : null;
     const jt = jtId ? jtMap.get(jtId) : null;
     const ct = rel2sec(sub.contest_time);

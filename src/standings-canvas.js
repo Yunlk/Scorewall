@@ -73,7 +73,7 @@ const COLORS = {
  * @param scrollPx 当前滚动偏移（像素）
  * @param perProblem [{pending, solved}] 每题的统计
  */
-export function drawFrame(ctx, L, rows, probs, times, scrollPx, perProblem, fadeAlpha = 1) {
+export function drawFrame(ctx, L, rows, probs, times, scrollPx, perProblem, fadeAlpha = 1, opts = {}) {
   const { W, H, headerH, titleH, rowH, cubeW, cubeH } = L;
   ctx.clearRect(0, 0, W, H);
   ctx.fillStyle = '#000';
@@ -96,10 +96,13 @@ export function drawFrame(ctx, L, rows, probs, times, scrollPx, perProblem, fade
   const clockAsc = ascentOf(clockF) + 2;
   const titleAsc = ascentOf(titleF);
 
+  // TitledPresentation：封榜时时钟用 ICPCColors.YELLOW
+  ctx.fillStyle = opts.frozen ? 'rgb(255,223,54)' : '#fff';
   ctx.font = clockF;
   ctx.textAlign = 'center';
   ctx.fillText(times.elapsedText, W / 12, clockAsc);
   ctx.fillText(times.remainText, W * 11 / 12, clockAsc);
+  ctx.fillStyle = '#fff';
   ctx.font = titleF;
   ctx.fillText('Current Standings', W / 2, titleAsc);
   ctx.textAlign = 'left';
