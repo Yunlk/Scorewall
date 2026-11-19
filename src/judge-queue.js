@@ -61,7 +61,12 @@ export class Animator {
   setTarget(xTarget, vTarget = 0) {
     if (xTarget === this.xTarget && vTarget === this.vTarget) return;
 
+    // 重新取起点、设终点、清零时间（源码 :110-114）
+    this.xInitial = this.getValue();
+    this.xTarget = xTarget;
     this.vTarget = vTarget;
+    this.t = 0;
+
     let acc = this.move.acceleration;
     if (xTarget < this.xInitial) acc = -this.move.acceleration;
     this.acc = acc;
@@ -206,10 +211,15 @@ export class JudgeQueue {
         sr.actionAge += dt;
       }
 
+      // 移除必须发生在「停留结束后的滑动阶段」，否则进场途中 v 还是 14 会被误删
       const v = sr.anim.getValue();
-      if (sr.action === Action.MOVE_UP && v < -1) remove.push(sr);
-      else if (sr.action === Action.MOVE_DOWN && v > TEAMS_PER_SCREEN) remove.push(sr);
-      else if (sr.action === Action.MOVE_OUT && sr.actionAge > TIME_TO_FADE_RECENT) remove.push(sr);
+      if (sr.action === Action.MOVE_UP && sr.actionAge > this.timeToKeepSolved && v < -1) {
+        remove.push(sr);
+      } else if (sr.action === Action.MOVE_DOWN && sr.actionAge > this.timeToKeepFailed && v > TEAMS_PER_SCREEN) {
+        remove.push(sr);
+      } else if (sr.action === Action.MOVE_OUT && sr.actionAge > TIME_TO_FADE_RECENT) {
+        remove.push(sr);
+      }
     }
 
     for (const r of remove) {
