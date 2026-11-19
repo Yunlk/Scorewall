@@ -1,0 +1,69 @@
+/* Scorewall —— ICPC Tools 视觉复刻
+ *
+ * 所有数值来自上游源码（见 docs/presentation-constants.md），不要凭感觉调。
+ * 尺寸是相对高度 H 算出来的，由 JS 每帧写进 CSS 变量。
+ */
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; overflow: hidden; background: #000; color: #fff;
+  font-family: Arial, "Helvetica Neue", "Microsoft YaHei", sans-serif; }
+
+#stage { display: flex; height: 100%; }
+.pane { position: relative; overflow: hidden; flex: 1 1 0; }
+.pane.hidden { display: none; }
+.pane + .pane:not(.hidden) { border-left: 1px solid #111; }
+
+/* ---------- 标题栏（TitledPresentation） ---------- */
+.title-band { position: absolute; left: 0; right: 0; top: 0; background: #000;
+  height: var(--title-h); }
+.title-band .clock, .title-band .title { position: absolute; white-space: nowrap;
+  font-weight: bold; line-height: var(--title-h); }
+.title-band .clock { font-size: var(--clock-fs); }
+.title-band .clock.left { left: calc(var(--w) / 12); transform: translateX(-50%); }
+.title-band .clock.right { left: calc(var(--w) * 11 / 12); transform: translateX(-50%); }
+.title-band .title { left: 50%; transform: translateX(-50%); font-size: var(--title-fs); }
+
+/* ---------- 表头 ---------- */
+.header-band { position: absolute; left: 0; right: 0; top: var(--title-h);
+  height: var(--header-h); background: #000; }
+.header-band .h { position: absolute; font-weight: bold; font-size: var(--header-fs);
+  white-space: nowrap; top: calc(var(--header-h) - var(--header-fs) - 3px); }
+.header-band .rule { position: absolute; left: 0; right: 0; height: 1px; background: #fff;
+  top: calc(var(--header-h) - 1px); }
+
+/* ---------- 行 ---------- */
+.rows { position: absolute; left: 0; right: 0;
+  top: calc(var(--title-h) + var(--header-h)); height: var(--content-h);
+  overflow: hidden; }
+.rows-inner { position: absolute; left: 0; right: 0; top: 0;
+  transition: transform 1500ms ease-in-out; }
+.row { position: absolute; left: 0; right: 0; height: var(--row-h); }
+.row.odd { background: rgb(60, 60, 60); }            /* BG_COLOR */
+.row .rank { position: absolute; font-weight: bold; text-align: center;
+  font-size: var(--row-fs); top: 5px; }
+.row .name { position: absolute; font-weight: bold; font-size: var(--row-fs);
+  top: 5px; white-space: nowrap; overflow: hidden; }
+.row .solved, .row .time { position: absolute; font-weight: bold;
+  font-size: var(--row-fs); top: 5px; }
+
+/* ---------- 题目格子（ShadedRectangle） ---------- */
+.cube { position: absolute; border-radius: 7px;                 /* ARC */
+  display: flex; align-items: center; justify-content: center;
+  font-weight: bold; white-space: nowrap; overflow: hidden;
+  height: var(--cube-h); font-size: var(--status-fs); }
+.cube.empty { background: rgb(40, 40, 40); color: rgba(196,196,196,.69); }
+.cube.solved { background: rgb(0, 230, 0); color: #fff; }
+.cube.failed { background: rgb(240, 0, 0); color: #fff; }
+.cube.pending { background: rgb(66, 114, 245); color: #000; }
+.cube.fts { background: rgb(0, 100, 0); color: #fff;
+  box-shadow: inset 0 0 0 2px rgb(0, 230, 0); }
+.cube.recent.solved { background: linear-gradient(rgb(0,230,0), rgb(0,125,0)); }
+.cube.recent.failed { background: linear-gradient(rgb(240,0,0), rgb(132,0,0)); }
+.cube.recent.pending { background: linear-gradient(rgb(66,114,245), rgb(36,63,135)); }
+.cube .label { font-size: var(--problem-fs); font-weight: normal; }
+
+/* ---------- 状态提示 ---------- */
+#hint { position: fixed; left: 50%; top: 10px; transform: translateX(-50%);
+  padding: 6px 16px; border-radius: 4px; font-size: 14px; display: none;
+  background: #7a1010; }
+#hint.show { display: block; }
