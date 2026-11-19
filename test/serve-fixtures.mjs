@@ -37,7 +37,7 @@ const COLLECTIONS = {
   judgements: 'judgements',
   organizations: null,
   'judgement-types': 'judgement-types',
-  'start-status': null,
+  'start-status': 'start-status',
 };
 
 function json(res, obj, code = 200) {

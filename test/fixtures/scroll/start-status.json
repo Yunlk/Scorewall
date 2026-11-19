@@ -1,0 +1,47 @@
+[
+  {
+    "id": "security",
+    "label": "Security",
+    "status": 2
+  },
+  {
+    "id": "network",
+    "label": "Network Control",
+    "status": 2
+  },
+  {
+    "id": "judges",
+    "label": "Judges",
+    "status": 2
+  },
+  {
+    "id": "sysops",
+    "label": "Sysops",
+    "status": 1
+  },
+  {
+    "id": "ed",
+    "label": "Executive Director",
+    "status": 2
+  },
+  {
+    "id": "marshalls",
+    "label": "Marshalls",
+    "status": 0
+  },
+  {
+    "id": "control",
+    "label": "Contest Control",
+    "status": 2
+  },
+  {
+    "id": "director",
+    "label": "Contest Director",
+    "status": 2
+  },
+  {
+    "id": "operations",
+    "label": "Operations",
+    "status": 1
+  }
+]

@@ -11,6 +11,7 @@
 
 import { rel2sec, fmtClock, computeStandings, resolveUrl } from './scoring.js';
 import { makeLayout, drawFrame, MS_PER_PAGE, SCROLL_MS } from './standings-canvas.js?v=3';
+import { drawCountdown } from './countdown-canvas.js';
 
 const Q = new URLSearchParams(location.search);
 const SRC = (Q.get('src') || 'http://127.0.0.1:8081/api/contests/144333').replace(/\/$/, '');
@@ -225,17 +226,37 @@ window.addEventListener('unhandledrejection', ev => {
 });
 
 function layout() {
-  if (VIEW === 'standings' || VIEW === 'judge') {
+  if (VIEW === 'standings' || VIEW === 'judge' || VIEW === 'countdown') {
     paneA.style.display = 'block';
     paneB.classList.add('hidden');
   }
 }
 
 function draw() {
+  if (VIEW === 'countdown') { renderCountdown(paneA); dirty = false; return; }
   // 有滚动动画，必须每帧重画（对齐 Java 的立即模式）
   const data = computeStandings(M);
   renderStandings(paneA, data);
   dirty = false;
+}
+
+/** #15 带工位状态的倒计时 */
+function renderCountdown(pane) {
+  const { ctx, W, H } = ensureCanvas(pane);
+  if (!W || !H) return;
+  const t = contestTimes();
+  const sites = [...M.startStatus.values()].map(x => ({
+    label: x.label || x.id,
+    status: Number(x.status) || 0,
+  }));
+  // 比赛已开始则显示已用时间，否则显示剩余（负数=还没开始）
+  const start = M.contest.start_time ? Date.parse(M.contest.start_time) : Date.now();
+  const d = String(M.contest.duration || '5:00:00').split(':');
+  const dur = (+d[0] * 3600 + +d[1] * 60 + (+d[2] || 0)) * 1000;
+  let remain = start + dur - Date.now();
+  remain = Math.max(0, Math.min(dur, remain));       // 夹在 [0, duration]，避免 %48 回绕
+  const running = Date.now() >= start && Date.now() <= start + dur;
+  drawCountdown(ctx, W, H, sites, remain, false);
 }
 
 async function bootstrap() {
@@ -247,14 +268,16 @@ async function bootstrap() {
       return await r.json();
     } catch (_) { return null; }
   };
-  const [teams, problems, subs, judges, orgs, jtypes] = await Promise.all(
-    ['teams', 'problems', 'submissions', 'judgements', 'organizations', 'judgement-types'].map(one));
+  const [teams, problems, subs, judges, orgs, jtypes, sites] = await Promise.all(
+    ['teams', 'problems', 'submissions', 'judgements', 'organizations',
+     'judgement-types', 'start-status'].map(one));
   (teams || []).forEach(t => M.teams.set(t.id, t));
   (problems || []).forEach(p => M.problems.set(p.id, p));
   (subs || []).forEach(s => M.submissions.set(s.id, s));
   (judges || []).forEach(j => M.judgements.set(j.id, j));
   (orgs || []).forEach(o => M.orgs.set(o.id, o));
   (jtypes || []).forEach(t => M.judgementTypes.set(t.id, t));
+  (sites || []).forEach(s => M.startStatus.set(s.id, s));
   dirty = true;
 }
 
