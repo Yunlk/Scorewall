@@ -31,8 +31,8 @@ export function makeLayout(W, H, nProb) {
     problemFont: base * 0.5,
     headerFont: Math.min(size0, base * 0.85),
     headerItalics: Math.min(size0, base * 0.85),   // 同 headerFont，无斜体
-    titleFont: (H * 0.021) * 2.2,
-    clockFont: (H * 0.021) * 1.25,
+    titleFont: size0 * 2.2,     // TitledPresentation：size*2.2，size 已截断
+    clockFont: size0 * 1.25,    // TitledPresentation：size*1.25
     indent: BORDER + 0 + 0,      // 下面补
   };
 }
