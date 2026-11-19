@@ -16,39 +16,75 @@ import { fileURLToPath } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url));
 const SRC = join(here, '..', 'src');
 const FIXES = { 1: join(here,'fixtures','smoke'), 2: join(here,'fixtures','scroll') };
+let FIX = FIXES[1];
 
-// ---- 实时模拟：每 3 秒来一条提交，2.5 秒后出判题 ----
+// ---- 实时模拟：真实载荷 + 串行判题机 ----
+// 提交每 3 秒一条；判题机一次判一条，耗时随机 3~20 秒（真实 10~180 秒，这里压缩）
+// judgement 带完整时间戳（start/end_contest_time），和真 CCS 一致
+const BASE = Date.parse('2026-01-01T00:00:00Z');
 const LIVE = { subs: [], judges: [], pending: [], clients: new Set(), n: 0 };
-const TEAMS = ['t1','t2','t3'];
-const PROBS = ['A','B','C'];
+const TEAMS = ['t1', 't2', 't3'];
+const PROBS = ['A', 'B', 'C'];
+// 真实分布：AC 偏多，其次是 WA
+const VERDICTS = ['AC', 'AC', 'AC', 'AC', 'WA', 'WA', 'WA', 'TLE', 'RE', 'CE'];
+
+const relOf = sec => `${Math.floor(sec / 3600)}:${String(Math.floor(sec % 3600 / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}.000`;
+const isoOf = sec => new Date(BASE + sec * 1000).toISOString().replace('.000Z', '.000Z');
+
 function emit(obj) {
   const line = JSON.stringify(obj) + '\n';
   for (const c of LIVE.clients) { try { c.write(line); } catch (_) {} }
 }
+
+function secondOf(rel) {
+  const [h, m, sec] = rel.split(':');
+  return (+h) * 3600 + (+m) * 60 + parseFloat(sec);
+}
+
 function tick() {
   const i = LIVE.n++;
   const sec = 60 + i * 30;
-  const mm = Math.floor(sec / 60), ss = sec % 60;
-  const rel = `0:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}.000`;
-  const sub = { id: 'L' + i, team_id: TEAMS[i % 3], problem_id: PROBS[i % 3], contest_time: rel };
+  const sub = {
+    id: 'L' + i,
+    team_id: TEAMS[i % 3],
+    problem_id: PROBS[i % 3],
+    contest_time: relOf(sec),
+    time: isoOf(sec),
+  };
   LIVE.subs.push(sub);
+  LIVE.pending.push(sub);
   emit({ type: 'submissions', id: sub.id, data: sub });
-  LIVE.pending.push(sub);            // 进判题队列
 }
 
-// 串行判题：一次只判一条（DOMjudge 判题机行为），判完再取下一条
 function judgeTick() {
   const sub = LIVE.pending.shift();
   if (!sub) return;
   const i = Number(sub.id.slice(1));
-  const verdict = i % 3 === 0 ? 'WA' : 'AC';
-  const j = { id: 'JL' + i, submission_id: sub.id, judgement_type_id: verdict };
-  LIVE.judges.push(j);
-  emit({ type: 'judgements', id: j.id, data: j });
+
+  // 判题耗时随机（压缩到 3~20 秒）
+  const judgeSec = 3 + Math.floor(Math.random() * 18);
+  const verdict = VERDICTS[(i * 7) % VERDICTS.length];
+  const startSec = secondOf(sub.contest_time) + 1;
+
+  setTimeout(() => {
+    const endSec = startSec + judgeSec;
+    const j = {
+      id: 'JL' + i,
+      submission_id: sub.id,
+      judgement_type_id: verdict,
+      start_contest_time: relOf(startSec),
+      end_contest_time: relOf(endSec),
+      start_time: isoOf(startSec),
+      end_time: isoOf(endSec),
+    };
+    LIVE.judges.push(j);
+    emit({ type: 'judgements', id: j.id, data: j });
+  }, judgeSec * 1000);
 }
+
 setInterval(tick, 3000);
-setInterval(judgeTick, 2500);
-let FIX = FIXES[1];
+setInterval(judgeTick, 2000);
+
 const PORT = Number(process.argv[2] || 8090);
 
 const MIME = {
@@ -57,6 +93,7 @@ const MIME = {
   '.css': 'text/css; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
   '.png': 'image/png',
+  '.ttf': 'font/ttf',
 };
 
 const fixture = n => JSON.parse(readFileSync(join(FIX, n + '.json'), 'utf8'));

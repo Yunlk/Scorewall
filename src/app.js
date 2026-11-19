@@ -306,8 +306,8 @@ function renderJudge(pane) {
   const times = { elapsedText: fmtClock(t.elapsed, true), remainText: fmtClock(t.remain, true) };
   const frozen = !!(M.state && M.state.isFrozen());
 
-  // 夹具里所有提交都已判完，走动画会当场滑出（Java 也是这样），所以默认静态铺排
-  if (Q.get('anim') !== '1') {
+  // 动画默认开启；&anim=0 退回静态铺排（用于截图/静态夹具）
+  if (Q.get('anim') === '0') {
     const seeded = seedRows(M, data);
     drawJudgeFrame(ctx, L, seeded.rows, seeded.probs, times, { frozen });
     return;
