@@ -15,16 +15,7 @@ const Q = new URLSearchParams(location.search);
 const SRC = (Q.get('src') || 'http://127.0.0.1:8081/api/contests/144333').replace(/\/$/, '');
 const VIEW = Q.get('view') || 'standings';
 
-/** 对齐 RESTContestSource.getResolvedURL：
- *  绝对 URL 原样；以 / 开头走 protocol://authority + href；否则相对 base */
-function resolveUrl(href) {
-  if (!href) return '';
-  if (/^https?:/i.test(href)) return href;
-  const u = new URL(SRC);
-  return href.startsWith('/')
-    ? `${u.protocol}//${u.host}${href}`
-    : `${SRC}/${href.replace(/^\//, '')}`;
-}
+
 
 // ---------------- CCS 模型（单一数据源） ----------------
 const M = {
@@ -57,6 +48,16 @@ const BAGS = {
 };
 
 // ---------------- 时间 ----------------
+/** 已用时 / 剩余时间（毫秒） */
+function contestTimes() {
+  const c = M.contest;
+  const start = c.start_time ? Date.parse(c.start_time) : Date.now();
+  const d = String(c.duration || '5:00:00').split(':');
+  const dur = (+d[0] * 3600 + +d[1] * 60 + (+d[2] || 0)) * 1000;
+  const now = Date.now();
+  return { elapsed: now - start, remain: start + dur - now };
+}
+
 // ---------------- 布局（AbstractScoreboardPresentation.setup） ----------------
 const ROWS = 12, CUBE_INSET = 5, BORDER = 8;
 
@@ -155,13 +156,16 @@ function renderStandings(pane, data) {
     probs.forEach((p, i) => {
       const c = r.cells[i];
       let cls = 'empty', inner = `<span class="label">${esc(p.label)}</span>`;
+      // 源码：只要有提交就显示「次数-分钟」，颜色区分状态，没有问号
       if (c && c.solvedAt !== null) {
         cls = 'solved';
-        inner = `${c.attempts + 1}\u200A-\u200A${Math.floor(c.solvedAt / 60)}`;
+        inner = `${c.subs}\u200A-\u200A${Math.floor(c.solvedAt / 60)}`;
       } else if (c && c.pending) {
-        cls = 'pending'; inner = '?';
-      } else if (c && c.attempts) {
-        cls = 'failed'; inner = `${c.attempts}\u200A-\u200A${Math.floor(c.lastAt / 60)}`;
+        cls = 'pending';
+        inner = `${c.subs}\u200A-\u200A${Math.floor(c.lastAt / 60)}`;
+      } else if (c && c.subs) {
+        cls = 'failed';
+        inner = `${c.subs}\u200A-\u200A${Math.floor(c.lastAt / 60)}`;
       }
       const x = indent + i * (m.cubeW + CUBE_INSET);
       parts.push(`<div class="cube ${cls}" style="left:${x}px;top:${cellTop}px;
@@ -186,6 +190,18 @@ const paneB = document.getElementById('paneB');
 const hint = document.getElementById('hint');
 let lastMsg = Date.now();
 let dirty = true;
+
+// 出错时把信息显示到页面上（无头截图也能看到）
+window.addEventListener('error', ev => {
+  const h = document.getElementById('hint');
+  h.textContent = 'JS 错误: ' + (ev.message || ev.error);
+  h.classList.add('show');
+});
+window.addEventListener('unhandledrejection', ev => {
+  const h = document.getElementById('hint');
+  h.textContent = 'Promise 错误: ' + (ev.reason && ev.reason.message || ev.reason);
+  h.classList.add('show');
+});
 
 function layout() {
   if (VIEW === 'standings' || VIEW === 'judge') {

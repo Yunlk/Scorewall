@@ -66,9 +66,13 @@ export function computeStandings(model) {
     const jtId = j ? (j.judgement_type_id || '') : null;
     const jt = jtId ? jtMap.get(jtId) : null;
     const ct = rel2sec(sub.contest_time);
-    const c = ti[pi] || { attempts: 0, solvedAt: null, pending: false };
+    const c = ti[pi] || { attempts: 0, subs: 0, solvedAt: null, pending: false };
 
     if (c.solvedAt !== null) continue;          // 已通过，后续忽略
+
+    // numSubmissions = numPending + numJudged，每一条都算
+    c.subs++;
+    c.lastAt = ct;
 
     if (!jtId) {                                // 没有判题结论
       c.pending = true;
@@ -77,8 +81,7 @@ export function computeStandings(model) {
       c.pending = false;
     } else if (!jt || jt.penalty) {             // 计罚时的失败
       c.attempts++;
-      c.lastAt = ct;
-    }                                           // 其它：不计尝试也不计罚时
+    }                                           // 其它：不计罚时（CE 等）
     ti[pi] = c;
   }
 

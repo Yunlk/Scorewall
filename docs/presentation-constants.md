@@ -103,3 +103,21 @@ s = |秒| % 60
 - 工位开关三态：`status = 0` 左圆红 / `1` 中圆黄 / `2` 右圆绿
 - 就绪判定：`if (status == 2) numReadySites++`
 - 工位数据来源：`organizations` + `start-status`（`{id, label, status}`）
+
+
+## 格子文字颜色（`ShadedRectangle.createRoundRect`）
+
+```java
+if (paint == ICPCColors.PENDING_COLOR) g.setColor(Color.BLACK);  // 引用比较，实际进不去
+else                                    g.setColor(Color.white);
+```
+
+`paint` 来自渐变数组 `PENDING[k]`（新对象），**`==` 永远不成立**，
+所以除空格子（`BG_TEXT` 灰）外，**所有格子文字都是白色**。
+黑色分支只在调用方直接传 `PENDING_COLOR` 常量时生效（如判题队列高亮块），
+记分板格子不走那条。
+
+## 格子文字内容
+
+有提交就显示 `提交数-分钟`，**没有问号**；`Result.getNumSubmissions() = numPending + numJudged`，
+所以 pending 也占一个提交号。状态只体现在背景色。
