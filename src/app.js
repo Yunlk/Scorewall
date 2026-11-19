@@ -112,6 +112,7 @@ function fitFont(s, px, avail, min = 0.55) {
 const scroll = { page: 0, lastSwitch: 0, from: 0, to: 0, animStart: 0 };
 const shownAt = performance.now();
 const FORCE_PAGE = Q.get('page') !== null ? parseInt(Q.get('page'), 10) : null;
+const FORCE_FADE = Q.get('fade') !== null ? Math.max(0, Math.min(1, parseFloat(Q.get('fade')))) : null;
 const FADE_IN_MS = 800;
 
 function ensureCanvas(pane) {
@@ -161,10 +162,12 @@ function renderStandings(pane, data) {
   // MS_PER_PAGE=12000  FADE_IN_MS=1000  INITIAL_DELAY_MS=3000  FADE_OUT_MS=1000
   // getRepeat() = MS_PER_PAGE * pages + INITIAL_DELAY_MS + FADE_OUT_MS
   // getNumPages() = (teams + teamsPerScreen) / teamsPerScreen   ← 整数除
-  const FADE_IN_MS = 1000, INITIAL_DELAY_MS = 3000, FADE_OUT_MS = 1000;
+  const FADE_IN_MS = 1000, INITIAL_DELAY_MS = 3000, FADE_OUT_MS = 1000, HOLD_MS = 1000;
   const pages = Math.max(1, Math.floor((data.rows.length + 12) / 12));
   const now = performance.now();
-  const tt = (now - shownAt) % (MS_PER_PAGE * pages + INITIAL_DELAY_MS + FADE_OUT_MS);
+  // 一轮 = 各页 + 首屏停留 + 淡出 + 黑屏停留（Java 那边淡出后由播放器切走，这里原地停一拍）
+  const cycle = MS_PER_PAGE * pages + INITIAL_DELAY_MS + FADE_OUT_MS + HOLD_MS;
+  const tt = (now - shownAt) % cycle;
 
   if (FORCE_PAGE !== null && FORCE_PAGE >= 0 && FORCE_PAGE < pages) {
     drawFrame(ctx, L, data.rows, data.probs, times,
@@ -193,8 +196,8 @@ function renderStandings(pane, data) {
     scrollPx = page * 12 * L.rowH;
   }
 
-  drawFrame(ctx, L, data.rows, data.probs, times, scrollPx,
-    perProblemStats(data), Math.max(0, Math.min(1, fade)));
+  const alpha = FORCE_FADE !== null ? FORCE_FADE : Math.max(0, Math.min(1, fade));
+  drawFrame(ctx, L, data.rows, data.probs, times, scrollPx, perProblemStats(data), alpha);
 }
 
 function esc(s) {
