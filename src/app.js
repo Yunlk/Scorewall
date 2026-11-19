@@ -13,7 +13,7 @@ import { rel2sec, fmtClock, computeStandings, resolveUrl } from './scoring.js';
 import { makeLayout, drawFrame, MS_PER_PAGE, SCROLL_MS } from './standings-canvas.js?v=3';
 import { drawCountdown } from './countdown-canvas.js';
 import { makeState, freezeAtSec, isJudgementHidden } from './state.js';
-import { judgeLayout, drawJudgeFrame, seedRows } from './judge-canvas.js';
+import { judgeLayout, drawJudgeFrame, seedRows, rowOf } from './judge-canvas.js';
 import { JudgeQueue } from './judge-queue.js';
 
 const Q = new URLSearchParams(location.search);
@@ -269,8 +269,8 @@ function draw() {
   dirty = false;
 }
 
-/** #56 判题队列：实时动画 */
-let judgeQ = null, judgeSeen = new Set(), judgeLast = 0;
+/** #56 判题队列（动画版：JudgeQueue 驱动行号） */
+let judgeQ = null, judgeSeen = new Set(), judgeLast = 0, judgePrimed = false;
 
 function judgeQueue() {
   if (judgeQ) return judgeQ;
@@ -293,21 +293,62 @@ function judgeQueue() {
   return judgeQ;
 }
 
-/** #56 判题队列 */
 function renderJudge(pane) {
   const { ctx, W, H } = ensureCanvas(pane);
   if (!W || !H) return;
+
   const at = freezeAtSec(durationMs(), freezeMs());
   const data = computeStandings(M, {
     hideJudgement: sub => isJudgementHidden(M.state, rel2sec(sub.contest_time), at),
   });
   const L = judgeLayout(W, H, data.probs.length);
   const t = contestTimes();
-  const seeded = seedRows(M, data);
-  drawJudgeFrame(ctx, L, seeded.rows, seeded.probs, {
-    elapsedText: fmtClock(t.elapsed, true),
-    remainText: fmtClock(t.remain, true),
-  }, { frozen: !!(M.state && M.state.isFrozen()) });
+  const times = { elapsedText: fmtClock(t.elapsed, true), remainText: fmtClock(t.remain, true) };
+  const frozen = !!(M.state && M.state.isFrozen());
+
+  // 夹具里所有提交都已判完，走动画会当场滑出（Java 也是这样），所以默认静态铺排
+  if (Q.get('anim') !== '1') {
+    const seeded = seedRows(M, data);
+    drawJudgeFrame(ctx, L, seeded.rows, seeded.probs, times, { frozen });
+    return;
+  }
+
+  const byTeam = new Map(data.rows.map(r => [r.team.id, r]));
+  const pidx = new Map(data.probs.map((p, i) => [p.id, i]));
+  const q = judgeQueue();
+  const now = performance.now();
+
+  // 首次：用最近提交把队列摆好（不放动画）
+  if (!judgePrimed && M.submissions.size > 0) {
+    const list = [...M.submissions.values()]
+      .sort((x, y) => rel2sec(x.contest_time) - rel2sec(y.contest_time))
+      .slice(-12);
+    list.forEach((sub, i) => {
+      judgeSeen.add(sub.id);
+      const sr = q.add(sub);
+      if (sr) sr.anim.reset(i);            // 老的在上面，新的在下面（Java List 顺序）
+    });
+    q.updateTargets(true);
+    judgePrimed = true;
+    judgeLast = now;
+  }
+
+  for (const sub of M.submissions.values()) {
+    if (!judgeSeen.has(sub.id)) { judgeSeen.add(sub.id); q.add(sub); }
+  }
+
+  const dt = Math.min(200, Math.max(0, now - judgeLast));
+  judgeLast = now;
+  q.update(dt);
+
+  const rows = q.records.map(sr => {
+    const r = rowOf(sr.submission, M, byTeam, pidx);
+    r.y = sr.anim.getValue();
+    r.alpha = q.alphaOf(sr);
+    return r;
+  });
+
+  drawJudgeFrame(ctx, L, rows, data.probs, times, { frozen });
 }
 
 /** #15 带工位状态的倒计时 */

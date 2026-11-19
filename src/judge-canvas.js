@@ -1,31 +1,33 @@
-/* 判题队列视图（#56）—— JudgePresentation.drawSubmission / drawRight 的移植
+/* 判题队列视图（#56）—— JudgePresentation.drawSubmission / drawRight 移植
  *
- * 行布局：
- *   名次      rowItalicsFont, x = BORDER + (w("199") - w(rank))/2, y = 5
- *   队名      rowFont, x = BORDER + w("199 ") + rowHeight
- *   解题/罚时 右对齐
- *   题目格子  y = rowHeight/2 + CUBE_INSET/2 + 3（注意是 half row）
+ * 行内结构（坐标以该行左上角为原点）：
+ *   名次   TextImage.drawString(rank, x, 5)              → 顶边 5，基线 5+ascent
+ *   队名   TextHelper.drawString(name, xx, ascent+5, w)   → 基线 ascent+5
+ *   解题   TextImage.drawString(n, ..., 5)                → 顶边 5
+ *   罚时   TextImage.drawString(t, ..., 5)                → 顶边 5
+ *   格子   y = rowHeight/2 + CUBE_INSET/2 + 3
+ *
+ * 渲染约定：每行独立 ctx.save()/restore()，唯一出口，textAlign 进出行都复位。
  */
 
-import { rel2sec, fmtClock } from './scoring.js';
+import { rel2sec } from './scoring.js';
 
 const BORDER = 8;
 const CUBE_INSET = 5;
 const ARC = 7;
 const ROWS = 12;
-
-const FONT = '"ICPCFont", Arial, "Microsoft YaHei", sans-serif';
-const f = (px, bold, italic) => `${italic ? 'italic ' : ''}${bold ? 'bold ' : ''}${px}px ${FONT}`;
+const FONT_FAMILY = '"ICPCFont", Arial, "Microsoft YaHei", sans-serif';
+const f = (px, bold) => `${bold ? 'bold ' : ''}${px}px ${FONT_FAMILY}`;
 
 const C = {
   solved: 'rgb(0,230,0)',
   failed: 'rgb(240,0,0)',
   pending: 'rgb(66,114,245)',
-  fts: 'rgb(0,100,0)',
-  solvedDim: 'rgb(0,92,0)',
+  solvedDim: 'rgb(0,92,0)',            // Utility.darker(SOLVED_COLOR, 0.4f)
   cellBg: 'rgb(40,40,40)',
   cellText: 'rgba(196,196,196,0.69)',
   rowBg: 'rgb(60,60,60)',
+  frozenClock: 'rgb(255,223,54)',
 };
 
 function roundRect(ctx, x, y, w, h, r) {
@@ -38,7 +40,7 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-// 与总榜同一套几何（AbstractScoreboardPresentation.setup）
+/** 与总榜同源的几何（AbstractScoreboardPresentation.setup） */
 export function judgeLayout(W, H, nProb) {
   const headerH = Math.floor(H / 50);
   const titleH = Math.floor(H / 30);
@@ -59,90 +61,111 @@ export function judgeLayout(W, H, nProb) {
   };
 }
 
-/**
- * 画一帧判题队列。
- * @param rows [{ teamName, rank, solved, time, cells:[{solvedAt,pending,subs,lastAt}], probs:[...] }]
- *           rows 顺序就是行号（0 = 最上面）
- */
+function ascentOf(ctx, font) {
+  ctx.font = font;
+  const m = ctx.measureText('Mg');
+  return m.actualBoundingBoxAscent || m.fontBoundingBoxAscent || 0;
+}
+
+function widthOf(ctx, font, s) {
+  ctx.font = font;
+  return ctx.measureText(String(s)).width;
+}
+
+/** 画一帧。rows 顺序 = Java List 顺序（老的在前）；可带 y（小数行号）与 alpha */
 export function drawJudgeFrame(ctx, L, rows, probs, times, opts = {}) {
   const { W, H, headerH, titleH, rowH, cubeW, cubeH } = L;
-  const measured = measureFor(ctx, L);
+  const contentTop = titleH + headerH;
 
   ctx.clearRect(0, 0, W, H);
   ctx.fillStyle = '#000';
   ctx.fillRect(0, 0, W, H);
 
   // ---------- 标题带 ----------
-  ctx.textBaseline = 'alphabetic';
-  ctx.textAlign = 'center';
   const clockF = f(L.clockFont, true);
   const titleF = f(L.titleFont, true);
   const clockAsc = ascentOf(ctx, clockF) + 2;
   const titleAsc = ascentOf(ctx, titleF);
 
-  ctx.fillStyle = opts.frozen ? 'rgb(255,223,54)' : '#fff';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = opts.frozen ? C.frozenClock : '#fff';
   ctx.font = clockF;
   ctx.fillText(times.elapsedText, W / 12, clockAsc);
   ctx.fillText(times.remainText, W * 11 / 12, clockAsc);
-
   ctx.fillStyle = '#fff';
   ctx.font = titleF;
   ctx.fillText('Judge Queue', W / 2, titleAsc);
 
   // ---------- 行背景（只画偶数行） ----------
-  const contentTop = titleH + headerH;
   for (let i = 0; i < ROWS; i += 2) {
     ctx.fillStyle = C.rowBg;
     ctx.fillRect(0, contentTop + i * rowH, W, rowH);
   }
 
-  // ---------- 行 ----------
-  const indent = BORDER + measured.w199sp + rowH;
-  const rowH2 = Math.floor(rowH / 2);                 // drawRight: rowH = rowHeight/2
-  const cellTop = contentTop + rowH2 + CUBE_INSET / 2 + 3;
+  // ---------- 度量（Java 用 FontMetrics 现算） ----------
+  const fr = f(L.rowFont, true);
+  const w199 = widthOf(ctx, fr, '199');
+  const w199sp = widthOf(ctx, fr, '199 ');
+  const w9999 = widthOf(ctx, fr, '9999');
+  const w9999sp = widthOf(ctx, fr, ' 9999');
+  const w99 = widthOf(ctx, fr, '99');
+  const w199_9_9999 = widthOf(ctx, fr, '199 9 9999');
 
-  ctx.textAlign = 'left';
-  rows.slice(0, ROWS).forEach((r, i) => {
-    const yTop = contentTop + i * rowH;
+  const indent = BORDER + w199sp + rowH;
+  const cellDy = Math.floor(rowH / 2) + CUBE_INSET / 2 + 3;
+  const asc = ascentOf(ctx, fr);
+  const nameBaseline = asc + 5;          // TextHelper: ascent + 5
+  const topBaseline = 5 + asc;           // TextImage: 顶边 5
+
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i];
+    const y = contentTop + (r.y !== undefined ? r.y : i) * rowH;
+    if (y + rowH < contentTop || y > contentTop + ROWS * rowH) continue;
+
+    ctx.save();
+    ctx.globalAlpha = r.alpha === undefined ? 1 : r.alpha;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
 
     // 名次
-    ctx.font = f(L.rowFont, true);
+    const rank = String(r.rank);
+    ctx.font = fr;
     ctx.fillStyle = '#fff';
-    ctx.fillText(String(r.rank), BORDER + (measured.w199 - ctx.measureText(String(r.rank)).width) / 2,
-      yTop + 5 + L.rowFont * 0.85);
+    ctx.fillText(rank, BORDER + (w199 - widthOf(ctx, fr, rank)) / 2, y + topBaseline);
 
-    // 队名
-    const nameX = BORDER + measured.w199sp + rowH;
+    // 队名（超宽按 TextHelper 缩字号）
+    const nameX = BORDER + w199sp + rowH;
+    const avail = W - BORDER * 2 - w199_9_9999 - rowH;
     let fs = L.rowFont;
-    const avail = W - BORDER * 2 - measured.w199_9_9999 - rowH;
-    ctx.font = f(fs, true);
-    const nw = ctx.measureText(r.teamName || '').width;
+    const nw = widthOf(ctx, f(fs, true), r.teamName || '');
     if (nw > avail) fs = Math.max(fs * 0.55, fs * avail / nw);
     ctx.font = f(fs, true);
-    ctx.fillText(r.teamName || '', nameX, yTop + 5 + L.rowFont * 0.85);
+    ctx.fillStyle = '#fff';
+    ctx.fillText(r.teamName || '', nameX, y + nameBaseline);
 
-    // 解题数 / 罚时
-    ctx.font = f(L.rowFont, true);
+    // 解题数
+    ctx.font = fr;
+    ctx.fillStyle = '#fff';
     if (r.solved > 0) {
       const s = String(r.solved);
-      ctx.fillText(s, W - BORDER - measured.w9999sp - (measured.w99 + ctx.measureText(s).width) / 2,
-        yTop + 5 + L.rowFont * 0.85);
+      ctx.fillText(s, W - BORDER - w9999sp - (w99 + widthOf(ctx, fr, s)) / 2, y + topBaseline);
     }
+    // 罚时（ContestUtil.getTime → 整数分钟）
     if (r.time > 0) {
-      const s = String(r.time);                     // ContestUtil.getTime -> 分钟
-      ctx.fillText(s, W - BORDER - (measured.w9999 + ctx.measureText(s).width) / 2,
-        yTop + 5 + L.rowFont * 0.85);
+      const s = String(r.time);
+      ctx.fillText(s, W - BORDER - (w9999 + widthOf(ctx, fr, s)) / 2, y + topBaseline);
     }
 
     // 题目格子
-    const cubTop = yTop + rowH2 + CUBE_INSET / 2 + 3;
+    const cubTop = y + cellDy;
+    const cellMid = cubTop + cubeH / 2;
     for (let j = 0; j < probs.length; j++) {
       const x = indent + j * (cubeW + CUBE_INSET);
       const isCurrent = r.currentProblem === j;
-      const c = r.cells[j];
+      const c = r.cells ? r.cells[j] : null;
 
       if (isCurrent) {
-        // 当前提交：状态色 + "次数-时间"
         const st = r.currentStatus;
         ctx.fillStyle = st === 'solved' ? C.solved : st === 'failed' ? C.failed : C.pending;
         roundRect(ctx, x, cubTop, cubeW, cubeH, ARC);
@@ -150,84 +173,65 @@ export function drawJudgeFrame(ctx, L, rows, probs, times, opts = {}) {
         ctx.fillStyle = '#fff';
         ctx.font = f(L.statusFont, true);
         ctx.textAlign = 'center';
-        ctx.fillText(r.currentText || '', x + cubeW / 2, cubTop + cubeH / 2 + 1);
-        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(r.currentText || '', x + cubeW / 2, cellMid);
       } else if (c && c.solvedAt !== null) {
-        // 已通过：半透明深绿，无文字
         ctx.fillStyle = C.solvedDim;
         roundRect(ctx, x, cubTop, cubeW, cubeH, ARC);
         ctx.fill();
       } else {
-        // 空格子带题号
         ctx.fillStyle = C.cellBg;
         roundRect(ctx, x, cubTop, cubeW, cubeH, ARC);
         ctx.fill();
         ctx.fillStyle = C.cellText;
-        ctx.font = f(L.problemFont, true);
+        ctx.font = f(L.problemFont, false);
         ctx.textAlign = 'center';
-        ctx.fillText(probs[j].label, x + cubeW / 2, cubTop + cubeH / 2 + 1);
-        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(probs[j].label, x + cubeW / 2, cellMid);
       }
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'alphabetic';
     }
-  });
+
+    ctx.restore();
+  }
 }
 
-function measureFor(ctx, L) {
-  const fr = f(L.rowFont, true);
-  const w = s => { ctx.font = fr; return ctx.measureText(s).width; };
+/** 一条提交 → 一行 */
+export function rowOf(sub, model, byTeam, pidx) {
+  const st = byTeam.get(sub.team_id);
+  let jtId = null;
+  for (const j of model.judgements.values()) {
+    if (j.submission_id === sub.id) { jtId = j.judgement_type_id; break; }
+  }
+  const jt = jtId ? model.judgementTypes.get(jtId) : null;
+  const status = !jt ? 'pending' : jt.solved ? 'solved' : jt.penalty ? 'failed' : 'pending';
+  const sec = rel2sec(sub.contest_time);
   return {
-    w199: w('199'),
-    w199sp: w('199 '),
-    w9999: w('9999'),
-    w9999sp: w(' 9999'),
-    w99: w('99'),
-    w199_9_9999: w('199 9 9999'),
+    teamName: st ? st.team.name : sub.team_id,
+    rank: st ? st.rank : '-',
+    solved: st ? st.solved : 0,
+    time: st ? Math.floor(st.penalty / 60) : 0,
+    cells: st ? st.cells : null,
+    currentProblem: pidx.get(sub.problem_id) ?? -1,
+    currentStatus: status,
+    currentText: String(Math.floor(sec / 60)),
   };
 }
 
-function ascentOf(ctx, font) {
-  ctx.font = font;
-  const m = ctx.measureText('Mg');
-  return m.actualBoundingBoxAscent || m.fontBoundingBoxAscent || 0;
-}
-
-/** 把最近 N 条提交组织成行（静态种子，动画版走 JudgeQueue） */
+/** 最近 N 条提交铺成行（Java List：老的在前） */
 export function seedRows(model, standings, limit = ROWS) {
-  const { submissions, judgements, problems } = model;
+  const { submissions, problems } = model;
   const probs = [...problems.values()].sort((a, b) => a.ordinal - b.ordinal);
   const pidx = new Map(probs.map((p, i) => [p.id, i]));
-  const verdict = new Map();
-  for (const j of judgements.values()) verdict.set(j.submission_id, j);
-
-  const byTeam = new Map();
-  for (const r of standings.rows) byTeam.set(r.team.id, r);
+  const byTeam = new Map(standings.rows.map(r => [r.team.id, r]));
 
   const subs = [...submissions.values()]
     .sort((a, b) => rel2sec(b.contest_time) - rel2sec(a.contest_time))
-    .slice(0, limit);
+    .slice(0, limit)
+    .reverse();
 
-  return {
-    probs,
-    rows: subs.map(sub => {
-      const st = byTeam.get(sub.team_id);
-      const j = verdict.get(sub.id);
-      const jtId = j ? j.judgement_type_id : null;
-      const jt = jtId ? model.judgementTypes.get(jtId) : null;
-      const status = !jt ? 'pending' : jt.solved ? 'solved' : jt.penalty ? 'failed' : 'pending';
-      const pi = pidx.get(sub.problem_id) ?? -1;
-      const sec = rel2sec(sub.contest_time);
-      return {
-        teamName: st ? st.team.name : sub.team_id,
-        rank: st ? st.rank : '-',
-        solved: st ? st.solved : 0,
-        time: st ? Math.floor(st.penalty / 60) : 0,
-        cells: st ? st.cells : probs.map(() => null),
-        currentProblem: pi,
-        currentStatus: status,
-        currentText: String(Math.floor(sec / 60)),   // ContestUtil.getTime：只有分钟
-      };
-    }),
-  };
+  return { probs, rows: subs.map(s => rowOf(s, model, byTeam, pidx)) };
 }
 
-export { BORDER, CUBE_INSET, ARC };
+export { BORDER, CUBE_INSET, ARC, ROWS };
