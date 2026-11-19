@@ -74,14 +74,14 @@ export function computeStandings(model) {
     c.subs++;
     c.lastAt = ct;
 
-    if (!jtId) {                                // 没有判题结论
-      c.pending = true;
-    } else if (jt && jt.solved) {               // 通过
+    if (!jt) {                                  // 没有结论，或类型表里查不到
+      c.pending = true;                         // Java: if (jt == null) numPending++
+    } else if (jt.solved) {                     // 通过
       c.solvedAt = ct;
       c.pending = false;
-    } else if (!jt || jt.penalty) {             // 计罚时的失败
+    } else if (jt.penalty) {                    // 计罚时的失败
       c.attempts++;
-    }                                           // 其它：不计罚时（CE 等）
+    }                                           // solved=false 且 penalty=false：不计
     ti[pi] = c;
   }
 

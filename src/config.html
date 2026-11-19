@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Scorewall 配置</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #111; color: #e8e8e8; font: 15px/1.6 system-ui, "Microsoft YaHei", sans-serif; }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 32px 24px 64px; }
+  h1 { font-size: 22px; margin: 0 0 6px; }
+  .sub { color: #8b8b8b; margin-bottom: 28px; }
+  fieldset { border: 1px solid #2a2a2a; border-radius: 8px; padding: 18px 20px 22px; margin: 0 0 22px; }
+  legend { padding: 0 8px; color: #9ad; font-size: 13px; letter-spacing: .05em; }
+  label { display: block; margin: 14px 0 6px; font-size: 13px; color: #b5b5b5; }
+  input, select { width: 100%; padding: 9px 10px; background: #1b1b1b; color: #eee;
+    border: 1px solid #333; border-radius: 6px; font: inherit; }
+  input:focus, select:focus { outline: none; border-color: #4a7bd0; }
+  .row { display: flex; gap: 14px; }
+  .row > div { flex: 1; }
+  .hint { font-size: 12px; color: #6f6f6f; margin-top: 4px; }
+  .out { margin-top: 10px; }
+  .out code { display: block; padding: 12px; background: #0a0a0a; border: 1px solid #2a2a2a;
+    border-radius: 6px; font-size: 13px; word-break: break-all; color: #7fd17f; }
+  .btns { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+  button, a.btn { padding: 9px 18px; border-radius: 6px; border: 1px solid #34527f;
+    background: #1d3a63; color: #cfe3ff; font: inherit; cursor: pointer; text-decoration: none; }
+  button:hover, a.btn:hover { background: #24497a; }
+  .ok { color: #7fd17f; }
+  ol { padding-left: 20px; color: #b5b5b5; font-size: 13px; }
+  code.inline { background: #1b1b1b; padding: 1px 5px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Scorewall 配置</h1>
+  <div class="sub">生成大屏地址，直接贴进 OBS 的「浏览器源」即可</div>
+
+  <form id="f">
+    <fieldset>
+      <legend>数据源</legend>
+      <label>CCS 比赛地址</label>
+      <input id="src" value="http://127.0.0.1:8090/api/contests/1" spellcheck="false">
+      <div class="hint">末尾到 <code class="inline">/api/contests/&lt;id&gt;</code>，不要带斜杠</div>
+
+      <label>视图</label>
+      <select id="view">
+        <option value="standings">总榜（Current Standings）</option>
+      </select>
+    </fieldset>
+
+    <fieldset>
+      <legend>显示</legend>
+      <div class="row">
+        <div>
+          <label>强制页码</label>
+          <input id="page" type="number" min="0" placeholder="留空 = 自动翻页">
+          <div class="hint">0 是第一页；留空则按 12 秒翻页</div>
+        </div>
+        <div>
+          <label>预览尺寸</label>
+          <div class="row">
+            <div><input id="w" type="number" value="960"></div>
+            <div><input id="h" type="number" value="1080"></div>
+          </div>
+          <div class="hint">OBS 里填的宽高（1080p 左/右半屏 = 960×1080）</div>
+        </div>
+      </div>
+    </fieldset>
+
+    <div class="btns">
+      <button type="button" id="gen">生成地址</button>
+      <button type="button" id="copy">复制</button>
+      <a class="btn" id="open" href="#" target="_blank" rel="noopener">打开预览</a>
+    </div>
+
+    <div class="out"><code id="url">—</code></div>
+  </form>
+
+  <fieldset style="margin-top:28px">
+    <legend>在 OBS 里用</legend>
+    <ol>
+      <li>添加来源 → <b>浏览器</b></li>
+      <li>URL 粘贴上面生成的地址</li>
+      <li>宽度/高度填预览尺寸（960×1080 这种）</li>
+      <li>勾选 <b>「关闭源时关闭页面」= 否</b>、<b>「场景激活时刷新」= 否</b></li>
+      <li>自定义 CSS 留空；如需透明背景，在页面里已默认黑底</li>
+    </ol>
+  </fieldset>
+</div>
+
+<script>
+(function () {
+  const $ = id => document.getElementById(id);
+  const state = () => {
+    const p = new URLSearchParams();
+    p.set('src', $('src').value.trim());
+    p.set('view', $('view').value);
+    if ($('page').value !== '') p.set('page', $('page').value);
+    return p.toString();
+  };
+  function build(absolute) {
+    const base = absolute ? location.origin + location.pathname.replace(/config\.html?$/, '') : 'index.html';
+    return base + '?' + state();
+  }
+  function refresh() {
+    const u = build(true);
+    $('url').textContent = u;
+    $('open').href = u;
+  }
+  $('gen').onclick = refresh;
+  $('copy').onclick = async () => {
+    try { await navigator.clipboard.writeText($('url').textContent);
+          $('copy').textContent = '已复制'; setTimeout(() => $('copy').textContent = '复制', 1200); }
+    catch (_) { $('copy').textContent = '复制失败'; }
+  };
+  ['src','view','page'].forEach(id => $(id).addEventListener('input', refresh));
+  refresh();
+})();
+</script>
+</body>
+</html>

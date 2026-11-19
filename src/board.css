@@ -76,3 +76,8 @@ html, body { height: 100%; overflow: hidden; background: #000; color: #fff;
   padding: 6px 16px; border-radius: 4px; font-size: 14px; display: none;
   background: #7a1010; }
 #hint.show { display: block; }
+
+/* 配置入口：右下角小齿轮，比图例更低一层，不挡榜单 */
+a#cfg { position: fixed; right: 6px; bottom: 4px; font-size: 18px;
+  color: #444; text-decoration: none; z-index: 10; }
+a#cfg:hover { color: #8ab4f8; }
