@@ -125,6 +125,29 @@ const server = http.createServer((req, res) => {
   const path = url.pathname;
 
   // ---- 假 CCS API ----
+  // ---- DOMjudge 代理：/domjudge/<contest>/<集合> ----
+  if (path.startsWith('/domjudge/')) {
+    const rest = path.slice('/domjudge/'.length);
+    const upstream = 'https://oj.yunlk.icu/api/v4/contests/' + rest;
+    (async () => {
+      try {
+        const r = await fetch(upstream, { headers: { Accept: 'application/json' } });
+        const text = await r.text();
+        res.writeHead(r.ok ? 200 : (r.status === 401 ? 200 : r.status), {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Access-Control-Allow-Origin': '*',
+          'Cache-Control': 'no-store',
+        });
+        // 401 的集合（judgements）返回空数组，页面不至于崩
+        res.end(r.status === 401 ? '[]' : text);
+      } catch (e) {
+        res.writeHead(502, { 'Content-Type': 'application/json' });
+        res.end('[]');
+      }
+    })();
+    return;
+  }
+
   const m = path.match(/^\/api\/contests\/(\d+)/);
   if (m) {
     FIX = FIXES[m[1]] || FIXES[1];
