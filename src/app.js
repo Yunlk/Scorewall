@@ -13,6 +13,8 @@ import { rel2sec, fmtClock, computeStandings, resolveUrl } from './scoring.js';
 import { makeLayout, drawFrame, MS_PER_PAGE, SCROLL_MS } from './standings-canvas.js?v=3';
 import { drawCountdown } from './countdown-canvas.js';
 import { makeState, freezeAtSec, isJudgementHidden } from './state.js';
+import { judgeLayout, drawJudgeFrame, seedRows } from './judge-canvas.js';
+import { JudgeQueue } from './judge-queue.js';
 
 const Q = new URLSearchParams(location.search);
 const SRC = (Q.get('src') || 'http://127.0.0.1:8081/api/contests/144333').replace(/\/$/, '');
@@ -257,6 +259,7 @@ function layout() {
 
 function draw() {
   if (VIEW === 'countdown') { renderCountdown(paneA); dirty = false; return; }
+  if (VIEW === 'judge') { renderJudge(paneA); dirty = false; return; }
   // 有滚动动画，必须每帧重画（对齐 Java 的立即模式）
   const at = freezeAtSec(durationMs(), freezeMs());
   const data = computeStandings(M, {
@@ -264,6 +267,47 @@ function draw() {
   });
   renderStandings(paneA, data);
   dirty = false;
+}
+
+/** #56 判题队列：实时动画 */
+let judgeQ = null, judgeSeen = new Set(), judgeLast = 0;
+
+function judgeQueue() {
+  if (judgeQ) return judgeQ;
+  judgeQ = new JudgeQueue({
+    judged: sub => {
+      for (const j of M.judgements.values()) if (j.submission_id === sub.id) return true;
+      return false;
+    },
+    solved: sub => {
+      for (const j of M.judgements.values()) {
+        if (j.submission_id === sub.id) {
+          const jt = M.judgementTypes.get(j.judgement_type_id);
+          return !!(jt && jt.solved);
+        }
+      }
+      return false;
+    },
+    frozen: () => !!(M.state && M.state.isFrozen()),
+  });
+  return judgeQ;
+}
+
+/** #56 判题队列 */
+function renderJudge(pane) {
+  const { ctx, W, H } = ensureCanvas(pane);
+  if (!W || !H) return;
+  const at = freezeAtSec(durationMs(), freezeMs());
+  const data = computeStandings(M, {
+    hideJudgement: sub => isJudgementHidden(M.state, rel2sec(sub.contest_time), at),
+  });
+  const L = judgeLayout(W, H, data.probs.length);
+  const t = contestTimes();
+  const seeded = seedRows(M, data);
+  drawJudgeFrame(ctx, L, seeded.rows, seeded.probs, {
+    elapsedText: fmtClock(t.elapsed, true),
+    remainText: fmtClock(t.remain, true),
+  }, { frozen: !!(M.state && M.state.isFrozen()) });
 }
 
 /** #15 带工位状态的倒计时 */

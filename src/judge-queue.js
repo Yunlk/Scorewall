@@ -47,20 +47,25 @@ export class Animator {
   }
 
   setTarget(xTarget) {
-    if (xTarget === this.xTarget) return;     // 关键：目标没变就不要重启动画
+    if (xTarget === this.xTarget) return;     // 目标没变就不要重启动画
     const x = this.getValue();
     this.xInitial = x;
     this.xTarget = xTarget;
     this.t = 0;
-    const d = Math.abs(xTarget - x);
-    const acc = this.acc;
+
+    const d = xTarget - x;
+    const sgn = Math.sign(d) || 1;
+    const accAbs = this.move.acceleration;
+    this.acc = accAbs * sgn;                  // 关键：加速度带方向
     const vmax = this.move.maxSpeed;
-    const t1 = vmax / acc;                 // 加速到最大速度所需时间
-    if (d >= acc * t1 * t1) {
+    const dist = Math.abs(d);
+    const t1 = vmax / accAbs;
+    const dAcc = accAbs * t1 * t1;            // 加速+减速覆盖的距离
+    if (dist >= dAcc) {
       this.t1 = t1;
-      this.tCoast = (d - acc * t1 * t1) / vmax;
+      this.tCoast = (dist - dAcc) / vmax;
     } else {
-      this.t1 = Math.sqrt(d / acc);        // 距离太短，三角形曲线
+      this.t1 = Math.sqrt(dist / accAbs);     // 太短走三角形
       this.tCoast = 0;
     }
   }
