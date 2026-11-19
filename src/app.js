@@ -13,6 +13,17 @@ const Q = new URLSearchParams(location.search);
 const SRC = (Q.get('src') || 'http://127.0.0.1:8081/api/contests/144333').replace(/\/$/, '');
 const VIEW = Q.get('view') || 'standings';
 
+/** 对齐 RESTContestSource.getResolvedURL：
+ *  绝对 URL 原样；以 / 开头走 protocol://authority + href；否则相对 base */
+function resolveUrl(href) {
+  if (!href) return '';
+  if (/^https?:/i.test(href)) return href;
+  const u = new URL(SRC);
+  return href.startsWith('/')
+    ? `${u.protocol}//${u.host}${href}`
+    : `${SRC}/${href.replace(/^\//, '')}`;
+}
+
 // ---------------- CCS 模型（单一数据源） ----------------
 const M = {
   contest: {},
@@ -22,6 +33,7 @@ const M = {
   judgements: new Map(), // id -> judgement
   orgs: new Map(),
   startStatus: new Map(),
+  judgementTypes: new Map(),
 };
 
 function apply(type, id, data) {
@@ -39,6 +51,7 @@ const BAGS = {
   judgements: M.judgements,
   organizations: M.orgs,
   'start-status': M.startStatus,
+  'judgement-types': M.judgementTypes,
 };
 
 // ---------------- 时间 ----------------
@@ -88,18 +101,30 @@ function computeStandings() {
   const subs = [...M.submissions.values()]
     .sort((a, b) => rel2sec(a.contest_time) - rel2sec(b.contest_time));
 
-  for (const s of subs) {
-    const ti = cells.get(s.team_id);
-    const pi = pidx.get(s.problem_id);
+  // 判题类型表：solved / penalty 由数据决定，不硬编码类型名
+  const jtMap = M.judgementTypes;
+
+  for (const sub of subs) {
+    const ti = cells.get(sub.team_id);
+    const pi = pidx.get(sub.problem_id);
     if (!ti || pi === undefined) continue;
-    const j = verdict.get(s.id);
-    const jt = j ? (j.judgement_type_id || '') : null;
+    const j = verdict.get(sub.id);
+    const jtId = j ? (j.judgement_type_id || '') : null;
+    const jt = jtId ? jtMap.get(jtId) : null;
+    const ct = rel2sec(sub.contest_time);
     const c = ti[pi] || { attempts: 0, solvedAt: null, pending: false };
-    if (c.solvedAt !== null) continue;            // 过了就不再计
-    if (jt === null) { c.pending = true; }        // 还没判
-    else if (jt === 'AC') { c.solvedAt = rel2sec(s.contest_time); }
-    else if (jt === 'CE') { /* 编译错误不计罚时 */ }
-    else { c.attempts++; c.lastAt = rel2sec(s.contest_time); }
+
+    if (c.solvedAt !== null) continue;            // 已通过，后续忽略
+
+    if (!jtId) {                                  // 没有判题结论
+      c.pending = true;
+    } else if (jt && jt.solved) {                 // 通过
+      c.solvedAt = ct;
+      c.pending = false;
+    } else if (!jt || jt.penalty) {               // 计罚时的失败（含未知类型）
+      c.attempts++;
+      c.lastAt = ct;
+    }                                             // 其它：不计尝试不计罚时
     ti[pi] = c;
   }
 
@@ -273,13 +298,14 @@ async function bootstrap() {
       return await r.json();
     } catch (_) { return null; }
   };
-  const [teams, problems, subs, judges, orgs] = await Promise.all(
-    ['teams', 'problems', 'submissions', 'judgements', 'organizations'].map(one));
+  const [teams, problems, subs, judges, orgs, jtypes] = await Promise.all(
+    ['teams', 'problems', 'submissions', 'judgements', 'organizations', 'judgement-types'].map(one));
   (teams || []).forEach(t => M.teams.set(t.id, t));
   (problems || []).forEach(p => M.problems.set(p.id, p));
   (subs || []).forEach(s => M.submissions.set(s.id, s));
   (judges || []).forEach(j => M.judgements.set(j.id, j));
   (orgs || []).forEach(o => M.orgs.set(o.id, o));
+  (jtypes || []).forEach(t => M.judgementTypes.set(t.id, t));
   dirty = true;
 }
 
