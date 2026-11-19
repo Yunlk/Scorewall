@@ -320,7 +320,10 @@ function renderJudge(pane) {
 
   // 首次：用最近提交把队列摆好（不放动画）
   if (!judgePrimed && M.submissions.size > 0) {
+    const judgedIds = new Set();
+    for (const j of M.judgements.values()) judgedIds.add(j.submission_id);
     const list = [...M.submissions.values()]
+      .filter(s => !judgedIds.has(s.id))                 // 只留待判的，已判的进队列会立刻滑出
       .sort((x, y) => rel2sec(x.contest_time) - rel2sec(y.contest_time))
       .slice(-12);
     list.forEach((sub, i) => {
