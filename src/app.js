@@ -281,8 +281,9 @@ function renderCountdown(pane) {
   const dur = (+d[0] * 3600 + +d[1] * 60 + (+d[2] || 0)) * 1000;
   let remain = start + dur - Date.now();
   remain = Math.max(0, Math.min(dur, remain));       // 夹在 [0, duration]，避免 %48 回绕
-  const running = Date.now() >= start && Date.now() <= start + dur;
-  drawCountdown(ctx, W, H, sites, remain, false);
+  // 源码：if (contest.getState().isRunning()) s = "Status: Contest started"
+  const running = !!(M.state && M.state.isRunning());
+  drawCountdown(ctx, W, H, sites, remain, running);
 }
 
 async function bootstrap() {

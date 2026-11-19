@@ -10,7 +10,7 @@ import { fmtClock } from './scoring.js';
 import { drawDigital, digitalWidth } from './digital-font.js';
 
 /** 工位滑块：三档 NO(0) / UNDECIDED(1) / YES(2) —— StatusCountdownPresentation.drawStatus */
-function drawStatus(ctx, W, H, px, py, label, status) {
+function drawStatus(ctx, W, H, px, py, label, status, fontPx) {
   const o = Math.floor(W / 75);
   const x0 = px - o / 2;
   const y = py - o / 2;
@@ -38,12 +38,14 @@ function drawStatus(ctx, W, H, px, py, label, status) {
   ctx.stroke();
 
   // 标签：TextHelper.drawString 会按可用宽度缩字号
+  // TextHelper.drawString：超出可用宽度就缩字号
   const w = W * 3 / 10 - W * 6 / 75;
-  let fs = o * 1.6;
-  ctx.font = `${fs}px "ICPCFont", Arial, "Microsoft YaHei", sans-serif`;
+  const fam = '"ICPCFont", Arial, "Microsoft YaHei", sans-serif';
+  let fs = fontPx;
+  ctx.font = `bold ${fs}px ${fam}`;
   const tw = ctx.measureText(label).width;
   if (tw > w) fs = Math.max(8, fs * w / tw);
-  ctx.font = `${fs}px "ICPCFont", Arial, "Microsoft YaHei", sans-serif`;
+  ctx.font = `bold ${fs}px ${fam}`;
   ctx.fillStyle = '#fff';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
@@ -82,8 +84,10 @@ export function drawCountdown(ctx, W, H, sites, remainMs, running, verticalOffse
   for (const it of sites) if (it.status === 0) s = 'Status: Active countdown';
   if (running) s = 'Status: Contest started';
 
-  const statusFs = Math.max(12, Math.floor(H / 40));
-  ctx.font = `${statusFs}px "ICPCFont", Arial, "Microsoft YaHei", sans-serif`;
+  // StatusCountdownPresentation.setSize: font = ICPCFont.BOLD, H*36/10/96
+  const fontPx = H * 36 / 10 / 96;
+  const statusFs = fontPx;
+  ctx.font = `bold ${fontPx}px "ICPCFont", Arial, "Microsoft YaHei", sans-serif`;
   ctx.textAlign = 'center';
   ctx.fillStyle = '#fff';
   const sy = (H + H / 2.5) / 2 + statusFs * 2;
@@ -91,11 +95,10 @@ export function drawCountdown(ctx, W, H, sites, remainMs, running, verticalOffse
   ctx.textAlign = 'left';
 
   // 工位开关：x = W/20 + (n%3)*W*3/10，y = 40 + (n/3)*(H/18)
-  ctx.font = `${Math.floor(H / 40)}px "ICPCFont", Arial, "Microsoft YaHei", sans-serif`;
   sites.forEach((it, n) => {
     const px = Math.floor(W / 20 + (n % 3) * W * 3 / 10);
     const py = Math.floor(40 + Math.floor(n / 3) * (H / 18));
-    drawStatus(ctx, W, H, px, py, it.label, it.status);
+    drawStatus(ctx, W, H, px, py, it.label, it.status, fontPx);
   });
 
   // 右下角也放个 logo（源码用 contest logo，没有就跳过）

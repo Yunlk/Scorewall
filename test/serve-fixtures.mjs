@@ -76,7 +76,9 @@ const server = http.createServer((req, res) => {
         const list = fixture(file);
         const arr = Array.isArray(list) ? list : Object.values(list);
         for (const item of arr) {
-          res.write(JSON.stringify({ type, id: item.id, data: item }) + '\n');
+          try {
+            res.write(JSON.stringify({ type, id: item.id, data: item }) + '\n');
+          } catch (_) { return; }
         }
       }
       // 心跳，保持连接
@@ -109,6 +111,10 @@ const server = http.createServer((req, res) => {
     Expires: '0',
   });
   res.end(body);
+});
+
+process.on('uncaughtException', e => {
+  console.error('uncaught:', e && e.message);      // 夹具服务不能因为断连就挂
 });
 
 server.listen(PORT, '127.0.0.1', () => {
