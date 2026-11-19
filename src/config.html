@@ -58,6 +58,11 @@
           <div class="hint">0 是第一页；留空则按 12 秒翻页</div>
         </div>
         <div>
+          <label>强制透明度</label>
+          <input id="fade" type="number" min="0" max="1" step="0.05" placeholder="留空 = 自动淡入淡出">
+          <div class="hint">0 = 全透（黑屏），1 = 不透明；调试用</div>
+        </div>
+        <div>
           <label>预览尺寸</label>
           <div class="row">
             <div><input id="w" type="number" value="960"></div>
@@ -97,6 +102,7 @@
     p.set('src', $('src').value.trim());
     p.set('view', $('view').value);
     if ($('page').value !== '') p.set('page', $('page').value);
+    if ($('fade').value !== '') p.set('fade', $('fade').value);
     return p.toString();
   };
   function build(absolute) {
@@ -114,7 +120,7 @@
           $('copy').textContent = '已复制'; setTimeout(() => $('copy').textContent = '复制', 1200); }
     catch (_) { $('copy').textContent = '复制失败'; }
   };
-  ['src','view','page'].forEach(id => $(id).addEventListener('input', refresh));
+  ['src','view','page','fade'].forEach(id => $(id).addEventListener('input', refresh));
   refresh();
 })();
 </script>
