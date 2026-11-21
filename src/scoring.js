@@ -102,44 +102,19 @@ export function computeStandings(model, opts = {}) {
     }
   }
 
-  // Contest.calculateResultsAndStandings:1041-1069
-  //   罚时 = Σ penaltyTime + getTimeInMin(AC 时间) * 60 * 1000
-  //   getTimeInMin 是「整数分钟」不是秒 —— 65 秒按 1 分钟算
-  //   lastSolution = 最后一题的 AC 分钟数，并列时用作二级比较
   const rows = [];
   for (const [tid, list] of cells) {
     const t = teams.get(tid) || { id: tid };
-    let solved = 0, penalty = 0, lastSolution = -1;
+    let solved = 0, penalty = 0;
     list.forEach(c => {
       if (c && c.solvedAt !== null) {
         solved++;
-        const min = Math.floor(c.solvedAt / 60);
-        penalty += min * 60 + c.attempts * penaltySec;
-        if (min > lastSolution) lastSolution = min;
+        penalty += c.solvedAt + c.attempts * penaltySec;
       }
     });
-    rows.push({ team: t, cells: list, solved, penalty, lastSolution });
+    rows.push({ team: t, cells: list, solved, penalty });
   }
-
-  // Ranking.sort（PASS_FAIL 分支）：
-  //   1) 过题数降序  2) 罚时升序  3) lastSolutionTime 升序  4) 队名 collator
-  rows.sort((a, b) =>
-    b.solved - a.solved ||
-    a.penalty - b.penalty ||
-    a.lastSolution - b.lastSolution ||
-    String(a.team.name || '').localeCompare(String(b.team.name || ''), 'en')
-  );
-
-  // Ranking.rank（LIVE）：三项全同才并列 → 1,2,2,4
-  let last = null;
-  rows.forEach((r, i) => {
-    if (last && r.solved === last.solved && r.penalty === last.penalty
-      && r.lastSolution === last.lastSolution) {
-      r.rank = last.rank;
-    } else {
-      r.rank = i + 1;
-      last = r;
-    }
-  });
+  rows.sort((a, b) => b.solved - a.solved || a.penalty - b.penalty);
+  rows.forEach((r, i) => { r.rank = i + 1; });
   return { rows, probs };
 }
