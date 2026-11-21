@@ -120,7 +120,11 @@ export function judgeLayout(W, H, nProb) {
   const headerH = Math.trunc(H / 50);
   const titleH = Math.trunc(H / 30);
   const rowH = (H - headerH - titleH) / ROWS;
-  const size = (rowH * 36 * 0.95) / dpi;
+
+  // AbstractScoreboardPresentation.setup:106-108
+  //   float tempRowHeight = height / (float) teamsPerScreen;   ← 用的是「全屏高度/12」，不是扣掉表头后的 rowH
+  //   size = tempRowHeight * 36f * 0.95f / dpi;
+  const size = ((H / ROWS) * 36 * 0.95) / dpi;
 
   const cubeH = Math.floor(rowH / 2.5) - CUBE_INSET;
   let cubeW = Math.floor((rowH / 1.8 - CUBE_INSET) * 10);
