@@ -52,6 +52,8 @@ export function tileLayout(W, H, rows = DEFAULT_ROWS, columns = DEFAULT_COLUMNS)
     teamFont: pf(size * 1.4, true),       // TeamTileHelper.teamFont
     rankFont: pf(size * 1.4, true),       // rankFont
     problemFont: pf(size * 0.45, false),  // problemFont
+    statusFont: pf(size * 0.7, false),    // statusFont
+    penaltyFont: pf(size * 0.85, true),  // penaltyFont
     size,
   };
 }
@@ -110,106 +112,110 @@ export function scrollOffset(tMs, H, rows = DEFAULT_ROWS, columns = DEFAULT_COLU
 /** 单个队伍瓦片（TeamTileHelper.paintTile 的简化版） */
 function drawTile(ctx, L, x, y, r, probs) {
   const { tileW, tileH } = L;
-  const arc = Math.trunc(tileW / 40);
+  const GAP = 3;                      // TeamTileHelper.IN_TILE_GAP
+  const bgArc = Math.trunc(tileW / 40);
 
   ctx.save();
   ctx.translate(x, y);
 
-  // 底色
   ctx.fillStyle = css(TILE_BG);
-  roundRectPath(ctx, 0, 0, tileW, tileH, arc);
+  roundRectPath(ctx, 0, 0, tileW, tileH, bgArc);
   ctx.fill();
 
-  const pad = Math.trunc(tileH * 0.12);
-  const fmRank = metrics(ctx, L.rankFont);
-  const rankW = widthOf(ctx, L.rankFont, '199');
+  const rankFm = metrics(ctx, L.rankFont);
+  const ww = widthOf(ctx, L.rankFont, '199');                 // 名次列宽
+  const penaltyFm = metrics(ctx, L.penaltyFont);
+  // TeamTileHelper:268
+  const maxwid = tileW - tileH - ww - GAP * 3 - 2 - widthOf(ctx, L.penaltyFont, '1999');
 
-  // 名次（左上）
+  ctx.textBaseline = 'alphabetic';
+  ctx.textAlign = 'left';
+
+  // 名次：垂直居中于整块（:274）
   ctx.font = L.rankFont;
   ctx.fillStyle = '#fff';
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'alphabetic';
   const rank = String(r.rank);
-  ctx.fillText(rank, pad + (rankW - widthOf(ctx, L.rankFont, rank)) / 2, pad + fmRank.asc);
+  ctx.fillText(rank, (ww - widthOf(ctx, L.rankFont, rank)) / 2, (tileH + rankFm.asc) / 2);
 
-  // 队名：超宽缩字号（和总榜 drawFit 一致）
-  const nameX = pad + rankW + pad;
-  const nameAvail = tileW - nameX - pad - widthOf(ctx, L.teamFont, '999');
+  // 队名：从 ww + tileH + GAP 开始（前面那段宽度留给 logo），顶边 tileH/10
+  const nameX = ww + tileH + GAP;
   const name = String(r.team.name || '');
   const nw = widthOf(ctx, L.teamFont, name);
-  const nameFs = nw > nameAvail && nameAvail > 0
-    ? Math.max(L.size * 1.4 * 0.55, (L.size * 1.4 * nameAvail) / nw)
-    : L.size * 1.4;
+  const baseFs = L.size * 1.4;
+  const nameFs = nw > maxwid ? Math.max(baseFs * 0.55, (baseFs * maxwid) / nw) : baseFs;
   ctx.font = pf(nameFs, true);
   ctx.fillStyle = '#fff';
-  ctx.fillText(name, nameX, pad + fmRank.asc);
+  ctx.textBaseline = 'top';
+  ctx.fillText(name, nameX, Math.trunc(tileH / 10));
+  ctx.textBaseline = 'alphabetic';
 
-  // 右侧：solved / 罚时
-  const fmP = metrics(ctx, L.problemFont);
-  ctx.font = L.problemFont;
   ctx.textAlign = 'right';
+
+  // solved：右上（:288-292）
   if (r.solved > 0) {
-    ctx.fillText(String(r.solved), tileW - pad, pad + fmRank.asc);
-  }
-  if (r.penalty > 0) {
-    ctx.fillText(String(Math.floor(r.penalty / 60)), tileW - pad, pad + fmRank.asc + fmP.height);
+    const teamFm = metrics(ctx, L.teamFont);
+    const s = String(r.solved);
+    ctx.font = L.teamFont;
+    ctx.fillStyle = '#fff';
+    ctx.fillText(s, tileW - GAP * 2, (tileH * 7 / 10 + teamFm.asc) / 2 - 2);
   }
 
-  // 题目格子
-  const cubeH = Math.trunc(tileH * 0.32);
-  const cubeGap = 3;
-  const avail = tileW - pad * 2;
-  const cubeW = Math.min(
-    Math.trunc((avail - cubeGap * (probs.length - 1)) / Math.max(1, probs.length)),
-    Math.trunc(cubeH * 1.6)
-  );
-  const cubeTop = tileH - pad - cubeH;
+  // 罚时：右中（:296-300）
+  if (r.penalty > 0) {
+    const s = String(Math.floor(r.penalty / 60));
+    ctx.font = L.penaltyFont;
+    ctx.fillStyle = css(LIGHT_GRAY);
+    ctx.fillText(s, tileW - GAP * 2, (tileH * 17) / 20 + penaltyFm.asc / 2 - 3);
+  }
+
+  // 题目格子：占底部 30%，宽度等分 maxwid（:317-321）
+  const cellY = Math.trunc((tileH * 7) / 10) - 3;
+  const cellH = Math.trunc((tileH * 3) / 10);
+  const cellW = maxwid / Math.max(1, probs.length);
+  const cellArc = Math.trunc(tileW / 120);
 
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
   for (let p = 0; p < probs.length; p++) {
     const c = r.cells ? r.cells[p] : null;
-    const cx = pad + p * (cubeW + cubeGap);
-    if (cx + cubeW > tileW - pad) break;
+    const cx = nameX + cellW * p;
 
     let bg = [40, 40, 40];
     let text = probs[p].label || '';
     let tc = 'rgba(196,196,196,0.69)';
-    let fs = L.problemFont;
     let outline = null;
 
     if (c && c.solvedAt !== null) {
       bg = c.isFTS ? PALETTE.FTS[5] : PALETTE.SOLVED[5];
       tc = '#fff';
-      text = `${c.subs}\u200A-\u200A${Math.floor(c.solvedAt / 60)}`;
+      text = `${c.subs} - ${Math.floor(c.solvedAt / 60)}`;
       if (c.isFTS) outline = PALETTE.SOLVED_COLOR;
     } else if (c && c.pending) {
       bg = PALETTE.PENDING[5];
       tc = '#fff';
-      text = `${c.subs}\u200A-\u200A${Math.floor(c.lastAt / 60)}`;
+      text = `${c.subs} - ${Math.floor(c.lastAt / 60)}`;
     } else if (c && c.subs) {
       bg = PALETTE.FAILED[5];
       tc = '#fff';
-      text = `${c.subs}\u200A-\u200A${Math.floor(c.lastAt / 60)}`;
+      text = `${c.subs} - ${Math.floor(c.lastAt / 60)}`;
     }
 
-    const arc2 = Math.trunc(cubeW / 10);
-    ctx.fillStyle = c && (c.solvedAt !== null || c.pending || c.subs) ? css(bg) : css(bg);
-    roundRectPath(ctx, cx, cubeTop, cubeW, cubeH, arc2);
+    ctx.fillStyle = css(bg);
+    roundRectPath(ctx, cx, cellY, cellW, cellH, cellArc);
     ctx.fill();
 
     if (outline) {
       ctx.strokeStyle = css(outline);
       ctx.lineWidth = 2;
-      roundRectPath(ctx, cx, cubeTop, cubeW, cubeH, arc2);
+      roundRectPath(ctx, cx, cellY, cellW, cellH, cellArc);
       ctx.stroke();
       ctx.lineWidth = 1;
     }
 
     ctx.fillStyle = tc;
-    ctx.font = fs;
-    ctx.fillText(text, cx + cubeW / 2, cubeTop + cubeH / 2);
+    ctx.font = c && (c.solvedAt !== null || c.pending || c.subs) ? L.statusFont : L.problemFont;
+    ctx.fillText(text, cx + cellW / 2, cellY + cellH / 2);
   }
 
   ctx.restore();
