@@ -187,8 +187,16 @@ export class JudgeQueue {
           target = count2++;
         }
       }
-      if (force) sr.anim.reset(target);
-      else sr.anim.setTarget(target);
+      if (force) {
+        sr.anim.reset(target);
+      } else {
+        // 每条提交一轮独立动画：正在移动中就不要中途改目标，
+        // 否则会出现「从第 7 行开始」这种半路重新加速
+        const moving = Math.abs(sr.anim.getValue() - sr.anim.xTarget) > 0.02;
+        const wantNewExit = sr.action && sr.actionAge !== undefined
+          && (sr.action === Action.MOVE_UP || sr.action === Action.MOVE_DOWN);
+        if (!moving || wantNewExit) sr.anim.setTarget(target);
+      }
     }
   }
 
