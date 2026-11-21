@@ -17,6 +17,7 @@ import { judgeLayout, drawJudgeFrame, seedRows, rowOf } from './judge-canvas.js'
 import { JudgeQueue, TEAMS_PER_SCREEN } from './judge-queue.js';
 import { problemLayout, drawProblemFrame, problemStats, problemRepeat, makeColorFn } from './problem-canvas.js';
 import { makeProblemChart, CHART_REPEAT } from './chart-canvas.js';
+import { FtsQueue, drawFtsFrame } from './fts-canvas.js';
 
 const Q = new URLSearchParams(location.search);
 const SRC = (Q.get('src') || 'http://127.0.0.1:8081/api/contests/144333').replace(/\/$/, '');
@@ -303,7 +304,8 @@ window.addEventListener('unhandledrejection', ev => {
 });
 
 function layout() {
-  if (VIEW === 'standings' || VIEW === 'judge' || VIEW === 'countdown' || VIEW === 'problems' || VIEW === 'chart') {
+  if (VIEW === 'standings' || VIEW === 'judge' || VIEW === 'countdown'
+    || VIEW === 'problems' || VIEW === 'chart' || VIEW === 'fts') {
     paneA.style.display = 'block';
     paneB.classList.add('hidden');
   }
@@ -314,6 +316,7 @@ function draw() {
   if (VIEW === 'judge') { renderJudge(paneA); dirty = false; return; }
   if (VIEW === 'problems') { renderProblems(paneA); dirty = false; return; }
   if (VIEW === 'chart') { renderChart(paneA); dirty = false; return; }
+  if (VIEW === 'fts') { renderFts(paneA); dirty = false; return; }
   // 有滚动动画，必须每帧重画（对齐 Java 的立即模式）
   const at = freezeAtSec(durationMs(), freezeMs());
   const data = computeStandings(M, {
@@ -454,6 +457,100 @@ function renderProblems(pane) {
   const t = (performance.now() - problemStart) % repeat;
 
   drawProblemFrame(ctx, L, data.probs, stats, t, problemColorFn);
+}
+
+/** #29 每题首杀榜（FirstToSolvePresentation 移植） */
+let ftsQ = null, ftsLast = 0, ftsPrimed = false;
+
+function ftsQueue() {
+  if (ftsQ) return ftsQ;
+  ftsQ = new FtsQueue({
+    judged: sub => judgeStatus.has(sub.id),
+    isFts: sub => judgeFts.has(sub.id),
+  });
+  return ftsQ;
+}
+
+function renderFts(pane) {
+  const { ctx, W, H } = ensureCanvas(pane);
+  if (!W || !H) return;
+
+  const at = freezeAtSec(durationMs(), freezeMs());
+  const data = computeStandings(M, {
+    hideJudgement: sub => isJudgementHidden(M.state, rel2sec(sub.contest_time), at),
+  });
+
+  syncJudgeStatus();
+  syncJudgeFts();
+
+  const L = judgeLayout(W, H, data.probs.length);
+  const t = contestTimes();
+  const times = { elapsedText: fmtClock(t.elapsed, true), remainText: fmtClock(t.remain, true) };
+  const frozen = !!(M.state && M.state.isFrozen());
+  const now = performance.now();
+
+  const q = ftsQueue();
+
+  // 每题的首杀提交，按 AC 时间排序（= 上榜顺序）
+  const ftsList = [];
+  for (const s of M.submissions.values()) if (judgeFts.has(s.id)) ftsList.push(s);
+  ftsList.sort((a, b) => rel2sec(a.contest_time) - rel2sec(b.contest_time));
+
+  // aboutToShow：已有的一律上榜并直接摆位，不播入场动画
+  if (!ftsPrimed && M.submissions.size > 0) {
+    for (const s of ftsList) {
+      q.handle(s);
+      q.handleFts(s.problem_id, true, true);
+    }
+    q.update(0, true);
+    ftsPrimed = true;
+    ftsLast = now;
+  }
+
+  // 之后新增的首杀从底部滑入
+  for (const s of ftsList) {
+    if (q.has(s.problem_id)) continue;
+    q.handle(s);
+    q.handleFts(s.problem_id, true, true);
+  }
+
+  const dt = Math.min(200, Math.max(0, now - ftsLast));
+  ftsLast = now;
+  q.update(dt);
+
+  const probs = data.probs;
+  const pidx = new Map(probs.map((p, i) => [p.id, i]));
+  const byTeam = new Map(data.rows.map(r => [r.team.id, r]));
+
+  const rows = q.records.map(sr => {
+    const sub = sr.submission;
+    const st = byTeam.get(sub.team_id);
+    const sec = rel2sec(sub.contest_time);
+    const pi = pidx.has(sub.problem_id) ? pidx.get(sub.problem_id) : -1;
+    const prob = probs[pi];
+    return {
+      y: sr.anim.getValue(),
+      timeText: String(Math.floor(sec / 60)),
+      teamName: st ? st.team.name : sub.team_id,
+      problemLabel: prob ? (prob.label || '') : '',
+      probs,
+      currentIndex: pi,
+      currentStatus: judgeStatus.get(sub.id) === 'solved' ? 'solved' : 'failed',
+      currentText: String(Math.floor(sec / 60)),
+    };
+  });
+
+  drawFtsFrame(ctx, L, rows, times, { frozen, ftsCount: q.fts.length });
+
+  if (Q.get('debug') === '1') {
+    ctx.save();
+    ctx.font = '20px monospace';
+    ctx.fillStyle = '#0f0';
+    ctx.textAlign = 'left';
+    ctx.fillText(`fts=${q.fts.length} rows=${q.records.length} ` +
+      `ys=${q.records.map(r => r.anim.getValue().toFixed(1)).join(',')}`, 20, H - 24);
+    ctx.restore();
+  }
 }
 
 /** #10 每题提交/通过柱状图（ProblemSummaryChart 移植） */
