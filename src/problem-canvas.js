@@ -128,16 +128,21 @@ function pill(ctx, color, x, y, w, h, arc, text, font, fm) {
   ctx.fillText(text, x + (w - tw) / 2, y + (h + fm.asc) / 2 - 1);
 }
 
-/** 单个方块（ProblemSummary.paint） */
-function drawCell(ctx, r, p, stats, lastColor) {
+/**
+ * 单个方块（ProblemSummary.paint）
+ *
+ * p == null（末尾那个占位格）时 `color` 字段是 null，`g.setColor(null)` 不生效，
+ * 于是保留的是 gg 的初始颜色 —— 父 g 在整个循环里没 setColor 过，所以是黑色。
+ * 注意每个格子都是 g.create() 的独立副本，状态不会在格子间流传。
+ */
+function drawCell(ctx, r, p, stats) {
   const W = r.w, H = r.h;
   const ARC = Math.trunc((W + H) / 50);
 
   ctx.save();
   ctx.translate(r.x, r.y);
 
-  // 底色：p==null 时 Java 的 setColor(null) 被忽略，沿用上一个颜色
-  const color = p ? problemColor(p) : lastColor;
+  const color = p ? problemColor(p) : [0, 0, 0];
   ctx.fillStyle = css(color);
   roundRectPath(ctx, 0, 0, W, H, ARC);
   ctx.fill();
@@ -236,10 +241,8 @@ export function drawProblemFrame(ctx, L, probs, statsList, tMs) {
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
 
-  let lastColor = [0, 0, 0];
-
   for (let i = 0; i < cells.length; i++) {
-    if (tMs <= i * FLY_IN) break;              // 还没轮到的先不画
+    if (tMs <= i * FLY_IN) break;              // 还没轮到的先不画（源码是 break，不是 continue）
 
     const p = i < probs.length ? probs[i] : null;
     const stats = i < probs.length ? statsList[i] : null;
@@ -252,10 +255,8 @@ export function drawProblemFrame(ctx, L, probs, statsList, tMs) {
       const dx = Math.trunc(((1 - f) * W) / 30);
       ctx.translate(dx, dx);
     }
-    drawCell(ctx, cells[i], p, stats, lastColor);
+    drawCell(ctx, cells[i], p, stats);
     ctx.restore();
-
-    if (p) lastColor = problemColor(p);
   }
 }
 

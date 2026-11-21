@@ -420,6 +420,7 @@ function renderJudge(pane) {
 }
 
 /** #29 单题统计（ProblemSummaryPresentation 移植） */
+let problemStart = 0;
 function renderProblems(pane) {
   const { ctx, W, H } = ensureCanvas(pane);
   if (!W || !H) return;
@@ -436,8 +437,10 @@ function renderProblems(pane) {
   const stats = data.probs.map((_, pi) => problemStats(data.rows.map(r => r.cells[pi])));
 
   // 循环播放：每个方块依次飞入，最后停 5 秒（getRepeat）
+  // getRepeatTimeMs 是由框架从 0 开始累加的，所以这里也用「首帧起算」而不是页面起算
+  if (!problemStart) problemStart = performance.now();
   const repeat = problemRepeat(data.probs.length);
-  const t = performance.now() % repeat;
+  const t = (performance.now() - problemStart) % repeat;
 
   drawProblemFrame(ctx, L, data.probs, stats, t);
 }
