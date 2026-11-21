@@ -189,11 +189,10 @@ export function drawFtsFrame(ctx, L, rows, times, opts = {}) {
     ctx.fillRect(0, nFts * rowH, W, 1);
   }
 
-  const rowM = metrics(ctx, fr);
+  // 和总榜 standings-canvas.drawRow 同一套：middle 基线 + 5 + rowFont*0.42
   const indent = BORDER + w199sp + rowH;
   const cubeDy = Math.trunc(rowH / 2) + Math.trunc(CUBE_INSET / 2) + 3;
-  const nameBaseline = rowM.asc + 5;
-  const textImageY = 5 + rowM.asc;
+  const textY = 5 + L.rowFontPx * 0.42;
 
   for (const r of rows) {
     const y = (r.y !== undefined ? r.y : 0) * rowH;
@@ -202,12 +201,12 @@ export function drawFtsFrame(ctx, L, rows, times, opts = {}) {
     ctx.save();
     ctx.globalAlpha = r.alpha === undefined ? 1 : r.alpha;
     ctx.textAlign = 'left';
-    ctx.textBaseline = 'alphabetic';
+    ctx.textBaseline = 'middle';
 
     // 时间（分钟）
     ctx.font = L.rowItalicsFont;
     ctx.fillStyle = '#fff';
-    ctx.fillText(r.timeText, BORDER + (w199 - widthOf(ctx, L.rowItalicsFont, r.timeText)) / 2, y + textImageY);
+    ctx.fillText(r.timeText, BORDER + (w199 - widthOf(ctx, L.rowItalicsFont, r.timeText)) / 2, y + textY);
 
     // 队名：和总榜同一套 —— 超宽就缩字号（下限 0.55×），基线不动
     const nameX = BORDER + w199sp + rowH;
@@ -218,7 +217,7 @@ export function drawFtsFrame(ctx, L, rows, times, opts = {}) {
     if (nw > avail) nameFs = Math.max(nameFs * 0.55, (nameFs * avail) / nw);
     ctx.font = `bold ${nameFs}px ${FAMILY}`;
     ctx.fillStyle = '#fff';
-    ctx.fillText(name, nameX, y + nameBaseline);
+    ctx.fillText(name, nameX, y + textY);
 
     // 题目格子
     const cubeTop = y + cubeDy;
@@ -268,7 +267,7 @@ export function drawFtsFrame(ctx, L, rows, times, opts = {}) {
     // 右侧题目 label
     ctx.font = fr;
     ctx.fillStyle = '#fff';
-    ctx.fillText(r.problemLabel, W - BORDER - (w9999 + widthOf(ctx, fr, r.problemLabel)) / 2, y + textImageY);
+    ctx.fillText(r.problemLabel, W - BORDER - (w9999 + widthOf(ctx, fr, r.problemLabel)) / 2, y + textY);
 
     ctx.restore();
   }
