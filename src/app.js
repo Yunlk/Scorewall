@@ -463,7 +463,7 @@ function renderProblems(pane) {
 }
 
 /** #29 每题首杀榜（FirstToSolvePresentation 移植） */
-let ftsQ = null, ftsLast = 0, ftsPrimed = false;
+let ftsQ = null, ftsLast = 0, ftsPrimed = false, ftsSeen = new Set();
 
 function ftsQueue() {
   if (ftsQ) return ftsQ;

@@ -56,6 +56,9 @@ export class FtsQueue {
     const ex = this.records.find(r => r.submission.id === sub.id);
     if (ex) { ex.submission = sub; return ex; }
 
+    // 源码 handleSubmission:219-221：该题已经上榜就直接丢掉
+    if (this.has(sub.problem_id)) return null;
+
     let target = 0;
     if (this.records.length > 0) {
       target = Math.min(this.records[this.records.length - 1].anim.getValue() + 1, this.teamsPerScreen * 2);
@@ -206,15 +209,22 @@ export function drawFtsFrame(ctx, L, rows, times, opts = {}) {
     ctx.fillStyle = '#fff';
     ctx.fillText(r.timeText, BORDER + (w199 - widthOf(ctx, L.rowItalicsFont, r.timeText)) / 2, y + textImageY);
 
-    // 队名
+    // 队名：TextHelper.drawFit 超宽时横向压缩，不缩字号
     const nameX = BORDER + w199sp + rowH;
     const avail = W - BORDER * 2 - widthOf(ctx, fr, '199 9 9999') - rowH;
-    let fs = L.size * 1.25;
-    const nw = widthOf(ctx, `bold ${fs}px ${FAMILY}`, r.teamName || '');
-    if (nw > avail && nw > 0) fs = Math.max(fs * 0.5, (fs * avail) / nw);
-    ctx.font = `bold ${fs}px ${FAMILY}`;
+    const name = r.teamName || '';
+    const nw = widthOf(ctx, fr, name);
+    ctx.font = fr;
     ctx.fillStyle = '#fff';
-    ctx.fillText(r.teamName || '', nameX, y + nameBaseline);
+    if (nw > avail && avail > 0) {
+      ctx.save();
+      ctx.translate(nameX, 0);
+      ctx.scale(avail / nw, 1);
+      ctx.fillText(name, 0, y + nameBaseline);
+      ctx.restore();
+    } else {
+      ctx.fillText(name, nameX, y + nameBaseline);
+    }
 
     // 题目格子
     const cubeTop = y + cubeDy;

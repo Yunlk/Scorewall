@@ -318,15 +318,22 @@ export function drawJudgeFrame(ctx, L, rows, probs, times, opts = {}) {
     const rank = String(r.rank);
     ctx.fillText(rank, BORDER + (w199 - widthOf(ctx, L.rowItalicsFont, rank)) / 2, y + textImageY);
 
-    // 队名（TextHelper.drawString 缩字号适配）
+    // 队名：TextHelper.drawFit 在超宽时只做横向压缩（scale x），不缩小字号
     const nameX = BORDER + w199sp + rowH;
     const avail = W - BORDER * 2 - w199_9_9999 - rowH;
-    let fs = L.size * 1.25;
-    let nw = widthOf(ctx, f(px0(fs), true), r.teamName || '');
-    if (nw > avail && nw > 0) fs = Math.max(fs * 0.5, (fs * avail) / nw);
-    ctx.font = f(fs, true);
+    const name = r.teamName || '';
+    const nw = widthOf(ctx, fr, name);
+    ctx.font = fr;
     ctx.fillStyle = '#fff';
-    ctx.fillText(r.teamName || '', nameX, y + nameBaseline);
+    if (nw > avail && avail > 0) {
+      ctx.save();
+      ctx.translate(nameX, 0);
+      ctx.scale(avail / nw, 1);
+      ctx.fillText(name, 0, y + nameBaseline);
+      ctx.restore();
+    } else {
+      ctx.fillText(name, nameX, y + nameBaseline);
+    }
 
     // 解题数 / 罚时
     ctx.font = fr;
