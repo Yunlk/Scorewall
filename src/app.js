@@ -328,9 +328,10 @@ function judgeQueue() {
     judged: sub => judgeStatus.has(sub.id),
     solved: sub => judgeStatus.get(sub.id) === 'solved',
     frozen: () => !!(M.state && M.state.isFrozen()),
-    // 源码 JudgePresentation:34-35：AC 停 11s、WA 停 8s
+    // 源码 JudgePresentation:34-37：AC 停 11s、WA 停 8s、淡出 2s
     timeToKeepSolved: Q.has('keepSolved') ? Number(Q.get('keepSolved')) : undefined,
     timeToKeepFailed: Q.has('keepFailed') ? Number(Q.get('keepFailed')) : undefined,
+    timeToFadeRecent: Q.has('fadeRecent') ? Number(Q.get('fadeRecent')) : undefined,
   });
   return judgeQ;
 }

@@ -157,6 +157,7 @@ export class JudgeQueue {
     this.opts = opts;
     this.timeToKeepFailed = opts.timeToKeepFailed > 0 ? opts.timeToKeepFailed : TIME_TO_KEEP_FAILED;
     this.timeToKeepSolved = opts.timeToKeepSolved > 0 ? opts.timeToKeepSolved : TIME_TO_KEEP_SOLVED;
+    this.timeToFadeRecent = opts.timeToFadeRecent > 0 ? opts.timeToFadeRecent : TIME_TO_FADE_RECENT;
   }
 
   /** JudgePresentation.createSubmissionRecord:126-139 */
@@ -212,7 +213,7 @@ export class JudgeQueue {
           target = -TEAMS_PER_SCREEN;
         } else if (sr.action === Action.MOVE_DOWN && sr.actionAge > this.timeToKeepFailed) {
           target = TEAMS_PER_SCREEN * 2;
-        } else if (sr.action === Action.MOVE_OUT && sr.actionAge > TIME_TO_FADE_RECENT / 3) {
+        } else if (sr.action === Action.MOVE_OUT && sr.actionAge > this.timeToFadeRecent / 3) {
           // 正在淡出：不占行
         } else if (count < TEAMS_PER_SCREEN * 2) {
           count++;
@@ -234,9 +235,9 @@ export class JudgeQueue {
           target = -TEAMS_PER_SCREEN;
           numSolved--;
         } else target = count++;
-      } else if (sr.action === Action.MOVE_DOWN && sr.actionAge > TIME_TO_FADE_RECENT / 2) {
+      } else if (sr.action === Action.MOVE_DOWN && sr.actionAge > this.timeToFadeRecent / 2) {
         target = TEAMS_PER_SCREEN * 2;
-      } else if (sr.action === Action.MOVE_OUT && sr.actionAge > TIME_TO_FADE_RECENT / 3) {
+      } else if (sr.action === Action.MOVE_OUT && sr.actionAge > this.timeToFadeRecent / 3) {
         // 不占行
       } else {
         target = count2++;
@@ -269,7 +270,7 @@ export class JudgeQueue {
       const v = sr.anim.getValue();
       if (sr.action === Action.MOVE_UP && v < -1) remove.push(sr);
       else if (sr.action === Action.MOVE_DOWN && v > TEAMS_PER_SCREEN) remove.push(sr);
-      else if (sr.action === Action.MOVE_OUT && sr.actionAge > TIME_TO_FADE_RECENT) remove.push(sr);
+      else if (sr.action === Action.MOVE_OUT && sr.actionAge > this.timeToFadeRecent) remove.push(sr);
     }
 
     for (const r of remove) {
@@ -288,7 +289,7 @@ export class JudgeQueue {
       return Math.min(1.0, Math.max(0.1, 1.0 - ((sr.actionAge - this.timeToKeepFailed * 0.75) * 2.0) / this.timeToKeepFailed));
     }
     if (sr.action === Action.MOVE_OUT) {
-      return Math.max(0, 1.0 - sr.actionAge / TIME_TO_FADE_RECENT);
+      return Math.max(0, 1.0 - sr.actionAge / this.timeToFadeRecent);
     }
     return 1;
   }
