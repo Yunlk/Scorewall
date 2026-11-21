@@ -358,8 +358,9 @@ function renderJudge(pane) {
     if (!judgeSeen.has(sub.id)) {
       judgeSeen.add(sub.id);
       const sr = q.add(sub);
-      // 新提交从「目标位置下方一格」滑上来：一条接一条的位移，不是瞬移
-      if (sr) sr.anim.reset(sr.anim.xTarget + 1);
+      // 新提交直接出现在它自己的行位上（不飞）；
+      // 「往上走」只发生在上面一行走了、下面的补位时（setTarget 动画）
+      if (sr) sr.anim.reset(sr.anim.xTarget);
     } else {
       q.refresh(sub);            // Java listener：对象更新也走 handleSubmission
     }
