@@ -157,6 +157,7 @@ export class JudgeQueue {
     let count = 0;
     const count2 = this.reservedRows;
 
+    const visibleRows = TEAMS_PER_SCREEN;          // 可见行数 = 占位上限
     const numSolvedTotal = this.records.filter(r => solved && solved(r.submission)).length;
     let numSolved = numSolvedTotal;
 
@@ -170,8 +171,8 @@ export class JudgeQueue {
           target = TEAMS_PER_SCREEN * 2;
         } else if (sr.action === Action.MOVE_OUT && sr.actionAge > TIME_TO_FADE_RECENT / 3) {
           // 滑出中不占行
-        } else if (count < TEAMS_PER_SCREEN * 2) {
-          count++;
+        } else if (count < visibleRows) {
+          count++;                                   // 只占可见的 12 行
         }
       } else {
         if (sr.action === Action.MOVE_UP) {
