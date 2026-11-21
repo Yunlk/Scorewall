@@ -18,6 +18,7 @@ import { JudgeQueue, TEAMS_PER_SCREEN } from './judge-queue.js';
 import { problemLayout, drawProblemFrame, problemStats, problemRepeat, makeColorFn } from './problem-canvas.js';
 import { makeProblemChart, CHART_REPEAT } from './chart-canvas.js';
 import { tileLayout, buildGroups, drawTileRank, tileRepeat, scrollOffset, DEFAULT_COLUMNS } from './tilerank-canvas.js';
+import { drawPolarCountdown } from './polar-canvas.js';
 import { FtsQueue, drawFtsFrame } from './fts-canvas.js';
 
 const Q = new URLSearchParams(location.search);
@@ -312,7 +313,8 @@ window.addEventListener('unhandledrejection', ev => {
 
 function layout() {
   if (VIEW === 'standings' || VIEW === 'judge' || VIEW === 'countdown'
-    || VIEW === 'problems' || VIEW === 'chart' || VIEW === 'fts' || VIEW === 'tilerank') {
+    || VIEW === 'problems' || VIEW === 'chart' || VIEW === 'fts' || VIEW === 'tilerank'
+    || VIEW === 'polar') {
     paneA.style.display = 'block';
     paneB.classList.add('hidden');
   }
@@ -325,6 +327,7 @@ function draw() {
   if (VIEW === 'chart') { renderChart(paneA); dirty = false; return; }
   if (VIEW === 'fts') { renderFts(paneA); dirty = false; return; }
   if (VIEW === 'tilerank') { renderTileRank(paneA); dirty = false; return; }
+  if (VIEW === 'polar') { renderPolar(paneA); dirty = false; return; }
   // 有滚动动画，必须每帧重画（对齐 Java 的立即模式）
   const at = freezeAtSec(durationMs(), freezeMs());
   const data = computeStandings(M, {
@@ -466,6 +469,38 @@ function renderProblems(pane) {
   const t = (performance.now() - problemStart) % repeat;
 
   drawProblemFrame(ctx, L, data.probs, stats, t, problemColorFn);
+}
+
+/** #16 圆环倒计时（PolarCountdownPresentation 移植） */
+function renderPolar(pane) {
+  const { ctx, W, H } = ensureCanvas(pane);
+  if (!W || !H) return;
+
+  // CountdownPresentation.setClockTarget：clock = -getRemainingMillis()
+  //   未开始 → 倒计时到开始（负数绝对值递减）
+  //   已开始且未过封榜点 → 已过时间取负（负数绝对值递增）
+  //   过了封榜点 → 剩余时间取负（负数绝对值递减）
+  const t = contestTimes();
+  const dur = durationMs();
+  // fixture 的 contest.json 没有 start_time，elapsed 恒为 0；给个 ?at=<秒> 便于演示
+  const atSec = Q.has('at') ? Number(Q.get('at')) : null;
+  const elapsed = atSec != null ? atSec * 1000 : t.elapsed;
+  const clockMs = elapsed >= 0 ? -elapsed : -t.remain;
+
+  drawPolarCountdown(ctx, W, H, {
+    clockMs,
+    durationMs: dur,
+    verticalOffset: 0,
+  });
+
+  if (Q.get('debug') === '1') {
+    ctx.save();
+    ctx.font = '20px monospace';
+    ctx.fillStyle = '#0f0';
+    ctx.textAlign = 'left';
+    ctx.fillText(`clock=${clockMs} elapsed=${Math.round(elapsed)} dur=${dur}`, 20, H - 24);
+    ctx.restore();
+  }
 }
 
 /** #? 按过题数分档的瓦片榜（TileRankScoreboardPresentation 移植） */
