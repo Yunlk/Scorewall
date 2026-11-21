@@ -133,6 +133,7 @@ export function judgeLayout(W, H, nProb, rows = ROWS) {
 
   return {
     W, H, headerH, titleH, rowH, cubeH, cubeW, nProb, rows,
+    rowFontPx: size * 1.25,                 // 数值版，缩字号时要用
     rowFont: f(size * 1.25, true),          // rowFont
     rowItalicsFont: f(size * 1.25, true),   // rowItalicsFont（源码同为 BOLD size*1.25）
     statusFont: f(size * 0.7, true),        // statusFont
@@ -318,22 +319,16 @@ export function drawJudgeFrame(ctx, L, rows, probs, times, opts = {}) {
     const rank = String(r.rank);
     ctx.fillText(rank, BORDER + (w199 - widthOf(ctx, L.rowItalicsFont, rank)) / 2, y + textImageY);
 
-    // 队名：TextHelper.drawFit 在超宽时只做横向压缩（scale x），不缩小字号
+    // 队名：和总榜同一套 —— 超宽就缩字号（下限 0.55×），基线不动
     const nameX = BORDER + w199sp + rowH;
-    const avail = W - BORDER * 2 - w199_9_9999 - rowH;
+    const avail = Math.max(40, W - BORDER - w199_9_9999 - rowH);
     const name = r.teamName || '';
-    const nw = widthOf(ctx, fr, name);
-    ctx.font = fr;
+    let nameFs = L.rowFontPx;
+    const nw = widthOf(ctx, f(nameFs, true), name);
+    if (nw > avail) nameFs = Math.max(nameFs * 0.55, (nameFs * avail) / nw);
+    ctx.font = f(nameFs, true);
     ctx.fillStyle = '#fff';
-    if (nw > avail && avail > 0) {
-      ctx.save();
-      ctx.translate(nameX, 0);
-      ctx.scale(avail / nw, 1);
-      ctx.fillText(name, 0, y + nameBaseline);
-      ctx.restore();
-    } else {
-      ctx.fillText(name, nameX, y + nameBaseline);
-    }
+    ctx.fillText(name, nameX, y + nameBaseline);
 
     // 解题数 / 罚时
     ctx.font = fr;

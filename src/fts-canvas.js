@@ -209,22 +209,16 @@ export function drawFtsFrame(ctx, L, rows, times, opts = {}) {
     ctx.fillStyle = '#fff';
     ctx.fillText(r.timeText, BORDER + (w199 - widthOf(ctx, L.rowItalicsFont, r.timeText)) / 2, y + textImageY);
 
-    // 队名：TextHelper.drawFit 超宽时横向压缩，不缩字号
+    // 队名：和总榜同一套 —— 超宽就缩字号（下限 0.55×），基线不动
     const nameX = BORDER + w199sp + rowH;
-    const avail = W - BORDER * 2 - widthOf(ctx, fr, '199 9 9999') - rowH;
+    const avail = Math.max(40, W - BORDER - widthOf(ctx, fr, '199 9 9999') - rowH);
     const name = r.teamName || '';
-    const nw = widthOf(ctx, fr, name);
-    ctx.font = fr;
+    let nameFs = L.rowFontPx;
+    const nw = widthOf(ctx, `bold ${nameFs}px ${FAMILY}`, name);
+    if (nw > avail) nameFs = Math.max(nameFs * 0.55, (nameFs * avail) / nw);
+    ctx.font = `bold ${nameFs}px ${FAMILY}`;
     ctx.fillStyle = '#fff';
-    if (nw > avail && avail > 0) {
-      ctx.save();
-      ctx.translate(nameX, 0);
-      ctx.scale(avail / nw, 1);
-      ctx.fillText(name, 0, y + nameBaseline);
-      ctx.restore();
-    } else {
-      ctx.fillText(name, nameX, y + nameBaseline);
-    }
+    ctx.fillText(name, nameX, y + nameBaseline);
 
     // 题目格子
     const cubeTop = y + cubeDy;
