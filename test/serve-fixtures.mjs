@@ -188,6 +188,7 @@ function d7round() {
     { t: 4000, j: { id: 'JD1', submission_id: 'D1', judgement_type_id: 'AC' } },
     { t: 7000, j: { id: 'JD2', submission_id: 'D2', judgement_type_id: 'WA' } },
     { t: 9500, j: { id: 'JD3', submission_id: 'D3', judgement_type_id: 'AC' } },
+    { t: 11000, j: { id: 'JD4', submission_id: 'D4', judgement_type_id: 'WA' } },
   ];
   const round = DEMO7.round = (DEMO7.round || 0) + 1;
   DEMO7.plan = plan;
@@ -205,9 +206,7 @@ function d7round() {
       }
     }, step.t);
   }
-  // 保持 subs/judges 只留最近两轮
-  if (DEMO7.subs.length > 16) DEMO7.subs.splice(0, DEMO7.subs.length - 16);
-  if (DEMO7.judges.length > 12) DEMO7.judges.splice(0, DEMO7.judges.length - 12);
+  // 不裁剪：旧记录也要有判题结论，否则会永远挂在队列里
 }
 
 setTimeout(d7start, 500);          // 服务启动就开始循环演示
