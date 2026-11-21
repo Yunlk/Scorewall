@@ -5,3 +5,4 @@ dist/
 config.local.json
 vendor/
 tmp-*.png
+tmp-*/
