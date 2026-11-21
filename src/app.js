@@ -358,8 +358,8 @@ function renderJudge(pane) {
     if (!judgeSeen.has(sub.id)) {
       judgeSeen.add(sub.id);
       const sr = q.add(sub);
-      // 判题队列不滚动：新提交直接落在自己的行位上
-      if (sr) sr.anim.reset(sr.anim.xTarget);
+      // 新提交从「目标位置下方一格」滑上来：一条接一条的位移，不是瞬移
+      if (sr) sr.anim.reset(sr.anim.xTarget + 1);
     } else {
       q.refresh(sub);            // Java listener：对象更新也走 handleSubmission
     }

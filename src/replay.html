@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Scorewall 回放</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+         background: #0b0b0b; color: #e8e8e8;
+         font: 15px/1.6 system-ui, "Microsoft YaHei", sans-serif; }
+  .box { width: min(560px, 92vw); text-align: center; }
+  h1 { font-size: 26px; margin: 0 0 6px; letter-spacing: .04em; }
+  .sub { color: #8b8b8b; margin-bottom: 34px; font-size: 13px; }
+  .go { width: 100%; padding: 22px; font-size: 22px; font-weight: 700; letter-spacing: .1em;
+        border: 1px solid #2f6b3f; border-radius: 12px; cursor: pointer;
+        background: linear-gradient(#1c4a2a, #123019); color: #b6f2c8; }
+  .go:hover { background: linear-gradient(#235c34, #17401f); }
+  .go:disabled { opacity: .45; cursor: default; }
+  .row { display: flex; gap: 12px; margin: 22px 0 26px; }
+  .row > div { flex: 1; text-align: left; }
+  label { display: block; font-size: 12px; color: #9a9a9a; margin-bottom: 5px; }
+  input, select { width: 100%; padding: 9px 10px; background: #161616; color: #eee;
+                  border: 1px solid #2e2e2e; border-radius: 6px; font: inherit; }
+  .stat { margin-top: 22px; font-size: 13px; color: #7fbf8f; min-height: 20px; }
+  .hint { margin-top: 26px; font-size: 12px; color: #6a6a6a; line-height: 1.8; text-align: left; }
+  code { background: #171717; padding: 1px 5px; border-radius: 4px; color: #9bd; }
+</style>
+</head>
+<body>
+<div class="box">
+  <h1>2026 辽宁省赛 · 回放</h1>
+  <div class="sub">真实提交数据，压缩时间轴重放</div>
+
+  <div class="row">
+    <div>
+      <label>回放区间（开赛后分钟）</label>
+      <input id="win" type="number" min="1" max="300" value="10">
+    </div>
+    <div>
+      <label>速度（比赛秒 / 真实秒）</label>
+      <select id="speed">
+        <option value="8">8×  慢速</option>
+        <option value="20" selected>20× 正常</option>
+        <option value="50">50× 快速</option>
+        <option value="120">120× 极速</option>
+      </select>
+    </div>
+  </div>
+
+  <button class="go" id="go">▶ 开始回放</button>
+  <div class="stat" id="stat"></div>
+
+  <div class="hint">
+    点下去会：<br>
+    ① 调 <code>/replay/start</code> 重置并启动回放<br>
+    ② 自动跳到判题队列页，新提交直接出现在空位上<br>
+    ③ 判完 AC 往上滑走、WA 往下掉，后面的补位<br><br>
+    想重来：回到本页再点一次。想单独看总榜：<br>
+    <code>/?src=/api/contests/5&view=standings</code>
+  </div>
+</div>
+
+<script>
+(async function () {
+  const $ = id => document.getElementById(id);
+  const stat = $('stat');
+
+  // 页面打开时先显示当前状态
+  try {
+    const s = await (await fetch('/replay/status')).json();
+    if (s.total) stat.textContent = `已回放 ${s.sent}/${s.total} 条，已判 ${s.judged} 条`;
+  } catch (_) {}
+
+  $('go').onclick = async () => {
+    $('go').disabled = true;
+    stat.textContent = '启动中…';
+    const win = Math.max(1, Number($('win').value) || 10);
+    const speed = Number($('speed').value) || 20;
+    try {
+      const r = await (await fetch(`/replay/start?window=${win * 60}&speed=${speed}`)).json();
+      if (!r.ok) { stat.textContent = '启动失败：' + (r.error || '未知错误'); $('go').disabled = false; return; }
+      stat.textContent = `开始回放：${r.total} 条提交（前 ${win} 分钟，${speed}×）`;
+      const src = encodeURIComponent(location.origin + '/api/contests/5');
+      setTimeout(() => { location.href = `/?src=${src}&view=judge`; }, 700);
+    } catch (e) {
+      stat.textContent = '请求失败：' + e.message;
+      $('go').disabled = false;
+    }
+  };
+})();
+</script>
+</body>
+</html>

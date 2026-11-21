@@ -96,6 +96,73 @@ const MIME = {
   '.ttf': 'font/ttf',
 };
 
+
+// ---- LNCPC 回放：把前 N 分钟的真实提交按压缩时间重放 ----
+const REV = { active: false, speed: 12, subs: [], judges: [], clients: new Set(), idx: 0, timer: null, list: [], windowMs: 600000 };
+
+function revLoad() {
+  const dir = join(here, 'fixtures', 'lncpc');
+  const runs = JSON.parse(readFileSync(join(dir, 'run.json'), 'utf8'));
+  return runs;
+}
+let REV_RUNS = null;
+
+function revStop() {
+  if (REV.timer) { clearTimeout(REV.timer); REV.timer = null; }
+  REV.active = false;
+}
+
+function revEmit(obj) {
+  const line = JSON.stringify(obj) + '\n';
+  for (const c of REV.clients) { try { c.write(line); } catch (_) {} }
+}
+
+function revStart(windowMs = 600000, speed = 12) {
+  revStop();
+  if (!REV_RUNS) REV_RUNS = revLoad();
+  REV.list = REV_RUNS.filter(r => r.timestamp <= windowMs).sort((a, b) => a.timestamp - b.timestamp);
+  REV.subs = []; REV.judges = []; REV.idx = 0; REV.speed = speed; REV.windowMs = windowMs;
+  REV.active = true;
+
+  const rel = ms => {
+    const s = Math.floor(ms / 1000);
+    return `${Math.floor(s/3600)}:${String(Math.floor(s%3600/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}.000`;
+  };
+
+  let lastTs = REV.list.length ? REV.list[0].timestamp : 0;
+  const step = () => {
+    if (!REV.active || REV.idx >= REV.list.length) { REV.active = false; return; }
+    const r = REV.list[REV.idx++];
+    const sub = {
+      id: 'R' + r.id, team_id: r.team_id, problem_id: r.problem_id,
+      contest_time: rel(r.timestamp),
+      language_id: 'cpp',
+    };
+    REV.subs.push(sub);
+    revEmit({ type: 'submissions', id: sub.id, data: sub });
+
+    // 0.6~2.4 秒后出判题（压缩）
+    const judgeDelay = 600 + Math.random() * 1800;
+    setTimeout(() => {
+      const j = {
+        id: 'J' + r.id, submission_id: sub.id,
+        judgement_type_id: ({ACCEPTED:'AC', WRONG_ANSWER:'WA', TIME_LIMIT_EXCEEDED:'TLE',
+                             RUNTIME_ERROR:'RE', COMPILATION_ERROR:'CE', MEMORY_LIMIT_EXCEEDED:'MLE'})[r.status] || 'WA',
+        start_contest_time: rel(r.timestamp),
+        end_contest_time: rel(r.timestamp + 1000),
+      };
+      REV.judges.push(j);
+      revEmit({ type: 'judgements', id: j.id, data: j });
+    }, judgeDelay);
+
+    const next = REV.list[REV.idx];
+    const gap = next ? Math.max(30, (next.timestamp - r.timestamp) / speed) : 0;
+    if (next) REV.timer = setTimeout(step, gap);
+    else REV.timer = setTimeout(() => { REV.active = false; }, 4000);
+  };
+  step();
+}
+
 const fixture = n => JSON.parse(readFileSync(join(FIX, n + '.json'), 'utf8'));
 
 // 事件类型名 -> 夹具文件名
@@ -125,6 +192,22 @@ const server = http.createServer((req, res) => {
   const path = url.pathname;
 
   // ---- 假 CCS API ----
+  // ---- 回放控制 ----
+  if (path === '/replay/start') {
+    try {
+      const w = Number(url.searchParams.get('window') || 600) * 1000;
+      const sp = Number(url.searchParams.get('speed') || 12);
+      revStart(w, sp);
+      return json(res, { ok: true, total: REV.list.length, windowSec: w / 1000, speed: sp });
+    } catch (e) {
+      return json(res, { ok: false, error: String(e && e.message) }, 500);
+    }
+  }
+  if (path === '/replay/status') {
+    return json(res, { active: REV.active, sent: REV.subs.length, judged: REV.judges.length, total: REV.list.length });
+  }
+  if (path === '/replay/stop') { revStop(); return json(res, { ok: true }); }
+
   // ---- DOMjudge 代理：/domjudge/<contest>/<集合> ----
   if (path.startsWith('/domjudge/')) {
     const rest = path.slice('/domjudge/'.length);
@@ -146,6 +229,25 @@ const server = http.createServer((req, res) => {
       }
     })();
     return;
+  }
+
+  // ---- contest 5：LNCPC 回放 ----
+  if (path.startsWith('/api/contests/5')) {
+    const rest = path.slice('/api/contests/5'.length).replace(/^\//, '');
+    FIX = join(here, 'fixtures', 'lncpc');
+    if (rest === 'submissions') return json(res, REV.subs);
+    if (rest === 'judgements') return json(res, REV.judges);
+    if (rest === 'state') return json(res, { id: '1', started: '2026-05-17T01:00:00.000Z', ended: null, frozen: null, thawed: null, finalized: null, end_of_updates: null });
+    if (rest === 'event-feed' || rest === '') {
+      if (rest === '') return json(res, fixture('contest'));
+      res.writeHead(200, { 'Content-Type': 'application/x-ndjson; charset=utf-8', 'Cache-Control': 'no-cache', 'Access-Control-Allow-Origin': '*', Connection: 'keep-alive' });
+      for (const sub of REV.subs) { try { res.write(JSON.stringify({ type: 'submissions', id: sub.id, data: sub }) + '\n'); } catch (_) {} }
+      for (const j of REV.judges) { try { res.write(JSON.stringify({ type: 'judgements', id: j.id, data: j }) + '\n'); } catch (_) {} }
+      const beat = setInterval(() => { try { res.write('\n'); } catch (_) { clearInterval(beat); } }, 15000);
+      REV.clients.add(res);
+      req.on('close', () => { clearInterval(beat); REV.clients.delete(res); });
+      return;
+    }
   }
 
   const m = path.match(/^\/api\/contests\/(\d+)/);
