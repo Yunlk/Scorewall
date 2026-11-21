@@ -15,6 +15,7 @@ import { drawCountdown } from './countdown-canvas.js';
 import { makeState, freezeAtSec, isJudgementHidden } from './state.js';
 import { judgeLayout, drawJudgeFrame, seedRows, rowOf } from './judge-canvas.js';
 import { JudgeQueue, TEAMS_PER_SCREEN } from './judge-queue.js';
+import { problemLayout, drawProblemFrame, problemStats, problemRepeat } from './problem-canvas.js';
 
 const Q = new URLSearchParams(location.search);
 const SRC = (Q.get('src') || 'http://127.0.0.1:8081/api/contests/144333').replace(/\/$/, '');
@@ -301,7 +302,7 @@ window.addEventListener('unhandledrejection', ev => {
 });
 
 function layout() {
-  if (VIEW === 'standings' || VIEW === 'judge' || VIEW === 'countdown') {
+  if (VIEW === 'standings' || VIEW === 'judge' || VIEW === 'countdown' || VIEW === 'problems') {
     paneA.style.display = 'block';
     paneB.classList.add('hidden');
   }
@@ -310,6 +311,7 @@ function layout() {
 function draw() {
   if (VIEW === 'countdown') { renderCountdown(paneA); dirty = false; return; }
   if (VIEW === 'judge') { renderJudge(paneA); dirty = false; return; }
+  if (VIEW === 'problems') { renderProblems(paneA); dirty = false; return; }
   // 有滚动动画，必须每帧重画（对齐 Java 的立即模式）
   const at = freezeAtSec(durationMs(), freezeMs());
   const data = computeStandings(M, {
@@ -415,6 +417,29 @@ function renderJudge(pane) {
       `acts=${q.records.map(r => (r.action || '-')[0]).join('')}`, 20, H - 24);
     ctx.restore();
   }
+}
+
+/** #29 单题统计（ProblemSummaryPresentation 移植） */
+function renderProblems(pane) {
+  const { ctx, W, H } = ensureCanvas(pane);
+  if (!W || !H) return;
+
+  const at = freezeAtSec(durationMs(), freezeMs());
+  const data = computeStandings(M, {
+    hideJudgement: sub => isJudgementHidden(M.state, rel2sec(sub.contest_time), at),
+  });
+  if (!data.probs.length) return;
+
+  const L = problemLayout(W, H, data.probs.length);
+
+  // 每题汇总所有队伍的结果 → [attempts, accepted, rejected, ftsMs]
+  const stats = data.probs.map((_, pi) => problemStats(data.rows.map(r => r.cells[pi])));
+
+  // 循环播放：每个方块依次飞入，最后停 5 秒（getRepeat）
+  const repeat = problemRepeat(data.probs.length);
+  const t = performance.now() % repeat;
+
+  drawProblemFrame(ctx, L, data.probs, stats, t);
 }
 
 /** #15 带工位状态的倒计时 */

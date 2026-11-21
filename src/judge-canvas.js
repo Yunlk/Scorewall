@@ -86,17 +86,17 @@ const FTS = colorsBetween(FIRST_TO_SOLVE_COLOR, alphaDarker(FIRST_TO_SOLVE_COLOR
 const FAILED = colorsBetween(FAILED_COLOR, alphaDarker(FAILED_COLOR, 128, 0.5), CCOUNT);
 const SOLVED_DIM = darker(SOLVED_COLOR, 0.4);   // JudgePresentation:376 Utility.darker(SOLVED_COLOR, 0.4f)
 
-function roundRectPath(ctx, x, y, w, h) {
+function roundRectPath(ctx, x, y, w, h, r = ARC) {
   ctx.beginPath();
-  ctx.moveTo(x + ARC, y);
-  ctx.lineTo(x + w - ARC, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + ARC);
-  ctx.lineTo(x + w, y + h - ARC);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - ARC, y + h);
-  ctx.lineTo(x + ARC, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - ARC);
-  ctx.lineTo(x, y + ARC);
-  ctx.quadraticCurveTo(x, y, x + ARC, y);
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
   ctx.closePath();
 }
 
@@ -428,3 +428,10 @@ export function seedRows(model, standings, statusMap, limit = ROWS, elapsedSec, 
 }
 
 export { BORDER, CUBE_INSET, ARC, ROWS, CCOUNT };
+
+/** 供其它视图复用（problem-canvas 需要同一套 ICPCColors） */
+export const PALETTE = {
+  PENDING, SOLVED, FTS, FAILED,
+  PENDING_COLOR, SOLVED_COLOR, FIRST_TO_SOLVE_COLOR, FAILED_COLOR, YELLOW,
+};
+export { css, metrics, widthOf, roundRectPath };
