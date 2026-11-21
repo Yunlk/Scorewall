@@ -16,6 +16,7 @@ import { makeState, freezeAtSec, isJudgementHidden } from './state.js';
 import { judgeLayout, drawJudgeFrame, seedRows, rowOf } from './judge-canvas.js';
 import { JudgeQueue, TEAMS_PER_SCREEN } from './judge-queue.js';
 import { problemLayout, drawProblemFrame, problemStats, problemRepeat, makeColorFn } from './problem-canvas.js';
+import { makeProblemChart, CHART_REPEAT } from './chart-canvas.js';
 
 const Q = new URLSearchParams(location.search);
 const SRC = (Q.get('src') || 'http://127.0.0.1:8081/api/contests/144333').replace(/\/$/, '');
@@ -302,7 +303,7 @@ window.addEventListener('unhandledrejection', ev => {
 });
 
 function layout() {
-  if (VIEW === 'standings' || VIEW === 'judge' || VIEW === 'countdown' || VIEW === 'problems') {
+  if (VIEW === 'standings' || VIEW === 'judge' || VIEW === 'countdown' || VIEW === 'problems' || VIEW === 'chart') {
     paneA.style.display = 'block';
     paneB.classList.add('hidden');
   }
@@ -312,6 +313,7 @@ function draw() {
   if (VIEW === 'countdown') { renderCountdown(paneA); dirty = false; return; }
   if (VIEW === 'judge') { renderJudge(paneA); dirty = false; return; }
   if (VIEW === 'problems') { renderProblems(paneA); dirty = false; return; }
+  if (VIEW === 'chart') { renderChart(paneA); dirty = false; return; }
   // 有滚动动画，必须每帧重画（对齐 Java 的立即模式）
   const at = freezeAtSec(durationMs(), freezeMs());
   const data = computeStandings(M, {
@@ -452,6 +454,60 @@ function renderProblems(pane) {
   const t = (performance.now() - problemStart) % repeat;
 
   drawProblemFrame(ctx, L, data.probs, stats, t, problemColorFn);
+}
+
+/** #10 每题提交/通过柱状图（ProblemSummaryChart 移植） */
+let chartObj = null, chartStart = 0, chartLast = 0, chartKey = '';
+
+function renderChart(pane) {
+  const { ctx, W, H } = ensureCanvas(pane);
+  if (!W || !H) return;
+
+  const at = freezeAtSec(durationMs(), freezeMs());
+  const data = computeStandings(M, {
+    hideJudgement: sub => isJudgementHidden(M.state, rel2sec(sub.contest_time), at),
+  });
+  if (!data.probs.length) return;
+
+  const stats = data.probs.map((_, pi) => problemStats(data.rows.map(r => r.cells[pi])));
+
+  if (!problemColorFn) {
+    const mode = Q.get('probColor') || 'data';
+    const pal = (Q.get('probPalette') || '').split(',').map(s => s.trim()).filter(Boolean);
+    problemColorFn = makeColorFn(mode, pal);
+  }
+
+  const now = performance.now();
+  const dt = chartLast ? Math.min(200, Math.max(0, now - chartLast)) : 0;
+  chartLast = now;
+
+  // 只有题数变化才重建（等价 aboutToShow：setupChart + resetAnim）；
+  // 尺寸抖动只更新几何，否则 chartStart 每帧被重置，生长动画永远停在 0
+  const key = String(data.probs.length);
+  if (!chartObj || chartKey !== key) {
+    chartObj = makeProblemChart(W, H, data.probs, stats, problemColorFn);
+    chartKey = key;
+    chartStart = now;
+  } else {
+    if (chartObj.W !== W || chartObj.H !== H) chartObj.resize(W, H);
+    chartObj.updateData([stats.map(s => s[0]), stats.map(s => s[1])]);
+    chartObj.incrementTimeMs(dt);
+  }
+
+  const tTotal = now - chartStart;
+  chartObj.draw(ctx, tTotal % CHART_REPEAT, tTotal);
+
+  if (Q.get('debug') === '1') {
+    ctx.save();
+    ctx.font = '20px monospace';
+    ctx.fillStyle = '#0f0';
+    ctx.textAlign = 'left';
+    const s0 = chartObj.series[0];
+    ctx.fillText(`t=${tTotal.toFixed(0)} tr=${(tTotal % CHART_REPEAT).toFixed(0)} ` +
+      `max=${chartObj.maximum.getValue().toFixed(1)} ` +
+      `v0=${s0.values[0]} anim0=${s0.getAnimValue(0).toFixed(2)} n=${s0.getLength()}`, 20, 40);
+    ctx.restore();
+  }
 }
 
 /** #15 带工位状态的倒计时 */

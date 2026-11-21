@@ -91,6 +91,11 @@ export class Animator {
     this.t = 0; // Java reset() 不清 t（因为它只配 setTarget 用），这里清掉更安全
   }
 
+  /** Animator.resetToTarget()：把当前位置钉到目标上，不做滑动 */
+  resetToTarget() {
+    this.reset(this.xTarget, 0);
+  }
+
   setTarget(x, v = 0) {
     if (x === this.xTarget && v === this.vTarget) return;
 
