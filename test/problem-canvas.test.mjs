@@ -10,6 +10,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   problemColor, problemLayout, problemStats, problemRepeat, FLY_IN, MARGIN,
+  parseHex, makeColorFn,
 } from '../src/problem-canvas.js';
 
 test('题目颜色：支持 3/4/6/7 位十六进制', () => {
@@ -93,4 +94,52 @@ test('循环时长 = (题数+1)*1000 + 5000', () => {
   assert.equal(problemRepeat(5), 6 * 1000 + 5000);
   assert.equal(problemRepeat(14), 15 * 1000 + 5000);
   assert.equal(FLY_IN, 250);
+});
+
+test('色板解析：黑是合法颜色，不能被当成失败', () => {
+  assert.deepEqual(parseHex('#000000'), [0, 0, 0]);
+  assert.deepEqual(parseHex('000000'), [0, 0, 0]);
+  assert.deepEqual(parseHex('#FF7109'), [255, 113, 9]);
+  assert.deepEqual(parseHex('  #f00 '), [255, 0, 0]);
+  assert.equal(parseHex('#GGG'), null);
+  assert.equal(parseHex('red'), null);
+  assert.equal(parseHex(''), null);
+  assert.equal(parseHex(null), null);
+});
+
+test('配色 data：直接用题目自带的 rgb', () => {
+  const fn = makeColorFn('data', []);
+  assert.deepEqual(fn({ id: 'A', rgb: '#FF7109' }, 0), [255, 113, 9]);
+  assert.deepEqual(fn({ id: 'B', rgb: '#008100' }, 1), [0, 129, 0]);
+});
+
+test('配色 random：稳定、互不相同、亮度可控', () => {
+  const fn = makeColorFn('random', []);
+  const probs = Array.from({ length: 14 }, (_, i) => ({ id: 'P' + i }));
+
+  const first = probs.map((p, i) => fn(p, i));
+  const again = probs.map((p, i) => fn(p, i));
+  assert.deepEqual(first, again, '同一题多次取值必须一致');
+
+  const keys = new Set(first.map(c => c.join(',')));
+  assert.equal(keys.size, 14, '14 题应该有 14 种颜色');
+
+  // 亮度落在合理区间，不能全黑或全白
+  for (const [r, g, b] of first) {
+    const y = (299 * r + 587 * g + 114 * b) / 1000;
+    assert.ok(y > 40 && y < 220, `亮度 ${y.toFixed(0)} 越界`);
+  }
+});
+
+test('配色 custom：按题号循环取色板', () => {
+  const fn = makeColorFn('custom', ['#FF0000', '#00FF00', '#0000FF']);
+  const got = [0, 1, 2, 3, 4].map(i => fn({ id: 'P' + i }, i));
+  assert.deepEqual(got, [
+    [255, 0, 0], [0, 255, 0], [0, 0, 255], [255, 0, 0], [0, 255, 0],
+  ]);
+});
+
+test('配色 custom 但色板为空时回落 data', () => {
+  const fn = makeColorFn('custom', []);
+  assert.deepEqual(fn({ id: 'A', rgb: '#FF7109' }, 0), [255, 113, 9]);
 });

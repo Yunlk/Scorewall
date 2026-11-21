@@ -15,7 +15,7 @@ import { drawCountdown } from './countdown-canvas.js';
 import { makeState, freezeAtSec, isJudgementHidden } from './state.js';
 import { judgeLayout, drawJudgeFrame, seedRows, rowOf } from './judge-canvas.js';
 import { JudgeQueue, TEAMS_PER_SCREEN } from './judge-queue.js';
-import { problemLayout, drawProblemFrame, problemStats, problemRepeat } from './problem-canvas.js';
+import { problemLayout, drawProblemFrame, problemStats, problemRepeat, makeColorFn } from './problem-canvas.js';
 
 const Q = new URLSearchParams(location.search);
 const SRC = (Q.get('src') || 'http://127.0.0.1:8081/api/contests/144333').replace(/\/$/, '');
@@ -421,6 +421,8 @@ function renderJudge(pane) {
 
 /** #29 单题统计（ProblemSummaryPresentation 移植） */
 let problemStart = 0;
+let problemColorFn = null;
+
 function renderProblems(pane) {
   const { ctx, W, H } = ensureCanvas(pane);
   if (!W || !H) return;
@@ -436,13 +438,20 @@ function renderProblems(pane) {
   // 每题汇总所有队伍的结果 → [attempts, accepted, rejected, ftsMs]
   const stats = data.probs.map((_, pi) => problemStats(data.rows.map(r => r.cells[pi])));
 
+  // 配色：data（用数据自带 rgb）/ random / custom（色板循环）
+  if (!problemColorFn) {
+    const mode = Q.get('probColor') || 'data';
+    const pal = (Q.get('probPalette') || '').split(',').map(s => s.trim()).filter(Boolean);
+    problemColorFn = makeColorFn(mode, pal);
+  }
+
   // 循环播放：每个方块依次飞入，最后停 5 秒（getRepeat）
   // getRepeatTimeMs 是由框架从 0 开始累加的，所以这里也用「首帧起算」而不是页面起算
   if (!problemStart) problemStart = performance.now();
   const repeat = problemRepeat(data.probs.length);
   const t = (performance.now() - problemStart) % repeat;
 
-  drawProblemFrame(ctx, L, data.probs, stats, t);
+  drawProblemFrame(ctx, L, data.probs, stats, t, problemColorFn);
 }
 
 /** #15 带工位状态的倒计时 */

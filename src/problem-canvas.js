@@ -48,8 +48,77 @@ export function problemColor(p) {
   return [r, g, b];
 }
 
-/** ContestModel/ICPCColors.getContrastColor：按亮度选黑/白 */
-function contrastColor(c) {
+/** '#RRGGBB' / 'RRGGBB' / '#F00' / 'F00' → [r,g,b]；格式不对返回 null */
+export function parseHex(s) {
+  const t = String(s == null ? '' : s).trim();
+  if (!/^#?[0-9a-fA-F]{3}$/.test(t) && !/^#?[0-9a-fA-F]{6}$/.test(t)) return null;
+  return problemColor({ rgb: t });
+}
+
+/** HSL → RGB（h 度，s/l 0..1） */
+function hslToRgb(h, s, l) {
+  h = ((h % 360) + 360) % 360;
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = l - c / 2;
+  let r = 0, g = 0, b = 0;
+  if (h < 60) { r = c; g = x; }
+  else if (h < 120) { r = x; g = c; }
+  else if (h < 180) { g = c; b = x; }
+  else if (h < 240) { g = x; b = c; }
+  else if (h < 300) { r = x; b = c; }
+  else { r = c; b = x; }
+  return [
+    Math.round((r + m) * 255),
+    Math.round((g + m) * 255),
+    Math.round((b + m) * 255),
+  ];
+}
+
+/** FNV-1a：给题目 id 算个稳定的小偏移 */
+function hashStr(s) {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+/**
+ * 题目配色策略。
+ *   data   —— 用 CCS 数据里的 rgb（Problem.getColorVal）
+ *   random —— 按题号用黄金角铺开色相，题目 id 再叠一点哈希偏移，稳定且互相区分明显
+ *   custom —— 按题号循环取自定义色板
+ * @returns (problem, index) => [r,g,b]
+ */
+export function makeColorFn(mode, palette) {
+  const pal = (palette || [])
+    .map(parseHex)
+    .filter(Boolean);
+
+  if (mode === 'random') {
+    const cache = new Map();
+    return (p, i) => {
+      const key = (p && p.id) || ('#' + i);
+      let c = cache.get(key);
+      if (!c) {
+        const hue = (i * 137.508 + (hashStr(key) % 40)) % 360;
+        c = hslToRgb(hue, 0.62, 0.48);
+        cache.set(key, c);
+      }
+      return c;
+    };
+  }
+
+  if (mode === 'custom' && pal.length) {
+    return (p, i) => pal[i % pal.length];
+  }
+
+  return p => problemColor(p);
+}
+
+/** ContestModel/ICPCColors.getContrastColor：按亮度选黑/白 */function contrastColor(c) {
   const y = Math.trunc((299 * c[0] + 587 * c[1] + 114 * c[2]) / 1000);
   return y >= 128 ? [0, 0, 0] : [255, 255, 255];
 }
@@ -135,14 +204,14 @@ function pill(ctx, color, x, y, w, h, arc, text, font, fm) {
  * 于是保留的是 gg 的初始颜色 —— 父 g 在整个循环里没 setColor 过，所以是黑色。
  * 注意每个格子都是 g.create() 的独立副本，状态不会在格子间流传。
  */
-function drawCell(ctx, r, p, stats) {
+function drawCell(ctx, r, p, stats, colorOf, index) {
   const W = r.w, H = r.h;
   const ARC = Math.trunc((W + H) / 50);
 
   ctx.save();
   ctx.translate(r.x, r.y);
 
-  const color = p ? problemColor(p) : [0, 0, 0];
+  const color = p ? (colorOf ? colorOf(p, index) : problemColor(p)) : [0, 0, 0];
   ctx.fillStyle = css(color);
   roundRectPath(ctx, 0, 0, W, H, ARC);
   ctx.fill();
@@ -232,7 +301,7 @@ function drawCell(ctx, r, p, stats) {
  * @param statsList 与 probs 等长，每项是 problemStats() 的结果；null 表示还没数据
  * @param tMs   本轮循环已过的时间（0 .. repeat）
  */
-export function drawProblemFrame(ctx, L, probs, statsList, tMs) {
+export function drawProblemFrame(ctx, L, probs, statsList, tMs, colorOf) {
   const { W, H, cells } = L;
 
   ctx.clearRect(0, 0, W, H);
@@ -255,7 +324,7 @@ export function drawProblemFrame(ctx, L, probs, statsList, tMs) {
       const dx = Math.trunc(((1 - f) * W) / 30);
       ctx.translate(dx, dx);
     }
-    drawCell(ctx, cells[i], p, stats);
+    drawCell(ctx, cells[i], p, stats, colorOf, i);
     ctx.restore();
   }
 }

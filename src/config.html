@@ -95,6 +95,21 @@
       <div class="hint">毫秒。源码 <code class="inline">TIME_TO_FADE_RECENT</code> = 2000</div>
     </fieldset>
 
+    <fieldset>
+      <legend>单题统计配色</legend>
+      <label>配色方式</label>
+      <select id="probColor">
+        <option value="data">用数据自带的 rgb</option>
+        <option value="random">随机（按题号铺开色相）</option>
+        <option value="custom">自定义色板</option>
+      </select>
+      <div class="hint">数据里没有 <code class="inline">rgb</code> 字段时，默认所有题都是黑色</div>
+
+      <label>自定义色板</label>
+      <input id="probPalette" placeholder="#FF7109,#008100,#0096FF,#FF0000" spellcheck="false">
+      <div class="hint">逗号分隔的十六进制，按题号循环取色；只在「自定义色板」时生效</div>
+    </fieldset>
+
     <div class="btns">
       <button type="button" id="gen">生成地址</button>
       <button type="button" id="copy">复制</button>
@@ -133,6 +148,13 @@
     put('keepSolved', '11000');
     put('keepFailed', '8000');
     put('fadeRecent', '2000');
+
+    // 单题统计配色：默认 data 不写进 URL
+    const pc = $('probColor').value;
+    if (pc !== 'data') p.set('probColor', pc);
+    const pp = $('probPalette').value.trim();
+    if (pp) p.set('probPalette', pp);
+
     return p.toString();
   };
   function build(absolute) {
@@ -150,7 +172,7 @@
           $('copy').textContent = '已复制'; setTimeout(() => $('copy').textContent = '复制', 1200); }
     catch (_) { $('copy').textContent = '复制失败'; }
   };
-  ['src','view','page','fade','keepSolved','keepFailed','fadeRecent'].forEach(id => $(id).addEventListener('input', refresh));
+  ['src','view','page','fade','keepSolved','keepFailed','fadeRecent','probColor','probPalette'].forEach(id => $(id).addEventListener('input', refresh));
   refresh();
 })();
 </script>
