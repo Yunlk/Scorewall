@@ -32,6 +32,7 @@ const f = (px, bold) => `${bold ? 'bold ' : ''}${px}px ${FONT_FAMILY}`;
 // ---------- ICPCColors ----------
 const PENDING_COLOR = [66, 114, 245];
 const SOLVED_COLOR = [0, 230, 0];
+const FIRST_TO_SOLVE_COLOR = [0, 100, 0];
 const FAILED_COLOR = [240, 0, 0];
 const YELLOW = [255, 223, 54];
 
@@ -39,40 +40,49 @@ const BG_COLOR = [60, 60, 60];                 // AbstractScoreboardPresentation
 const CUBE_BG = [40, 40, 40];                  // ShadedRectangle.BG
 const CUBE_BG_TEXT = [196, 196, 196, 175];     // ShadedRectangle.BG_TEXT
 
-/** Utility.darker */
+/** Utility.darker —— 输入输出都是 0..255 */
 function darker(c, k) {
-  return [Math.max(Math.floor(c[0] * k), 0), Math.max(Math.floor(c[1] * k), 0), Math.max(Math.floor(c[2] * k), 0)];
+  return [
+    Math.max(Math.floor(c[0] * k), 0),
+    Math.max(Math.floor(c[1] * k), 0),
+    Math.max(Math.floor(c[2] * k), 0),
+  ];
 }
-/** Utility.alphaDarker(c, alpha, f) */
+/** Utility.alphaDarker(c, alpha, f) —— rgb 乘 f（0..255），alpha 直接给（0..255） */
 function alphaDarker(c, alpha, k) {
-  return [Math.max(Math.floor(c[0] * k), 0), Math.max(Math.floor(c[1] * k), 0), Math.max(Math.floor(c[2] * k), 0), alpha];
+  return [
+    Math.max(Math.floor(c[0] * k), 0),
+    Math.max(Math.floor(c[1] * k), 0),
+    Math.max(Math.floor(c[2] * k), 0),
+    alpha,
+  ];
 }
-/** Utility.getColorsBetween —— steps 个颜色，索引 i 取 x = i/(steps-1) */
+/** Utility.getColorsBetween —— steps 个颜色，第 i 个取 x = i/(steps-1)，按 0..255 插值 */
 function colorsBetween(c1, c2, steps) {
-  const a = toUnit(c1);
-  const b = toUnit(c2);
   const out = new Array(steps);
   for (let i = 0; i < steps; i++) {
     const x = i / (steps - 1);
-    out[i] = [0, 1, 2, 3].map(j => a[j] * (1 - x) + b[j] * x);
+    out[i] = [0, 1, 2, 3].map(j => {
+      const a = j < c1.length ? c1[j] : 255;
+      const b = j < c2.length ? c2[j] : 255;
+      return a * (1 - x) + b * x;
+    });
   }
   return out;
 }
-function toUnit(c) {
-  const a = c.length > 3 ? c[3] / 255 : 1;
-  return [c[0] / 255, c[1] / 255, c[2] / 255, a];
-}
+/** Color → canvas 颜色串（输入是 0..255） */
 function css(c) {
-  const r = Math.round(c[0] * 255);
-  const g = Math.round(c[1] * 255);
-  const b = Math.round(c[2] * 255);
-  const a = c.length > 3 ? c[3] : 1;
+  const r = Math.round(c[0]);
+  const g = Math.round(c[1]);
+  const b = Math.round(c[2]);
+  const a = c.length > 3 ? Math.round((c[3] / 255) * 1000) / 1000 : 1;
   return `rgba(${r},${g},${b},${a})`;
 }
 
-// ICPCColors.PENDING / SOLVED / FAILED
+// ICPCColors.PENDING / SOLVED / FIRST_TO_SOLVE / FAILED
 const PENDING = colorsBetween(PENDING_COLOR, alphaDarker(PENDING_COLOR, 128, 0.5), CCOUNT);
 const SOLVED = colorsBetween(SOLVED_COLOR, alphaDarker(SOLVED_COLOR, 128, 0.5), CCOUNT);
+const FTS = colorsBetween(FIRST_TO_SOLVE_COLOR, alphaDarker(FIRST_TO_SOLVE_COLOR, 128, 0.5), CCOUNT);
 const FAILED = colorsBetween(FAILED_COLOR, alphaDarker(FAILED_COLOR, 128, 0.5), CCOUNT);
 const SOLVED_DIM = darker(SOLVED_COLOR, 0.4);   // JudgePresentation:376 Utility.darker(SOLVED_COLOR, 0.4f)
 
@@ -129,17 +139,33 @@ export function judgeLayout(W, H, nProb) {
   };
 }
 
-/** ShadedRectangle.getPaint：返回 {fill, isPlain, textColor} */
-function paintOf(status, recent, nowMs) {
-  let k;
-  if (recent) {
-    k = Math.floor(((nowMs * 45.0) / 1000.0) % (CCOUNT * 2));
-    if (k > CCOUNT - 1) k = CCOUNT * 2 - 1 - k;
-  } else {
-    k = Math.floor(CCOUNT / 3);
-  }
+/**
+ * ShadedRectangle.getPaint 里的 k：在 CCOUNT 上做三角波。
+ *
+ * ⚠️ 判题队列**用不到**这个函数：JudgePresentation.drawRight:368 传给
+ * ShadedRectangle.drawRoundRect 的 time 是常量 0，所以 k 恒为 0，
+ * 取到的永远是 ICPCColors.XXX[0] —— 未衰减的原色。
+ * 这里保留只是为了对照总榜（那边传的是 getTimeMs()，会闪）。
+ */
+export function pulseK(timeMs) {
+  let k = Math.floor(((timeMs * 45.0) / 1000.0) % (CCOUNT * 2));
+  if (k > CCOUNT - 1) k = CCOUNT * 2 - 1 - k;
+  return k;
+}
 
-  const arr = status === 'solved' ? SOLVED : status === 'failed' ? FAILED : PENDING;
+/**
+ * ShadedRectangle.getPaint：返回 {solid} 或 {top,bottom}（渐变）。
+ *
+ * JudgePresentation 恒传 time=0 → k=0：
+ *   recent   → 渐变「原色 → darker(0.55)」，
+ *   !recent  → 纯色 ICPCColors.XXX[CCOUNT/3]
+ */
+export function cellPaint(status, recent, fts, timeMs = 0) {
+  const k = recent ? pulseK(timeMs) : Math.floor(CCOUNT / 3);
+
+  const arr = status === 'solved'
+    ? (fts ? FTS : SOLVED)
+    : status === 'failed' ? FAILED : PENDING;
   const c = arr[k];
   if (!recent) return { solid: css(c) };
   // MyGradientPaint: (0,0,c) → (0,h,darker(c,0.55))
@@ -175,7 +201,7 @@ function drawCube(ctx, x, y, w, h, paint, outline, text, font, plain) {
   if (text) {
     const m = metrics(ctx, font);
     ctx.font = font;
-    ctx.fillStyle = plain ? css(toUnit(CUBE_BG_TEXT)) : '#fff';
+    ctx.fillStyle = plain ? css(CUBE_BG_TEXT) : '#fff';
     if (plain) {
       ctx.fillText(text, x + (ww - widthOf(ctx, font, text)) / 2, y + (hh + m.height) / 2 - m.desc + 1);
     } else {
@@ -241,7 +267,7 @@ export function drawJudgeFrame(ctx, L, rows, probs, times, opts = {}) {
   drawHeaderBand(ctx, L, { w199, w199sp, w9999, w9999sp, w99 });
 
   ctx.textAlign = 'center';
-  ctx.fillStyle = opts.frozen ? css(toUnit(YELLOW)) : '#fff';
+  ctx.fillStyle = opts.frozen ? css(YELLOW) : '#fff';
   ctx.font = L.clockFont;
   ctx.fillText(times.elapsedText, W / 12, clockAsc);
   ctx.fillText(times.remainText, (W * 11) / 12, clockAsc);
@@ -259,7 +285,7 @@ export function drawJudgeFrame(ctx, L, rows, probs, times, opts = {}) {
 
   // 偶数行背景（drawRowBackground，BG_COLOR）
   for (let i = 0; i < ROWS; i += 2) {
-    ctx.fillStyle = css(toUnit(BG_COLOR));
+    ctx.fillStyle = css(BG_COLOR);
     ctx.fillRect(0, i * rowH, W, rowH);
   }
 
@@ -318,14 +344,19 @@ export function drawJudgeFrame(ctx, L, rows, probs, times, opts = {}) {
 
       if (j === r.currentProblem) {
         const recent = r.currentRecent !== false;
-        drawCube(ctx, xx, cubeTop, cubeW, cubeH, paintOf(r.currentStatus, recent, opts.now || 0), null,
+        const fts = !!r.currentFts;
+        // ShadedRectangle.createRoundRect：FTS 额外加一圈 SOLVED_COLOR 描边
+        const outline = fts ? css(SOLVED_COLOR) : null;
+        // time 恒为 0 —— JudgePresentation:368 原文如此，所以 k=0、颜色不衰减
+        drawCube(ctx, xx, cubeTop, cubeW, cubeH,
+          cellPaint(r.currentStatus, recent, fts, 0), outline,
           r.currentText || '', L.statusFont, false);
       } else if (c && c.solvedAt !== null && c.solvedAt !== undefined) {
         // 已解出：只显示暗绿块，不带文字（源码注释：文字太干扰）
-        drawCube(ctx, xx, cubeTop, cubeW, cubeH, { solid: css(toUnit(SOLVED_DIM)) }, null, '', L.statusFont, false);
+        drawCube(ctx, xx, cubeTop, cubeW, cubeH, { solid: css(SOLVED_DIM) }, null, '', L.statusFont, false);
       } else {
         // drawRoundRectPlain：BG + 题号
-        drawCube(ctx, xx, cubeTop, cubeW, cubeH, { solid: css(toUnit(CUBE_BG)) }, null,
+        drawCube(ctx, xx, cubeTop, cubeW, cubeH, { solid: css(CUBE_BG) }, null,
           probs[j].label, L.problemFont, true);
       }
     }
@@ -341,12 +372,19 @@ function px0(v) {
   return Math.round(v * 100) / 100;
 }
 
-/** 一条提交 → 一行 */
-export function rowOf(sub, model, byTeam, pidx, statusMap) {
+/**
+ * 一条提交 → 一行
+ *
+ * recent（是否闪烁）= ContestUtil.isRecent(contest, submission)
+ *   = !isJudged || 提交时间在过去 5 分钟内
+ * 已判且超过 5 分钟的走纯色，不闪。
+ */
+export function rowOf(sub, model, byTeam, pidx, statusMap, elapsedSec, ftsSet) {
   const st = byTeam.get(sub.team_id);
   const verdict = statusMap ? statusMap.get(sub.id) : null;   // 'solved' | 'failed' | null
   const status = verdict === 'solved' ? 'solved' : verdict === 'failed' ? 'failed' : 'pending';
   const sec = rel2sec(sub.contest_time);
+  const recent = !verdict ? true : (elapsedSec == null ? true : sec > elapsedSec - 300);
   return {
     teamName: st ? st.team.name : sub.team_id,
     rank: st ? st.rank : '-',
@@ -356,7 +394,8 @@ export function rowOf(sub, model, byTeam, pidx, statusMap) {
     currentProblem: pidx.has(sub.problem_id) ? pidx.get(sub.problem_id) : -1,
     currentStatus: status,
     currentText: String(Math.floor(sec / 60)),
-    currentRecent: true,
+    currentRecent: recent,
+    currentFts: !!(ftsSet && ftsSet.has(sub.id)),
     subId: sub.id,
   };
 }
@@ -367,7 +406,7 @@ export function rowOf(sub, model, byTeam, pidx, statusMap) {
  * 顺序取 Map 插入顺序（= 事件到达顺序 = Java 里 submissions 列表的顺序），
  * 不能用 contest_time 排序：同一时间戳的提交只属于同一队，会把画面塞成一行队名。
  */
-export function seedRows(model, standings, statusMap, limit = ROWS) {
+export function seedRows(model, standings, statusMap, limit = ROWS, elapsedSec, ftsSet) {
   const probs = [...model.problems.values()].sort((a, b) => a.ordinal - b.ordinal);
   const pidx = new Map(probs.map((p, i) => [p.id, i]));
   const byTeam = new Map(standings.rows.map(r => [r.team.id, r]));
@@ -375,7 +414,13 @@ export function seedRows(model, standings, statusMap, limit = ROWS) {
   const all = [...model.submissions.values()];
   const subs = all.slice(Math.max(0, all.length - limit));
 
-  return { probs, rows: subs.map((s, i) => ({ ...rowOf(s, model, byTeam, pidx, statusMap), y: i })) };
+  return {
+    probs,
+    rows: subs.map((s, i) => ({
+      ...rowOf(s, model, byTeam, pidx, statusMap, elapsedSec, ftsSet),
+      y: i,
+    })),
+  };
 }
 
 export { BORDER, CUBE_INSET, ARC, ROWS, CCOUNT };

@@ -129,7 +129,6 @@ CCS 里 `judgements` 记录先建、`judgement_type_id` 后填（判题机出结
 要取 `Map` 的插入顺序（= 事件到达顺序 = Java 里 `submissions` 列表的顺序）。
 
 ## 12. 标题会被表头切掉一半
-
 `TitledPresentation.paint` 的顺序是 **先 `paintHeader()`（表头图）再画标题**。
 
 1080p 下 `headerHeight = H/50 = 21px`，而 `titleFont = size0*2.2 ≈ 50px`，
@@ -137,3 +136,35 @@ CCS 里 `judgements` 记录先建、`judgement_type_id` 后填（判题机出结
 
 如果先画标题再画表头黑条，标题下半截会被盖住 —— 看起来像「字只剩上半截」。
 照源码顺序就没问题：表头图铺在 `titleHeight` 处，标题随后画在顶部并压在上面。
+
+## 13. 判题队列的格子颜色**不会闪**
+
+这是最容易搞错的一处。`ShadedRectangle.getPaint` 的 `k` 完全由传进来的 `time` 决定：
+
+```java
+k = (int) ((time * 45.0 / 1000.0) % (ICPCColors.CCOUNT * 2));
+if (k > CCOUNT - 1) k = (CCOUNT * 2 - 1) - k;
+```
+
+- **总榜**（`AbstractScoreboardPresentation.drawTeamAndProblemGrid`）传 `getTimeMs()` → k 随时间扫，画面会闪；
+- **判题队列**（`JudgePresentation.drawRight:368`）传的是常量 **`0`** → k 恒为 0。
+
+k=0 意味着取到的是 `ICPCColors.XXX[0]`，也就是**未衰减的原色**：
+
+```
+SOLVED[0]             rgb(0,230,0)     alpha 255
+FAILED[0]             rgb(240,0,0)
+PENDING[0]            rgb(66,114,245)
+FIRST_TO_SOLVE[0]     rgb(0,100,0)
+```
+
+然后：
+
+- `recent` 为真 → `GradientPaint(原色 → Utility.darker(原色, 0.55))`，垂直渐变，**但每帧都一样**
+- `recent` 为假 → 纯色 `XXX[CCOUNT/3] = XXX[5]`（约 18% 衰减）
+
+所以拿 `performance.now()` 去算 k，颜色会被压在中间色上、看起来发暗、还在乱闪 —— 三个问题一起出现。
+
+另外 `Utility.darker` / `alphaDarker` 输入输出都是 **0..255 整数**。
+`getColorsBetween` 返回的颜色数组如果用 0..1 浮点存，再喂给 `darker()` 会被 `floor` 成黑色。
+两套单位必须统一，否则格子会莫名变黑。

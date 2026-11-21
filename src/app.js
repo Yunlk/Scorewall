@@ -60,6 +60,25 @@ function syncJudgeStatus() {
     if (jt.solved) judgeStatus.set(j.submission_id, 'solved');
     else if (jt.penalty) judgeStatus.set(j.submission_id, 'failed');
   }
+  judgeFtsKey = -1;          // 状态变了，FTS 也要重算
+}
+
+/** 首次通过的提交 id（每道题最早 AC 的那条）—— 源码 contest.isFirstToSolve() */
+let judgeFts = new Set();
+let judgeFtsKey = -1;
+
+function syncJudgeFts() {
+  if (judgeFtsKey === M.judgements.size) return;
+  judgeFtsKey = M.judgements.size;
+  judgeFts = new Set();
+  const best = new Map();          // problem_id -> { sec, id }
+  for (const s of M.submissions.values()) {
+    if (judgeStatus.get(s.id) !== 'solved') continue;
+    const sec = rel2sec(s.contest_time);
+    const cur = best.get(s.problem_id);
+    if (!cur || sec < cur.sec) best.set(s.problem_id, { sec, id: s.id });
+  }
+  for (const v of best.values()) judgeFts.add(v.id);
 }
 
 const BAGS = {
@@ -331,10 +350,12 @@ function renderJudge(pane) {
   const now = performance.now();
 
   syncJudgeStatus();
+  syncJudgeFts();
+  const elapsedSec = Math.floor(t.elapsed / 1000);
 
   // 静态铺排（截图 / 静态夹具）
   if (Q.get('anim') === '0') {
-    const seeded = seedRows(M, data, judgeStatus);
+    const seeded = seedRows(M, data, judgeStatus, 12, elapsedSec, judgeFts);
     drawJudgeFrame(ctx, L, seeded.rows, seeded.probs, times, { frozen, now });
     return;
   }
@@ -374,7 +395,7 @@ function renderJudge(pane) {
   q.update(dt);
 
   const rows = q.records.map(sr => {
-    const r = rowOf(sr.submission, M, byTeam, pidx, judgeStatus);
+    const r = rowOf(sr.submission, M, byTeam, pidx, judgeStatus, elapsedSec, judgeFts);
     r.y = sr.anim.getValue();
     r.alpha = q.alphaOf(sr);
     return r;
@@ -491,5 +512,131 @@ bootstrap().then(() => {
   dirty = true;
   draw();          // 先把快照画出来，不等 SSE
   connect();
+  installJudgePanel();
 });
 requestAnimationFrame(loop);
+
+// ================= 判题队列测试面板 =================
+// ?test=1 打开。真实比赛里提交到判题往往几十秒，看不出动画；
+// 这里手动造一条提交再手动判 AC/WA，直接看完整的「底部滑入 → 变色 → 滑出」。
+
+function sec2rel(s) {
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const x = s % 60;
+  return `${h}:${String(m).padStart(2, '0')}:${String(x).padStart(2, '0')}.000`;
+}
+
+function panelMsg(s) {
+  const el = document.getElementById('testmsg');
+  if (el) el.textContent = s;
+}
+
+/** 找目标判题类型：优先用数据里真实存在的 id */
+function pickJudgementType(kind) {
+  const wantSolved = kind === 'ac';
+  const pref = kind === 'ac' ? ['AC', 'OK', 'CORRECT']
+    : kind === 'ce' ? ['CE', 'COMPILATION_ERROR']
+      : ['WA', 'WRONG_ANSWER'];
+  for (const p of pref) if (M.judgementTypes.has(p)) return p;
+  for (const [id, t] of M.judgementTypes) {
+    if (wantSolved && t.solved) return id;
+    if (!wantSolved && t.penalty) return id;
+  }
+  return null;
+}
+
+let fakeN = 0;
+function testSubmit() {
+  const teams = [...M.teams.keys()];
+  const probs = [...M.problems.values()].sort((a, b) => a.ordinal - b.ordinal);
+  if (!teams.length || !probs.length) return panelMsg('数据还没加载');
+
+  const i = fakeN++;
+  const base = Math.max(60, Math.floor(contestTimes().elapsed / 1000));
+  const id = 'TEST' + Date.now().toString(36).toUpperCase();
+  M.submissions.set(id, {
+    id,
+    team_id: teams[i % teams.length],
+    problem_id: probs[i % probs.length].id,
+    contest_time: sec2rel(base),
+    language_id: 'cpp',
+  });
+  dirty = true;
+  panelMsg(`新提交 ${id}（${teams[i % teams.length]} / ${probs[i % probs.length].label}）`);
+}
+
+function testJudge(kind) {
+  const q = judgeQueue();
+
+  // 队列里最后一条未判的
+  let target = null;
+  for (let i = q.records.length - 1; i >= 0; i--) {
+    const s = q.records[i].submission;
+    if (!judgeStatus.has(s.id)) { target = s; break; }
+  }
+  // 队列里没有就自己捞一条进来
+  if (!target) {
+    const all = [...M.submissions.values()];
+    for (let i = all.length - 1; i >= 0; i--) {
+      if (!judgeStatus.has(all[i].id)) { target = all[i]; q.add(target); break; }
+    }
+  }
+  if (!target) return panelMsg('没有待判的提交，先点「+ 提交」');
+
+  const typeId = pickJudgementType(kind);
+  if (!typeId) return panelMsg('缺 judgement-types，无法判题');
+
+  const jid = 'JTEST' + Date.now().toString(36).toUpperCase();
+  M.judgements.set(jid, { id: jid, submission_id: target.id, judgement_type_id: typeId });
+  judgeDirty = true;
+  dirty = true;
+  panelMsg(`${target.id} → ${typeId}`);
+}
+
+function testClear() {
+  const q = judgeQueue();
+  q.records.length = 0;
+  for (const s of M.submissions.values()) judgeSeen.add(s.id);
+  judgePrimed = true;
+  dirty = true;
+  panelMsg('队列已清空');
+}
+
+function installJudgePanel() {
+  if (Q.get('test') !== '1') return;
+  if (VIEW !== 'judge') return;
+
+  const style = document.createElement('style');
+  style.textContent = `
+    #testbar{position:fixed;right:12px;bottom:12px;z-index:9999;display:flex;gap:6px;align-items:center;
+      font:13px/1.4 system-ui,sans-serif;background:rgba(18,18,18,.86);padding:8px 10px;border-radius:9px;
+      border:1px solid #3a3a3a;box-shadow:0 4px 18px rgba(0,0,0,.6)}
+    #testbar button{background:#2b2b2b;color:#e6e6e6;border:1px solid #4a4a4a;border-radius:5px;
+      padding:5px 11px;cursor:pointer;font:inherit}
+    #testbar button:hover{background:#3a3a3a}
+    #testbar button[data-act="ac"]{border-color:#1f9c1f;color:#7ee87e}
+    #testbar button[data-act="wa"]{border-color:#a02222;color:#f09090}
+    #testbar button[data-act="ce"]{border-color:#8a6a12;color:#e8c86a}
+    #testmsg{color:#8fd48f;margin-left:8px;min-width:170px}`;
+  document.head.appendChild(style);
+
+  const bar = document.createElement('div');
+  bar.id = 'testbar';
+  bar.innerHTML =
+    '<button data-act="sub">+ 提交</button>' +
+    '<button data-act="ac">AC</button>' +
+    '<button data-act="wa">WA</button>' +
+    '<button data-act="ce">CE</button>' +
+    '<button data-act="clear">清空</button>' +
+    '<span id="testmsg"></span>';
+  document.body.appendChild(bar);
+
+  bar.addEventListener('click', ev => {
+    const act = ev.target && ev.target.dataset && ev.target.dataset.act;
+    if (!act) return;
+    if (act === 'sub') testSubmit();
+    else if (act === 'clear') testClear();
+    else testJudge(act);
+  });
+}
