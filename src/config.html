@@ -80,6 +80,14 @@
 
     <fieldset>
       <legend>判题队列</legend>
+      <label>屏幕行数</label>
+      <select id="rows">
+        <option value="12">12 行（默认，rowFont ≈ 40px）</option>
+        <option value="10">10 行（FirstSolution 用的值，rowFont ≈ 48px）</option>
+        <option value="8">8 行（rowFont ≈ 55px）</option>
+      </select>
+      <div class="hint">对应源码 <code class="inline">setNumRows()</code>：行数直接决定字号，<b>不是</b>固定的</div>
+
       <div class="row">
         <div>
           <label>AC 后停留</label>
@@ -147,6 +155,7 @@
       const v = $(id).value.trim();
       if (v !== '' && v !== dflt) p.set(id, v);
     };
+    put('rows', '12');
     put('keepSolved', '11000');
     put('keepFailed', '8000');
     put('fadeRecent', '2000');
@@ -174,7 +183,7 @@
           $('copy').textContent = '已复制'; setTimeout(() => $('copy').textContent = '复制', 1200); }
     catch (_) { $('copy').textContent = '复制失败'; }
   };
-  ['src','view','page','fade','keepSolved','keepFailed','fadeRecent','probColor','probPalette'].forEach(id => $(id).addEventListener('input', refresh));
+  ['src','view','page','fade','rows','keepSolved','keepFailed','fadeRecent','probColor','probPalette'].forEach(id => $(id).addEventListener('input', refresh));
   refresh();
 })();
 </script>

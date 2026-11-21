@@ -10,7 +10,7 @@
  *   - 表头：Time / Name / Problem
  */
 
-import { PALETTE, css, metrics, widthOf, roundRectPath, cellPaint, judgeLayout, BORDER, CUBE_INSET, ROWS } from './judge-canvas.js';
+import { PALETTE, css, metrics, widthOf, roundRectPath, cellPaint, judgeLayout, BORDER, CUBE_INSET } from './judge-canvas.js';
 import { Animator, Movement } from './judge-queue.js';
 
 /** AbstractScoreboardPresentation.ROW_MOVEMENT —— 注意和判题队列的 (5,9) 不同 */
@@ -35,6 +35,8 @@ export class FtsQueue {
     this.fts = [];                       // 已上榜的 problem id，按顺序
     this.opts = opts;                    // { judged(sub), isFts(sub) }
     this.timeToKeepSolved = opts.timeToKeepSolved > 0 ? opts.timeToKeepSolved : TIME_TO_KEEP_SOLVED;
+    // AbstractScoreboardPresentation.setNumRows() 对应物
+    this.teamsPerScreen = opts.teamsPerScreen > 0 ? opts.teamsPerScreen : TEAMS_PER_SCREEN;
   }
 
   has(problemId) {
@@ -56,11 +58,11 @@ export class FtsQueue {
 
     let target = 0;
     if (this.records.length > 0) {
-      target = Math.min(this.records[this.records.length - 1].anim.getValue() + 1, TEAMS_PER_SCREEN * 2);
+      target = Math.min(this.records[this.records.length - 1].anim.getValue() + 1, this.teamsPerScreen * 2);
     }
     const sr = {
       submission: sub,
-      anim: new Animator(Math.max(target, TEAMS_PER_SCREEN + 2), ROW_MOVEMENT),
+      anim: new Animator(Math.max(target, this.teamsPerScreen + 2), ROW_MOVEMENT),
       age: 0,
     };
     this.records.push(sr);
@@ -80,8 +82,8 @@ export class FtsQueue {
       if (judged && isFts) {
         target = this.fts.indexOf(sr.submission.problem_id);
       } else if (sr.age > this.timeToKeepSolved) {
-        target = TEAMS_PER_SCREEN * 2;
-      } else if (count < TEAMS_PER_SCREEN * 2) {
+        target = this.teamsPerScreen * 2;
+      } else if (count < this.teamsPerScreen * 2) {
         count++;
       }
 
@@ -94,7 +96,7 @@ export class FtsQueue {
 
       if (judged && !isFts) {
         sr.age += dt;
-        if (sr.age > this.timeToKeepSolved && sr.anim.getValue() > TEAMS_PER_SCREEN) {
+        if (sr.age > this.timeToKeepSolved && sr.anim.getValue() > this.teamsPerScreen) {
           remove.push(sr);
         }
       }
@@ -172,7 +174,7 @@ export function drawFtsFrame(ctx, L, rows, times, opts = {}) {
   ctx.translate(0, contentTop);
 
   // 偶数行背景
-  for (let i = 0; i < ROWS; i += 2) {
+  for (let i = 0; i < L.rows; i += 2) {
     ctx.fillStyle = 'rgb(60,60,60)';
     ctx.fillRect(0, i * rowH, W, rowH);
   }

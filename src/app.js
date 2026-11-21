@@ -22,6 +22,8 @@ import { FtsQueue, drawFtsFrame } from './fts-canvas.js';
 const Q = new URLSearchParams(location.search);
 const SRC = (Q.get('src') || 'http://127.0.0.1:8081/api/contests/144333').replace(/\/$/, '');
 const VIEW = Q.get('view') || 'standings';
+/** AbstractScoreboardPresentation.setNumRows() —— 行数直接决定字号（源码支持 rows: 属性） */
+const ROWS_PARAM = Math.max(1, Number(Q.get('rows')) || 12);
 
 
 
@@ -339,6 +341,7 @@ function judgeQueue() {
     timeToKeepSolved: Q.has('keepSolved') ? Number(Q.get('keepSolved')) : undefined,
     timeToKeepFailed: Q.has('keepFailed') ? Number(Q.get('keepFailed')) : undefined,
     timeToFadeRecent: Q.has('fadeRecent') ? Number(Q.get('fadeRecent')) : undefined,
+    teamsPerScreen: ROWS_PARAM,
   });
   return judgeQ;
 }
@@ -351,7 +354,7 @@ function renderJudge(pane) {
   const data = computeStandings(M, {
     hideJudgement: sub => isJudgementHidden(M.state, rel2sec(sub.contest_time), at),
   });
-  const L = judgeLayout(W, H, data.probs.length);
+  const L = judgeLayout(W, H, data.probs.length, ROWS_PARAM);
   const t = contestTimes();
   const times = { elapsedText: fmtClock(t.elapsed, true), remainText: fmtClock(t.remain, true) };
   const frozen = !!(M.state && M.state.isFrozen());
@@ -363,7 +366,7 @@ function renderJudge(pane) {
 
   // 静态铺排（截图 / 静态夹具）
   if (Q.get('anim') === '0') {
-    const seeded = seedRows(M, data, judgeStatus, 12, elapsedSec, judgeFts);
+    const seeded = seedRows(M, data, judgeStatus, ROWS_PARAM, elapsedSec, judgeFts);
     drawJudgeFrame(ctx, L, seeded.rows, seeded.probs, times, { frozen, now });
     return;
   }
@@ -467,6 +470,7 @@ function ftsQueue() {
   ftsQ = new FtsQueue({
     judged: sub => judgeStatus.has(sub.id),
     isFts: sub => judgeFts.has(sub.id),
+    teamsPerScreen: ROWS_PARAM,
   });
   return ftsQ;
 }
@@ -483,7 +487,7 @@ function renderFts(pane) {
   syncJudgeStatus();
   syncJudgeFts();
 
-  const L = judgeLayout(W, H, data.probs.length);
+  const L = judgeLayout(W, H, data.probs.length, ROWS_PARAM);
   const t = contestTimes();
   const times = { elapsedText: fmtClock(t.elapsed, true), remainText: fmtClock(t.remain, true) };
   const frozen = !!(M.state && M.state.isFrozen());

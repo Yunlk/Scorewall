@@ -114,24 +114,25 @@ function widthOf(ctx, font, s) {
 }
 
 /** 与总榜同源的几何（AbstractScoreboardPresentation.setup:104-131） */
-export function judgeLayout(W, H, nProb) {
+export function judgeLayout(W, H, nProb, rows = ROWS) {
   const dpi = 96;
   const size0 = Math.trunc((H * 72.0 * 0.028) / dpi);
   const headerH = Math.trunc(H / 50);
   const titleH = Math.trunc(H / 30);
-  const rowH = (H - headerH - titleH) / ROWS;
+  const rowH = (H - headerH - titleH) / rows;
 
   // AbstractScoreboardPresentation.setup:106-108
-  //   float tempRowHeight = height / (float) teamsPerScreen;   ← 用的是「全屏高度/12」，不是扣掉表头后的 rowH
+  //   float tempRowHeight = height / (float) teamsPerScreen;   ← 用的是「全屏高度/行数」，不是扣掉表头后的 rowH
   //   size = tempRowHeight * 36f * 0.95f / dpi;
-  const size = ((H / ROWS) * 36 * 0.95) / dpi;
+  // 行数变了字号就跟着变（12 行 → 40px，10 行 → 48px），和 setNumRows() 一致
+  const size = ((H / rows) * 36 * 0.95) / dpi;
 
   const cubeH = Math.floor(rowH / 2.5) - CUBE_INSET;
   let cubeW = Math.floor((rowH / 1.8 - CUBE_INSET) * 10);
   while (cubeW > 30 && (cubeW + CUBE_INSET) * nProb > W - rowH * 3 - 70) cubeW -= 2;
 
   return {
-    W, H, headerH, titleH, rowH, cubeH, cubeW, nProb,
+    W, H, headerH, titleH, rowH, cubeH, cubeW, nProb, rows,
     rowFont: f(size * 1.25, true),          // rowFont
     rowItalicsFont: f(size * 1.25, true),   // rowItalicsFont（源码同为 BOLD size*1.25）
     statusFont: f(size * 0.7, true),        // statusFont
@@ -288,7 +289,7 @@ export function drawJudgeFrame(ctx, L, rows, probs, times, opts = {}) {
   ctx.translate(0, contentTop);
 
   // 偶数行背景（drawRowBackground，BG_COLOR）
-  for (let i = 0; i < ROWS; i += 2) {
+  for (let i = 0; i < L.rows; i += 2) {
     ctx.fillStyle = css(BG_COLOR);
     ctx.fillRect(0, i * rowH, W, rowH);
   }

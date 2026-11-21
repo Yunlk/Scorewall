@@ -1,8 +1,19 @@
-/* ICPC Tools 自带字体（从 presentations.jar 取出，font/Helvetica-Plain.ttf） */
+/* ICPC Tools 自带字体（从 presentations.jar 取出，font/Helvetica-Plain.ttf）
+ *
+ * 上游所有字号都是 Font.BOLD 派生的，但这个文件只有一套字形。
+ * 必须额外声明一条 bold，否则浏览器找不到 bold 就回退到 Arial，
+ * 文字的度量（宽度 / ascent）会变，版面就对不上了。 */
 @font-face {
   font-family: 'ICPCFont';
   src: url('fonts/Helvetica-Plain.ttf') format('truetype');
   font-weight: normal;
+  font-style: normal;
+  font-display: block;
+}
+@font-face {
+  font-family: 'ICPCFont';
+  src: url('fonts/Helvetica-Plain.ttf') format('truetype');
+  font-weight: bold;
   font-style: normal;
   font-display: block;
 }

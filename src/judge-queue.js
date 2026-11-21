@@ -163,6 +163,8 @@ export class JudgeQueue {
     this.timeToKeepFailed = opts.timeToKeepFailed > 0 ? opts.timeToKeepFailed : TIME_TO_KEEP_FAILED;
     this.timeToKeepSolved = opts.timeToKeepSolved > 0 ? opts.timeToKeepSolved : TIME_TO_KEEP_SOLVED;
     this.timeToFadeRecent = opts.timeToFadeRecent > 0 ? opts.timeToFadeRecent : TIME_TO_FADE_RECENT;
+    // AbstractScoreboardPresentation.setNumRows() 对应物：行数直接决定字号
+    this.teamsPerScreen = opts.teamsPerScreen > 0 ? opts.teamsPerScreen : TEAMS_PER_SCREEN;
   }
 
   /** JudgePresentation.createSubmissionRecord:126-139 */
@@ -175,14 +177,14 @@ export class JudgeQueue {
 
     let initalX = 0;
     if (this.records.length > 0) {
-      initalX = Math.min(this.records[this.records.length - 1].anim.getValue() + 1, TEAMS_PER_SCREEN * 2);
+      initalX = Math.min(this.records[this.records.length - 1].anim.getValue() + 1, this.teamsPerScreen * 2);
     }
     const sr = {
       submission,
       related: null,
       // Java: new Animator(Math.max(initalX, teamsPerScreen + 2), SUBMISSION_MOVEMENT)
       // → 起点永远在屏幕下方（14 行 ≈ 屏幕外 2 行），从底部滑上来
-      anim: new Animator(Math.max(initalX, TEAMS_PER_SCREEN + 2), SUBMISSION_MOVEMENT),
+      anim: new Animator(Math.max(initalX, this.teamsPerScreen + 2), SUBMISSION_MOVEMENT),
       fullAge: 0,
       actionAge: 0,
       action: null,
@@ -215,12 +217,12 @@ export class JudgeQueue {
       for (const sr of this.records) {
         let target = count;
         if (sr.action === Action.MOVE_UP && sr.actionAge > this.timeToKeepSolved) {
-          target = -TEAMS_PER_SCREEN;
+          target = -this.teamsPerScreen;
         } else if (sr.action === Action.MOVE_DOWN && sr.actionAge > this.timeToKeepFailed) {
-          target = TEAMS_PER_SCREEN * 2;
+          target = this.teamsPerScreen * 2;
         } else if (sr.action === Action.MOVE_OUT && sr.actionAge > this.timeToFadeRecent / 3) {
           // 正在淡出：不占行
-        } else if (count < TEAMS_PER_SCREEN * 2) {
+        } else if (count < this.teamsPerScreen * 2) {
           count++;
         }
         if (force) sr.anim.reset(target);
@@ -237,11 +239,11 @@ export class JudgeQueue {
       let target = 0;
       if (sr.action === Action.MOVE_UP) {
         if (sr.actionAge > this.timeToKeepSolved || numSolved > this.reservedRows) {
-          target = -TEAMS_PER_SCREEN;
+          target = -this.teamsPerScreen;
           numSolved--;
         } else target = count++;
       } else if (sr.action === Action.MOVE_DOWN && sr.actionAge > this.timeToFadeRecent / 2) {
-        target = TEAMS_PER_SCREEN * 2;
+        target = this.teamsPerScreen * 2;
       } else if (sr.action === Action.MOVE_OUT && sr.actionAge > this.timeToFadeRecent / 3) {
         // 不占行
       } else {
@@ -274,7 +276,7 @@ export class JudgeQueue {
 
       const v = sr.anim.getValue();
       if (sr.action === Action.MOVE_UP && v < -1) remove.push(sr);
-      else if (sr.action === Action.MOVE_DOWN && v > TEAMS_PER_SCREEN) remove.push(sr);
+      else if (sr.action === Action.MOVE_DOWN && v > this.teamsPerScreen) remove.push(sr);
       else if (sr.action === Action.MOVE_OUT && sr.actionAge > this.timeToFadeRecent) remove.push(sr);
     }
 
