@@ -15,7 +15,8 @@ import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const SRC = join(here, '..', 'src');
-const FIXES = { 1: join(here,'fixtures','smoke'), 2: join(here,'fixtures','scroll'), 4: join(here,'fixtures','lncpc'), 5: join(here,'fixtures','lncpc') };
+const FIXES = { 1: join(here,'fixtures','smoke'), 2: join(here,'fixtures','scroll'), 4: join(here,'fixtures','lncpc'), 5: join(here,'fixtures','lncpc'),
+  6: join(here,'fixtures','demo') };
 let FIX = FIXES[1];
 
 // ---- 实时模拟：真实载荷 + 串行判题机 ----
@@ -163,6 +164,33 @@ function revStart(windowMs = 600000, speed = 12) {
   step();
 }
 
+
+// ---- contest 7：脚本化判题演示（蓝 → 绿/红） ----
+const DEMO7 = { clients: new Set(), started: false, subs: [], judges: [] };
+function d7emit(obj) {
+  const line = JSON.stringify(obj) + '\n';
+  for (const c of DEMO7.clients) { try { c.write(line); } catch (_) {} }
+}
+function d7start() {
+  if (DEMO7.started) return;
+  DEMO7.started = true;
+  const plan = [
+    { t: 800,  sub: { id: 'D1', team_id: 't1', problem_id: 'A', contest_time: '0:01:00.000' } },
+    { t: 2500, sub: { id: 'D2', team_id: 't2', problem_id: 'B', contest_time: '0:01:30.000' } },
+    { t: 4200, sub: { id: 'D3', team_id: 't3', problem_id: 'C', contest_time: '0:02:00.000' } },
+    { t: 5900, sub: { id: 'D4', team_id: 't4', problem_id: 'A', contest_time: '0:02:30.000' } },
+    { t: 4000, j: { id: 'JD1', submission_id: 'D1', judgement_type_id: 'AC' } },
+    { t: 7000, j: { id: 'JD2', submission_id: 'D2', judgement_type_id: 'WA' } },
+    { t: 9500, j: { id: 'JD3', submission_id: 'D3', judgement_type_id: 'AC' } },
+  ];
+  for (const step of plan) {
+    setTimeout(() => {
+      if (step.sub) { DEMO7.subs.push(step.sub); d7emit({ type: 'submissions', id: step.sub.id, data: step.sub }); }
+      if (step.j) { DEMO7.judges.push(step.j); d7emit({ type: 'judgements', id: step.j.id, data: step.j }); }
+    }, step.t);
+  }
+}
+
 const fixture = n => JSON.parse(readFileSync(join(FIX, n + '.json'), 'utf8'));
 
 // 事件类型名 -> 夹具文件名
@@ -229,6 +257,26 @@ const server = http.createServer((req, res) => {
       }
     })();
     return;
+  }
+
+  // ---- contest 7：脚本化判题演示 ----
+  if (path.startsWith('/api/contests/7')) {
+    const rest = path.slice('/api/contests/7'.length).replace(/^\//, '');
+    FIX = join(here, 'fixtures', 'demo');
+    if (rest === 'submissions') return json(res, DEMO7.subs);
+    if (rest === 'judgements') return json(res, DEMO7.judges);
+    if (rest === 'state') return json(res, { id: '1', started: '2026-01-01T00:00:00.000Z', ended: null, frozen: null, thawed: null, finalized: null, end_of_updates: null });
+    if (rest === 'event-feed') {
+      res.writeHead(200, { 'Content-Type': 'application/x-ndjson; charset=utf-8', 'Cache-Control': 'no-cache', 'Access-Control-Allow-Origin': '*', Connection: 'keep-alive' });
+      for (const sub of DEMO7.subs) { try { res.write(JSON.stringify({ type: 'submissions', id: sub.id, data: sub }) + '\n'); } catch (_) {} }
+      for (const j of DEMO7.judges) { try { res.write(JSON.stringify({ type: 'judgements', id: j.id, data: j }) + '\n'); } catch (_) {} }
+      const beat = setInterval(() => { try { res.write('\n'); } catch (_) { clearInterval(beat); } }, 15000);
+      DEMO7.clients.add(res);
+      d7start();
+      req.on('close', () => { clearInterval(beat); DEMO7.clients.delete(res); });
+      return;
+    }
+    if (rest === '') return json(res, fixture('contest'));
   }
 
   // ---- contest 5：LNCPC 回放 ----

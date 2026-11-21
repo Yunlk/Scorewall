@@ -1,0 +1,37 @@
+[
+  {
+    "id": "js1",
+    "submission_id": "s1",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:01:12.000",
+    "end_contest_time": "0:01:20.000"
+  },
+  {
+    "id": "js2",
+    "submission_id": "s2",
+    "judgement_type_id": "WA",
+    "start_contest_time": "0:02:05.000",
+    "end_contest_time": "0:02:13.000"
+  },
+  {
+    "id": "js3",
+    "submission_id": "s3",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:03:20.000",
+    "end_contest_time": "0:03:28.000"
+  },
+  {
+    "id": "js4",
+    "submission_id": "s4",
+    "judgement_type_id": "CE",
+    "start_contest_time": "0:05:40.000",
+    "end_contest_time": "0:05:48.000"
+  },
+  {
+    "id": "js5",
+    "submission_id": "s5",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:06:10.000",
+    "end_contest_time": "0:06:18.000"
+  }
+]

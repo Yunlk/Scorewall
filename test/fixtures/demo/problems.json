@@ -1,0 +1,37 @@
+[
+  {
+    "id": "A",
+    "label": "A",
+    "ordinal": 0,
+    "rgb": "#FF7109",
+    "color": "#FF7109"
+  },
+  {
+    "id": "B",
+    "label": "B",
+    "ordinal": 1,
+    "rgb": "#008100",
+    "color": "#008100"
+  },
+  {
+    "id": "C",
+    "label": "C",
+    "ordinal": 2,
+    "rgb": "#E93603",
+    "color": "#E93603"
+  },
+  {
+    "id": "D",
+    "label": "D",
+    "ordinal": 3,
+    "rgb": "#541298",
+    "color": "#541298"
+  },
+  {
+    "id": "E",
+    "label": "E",
+    "ordinal": 4,
+    "rgb": "#9B630C",
+    "color": "#9B630C"
+  }
+]

@@ -118,8 +118,8 @@ export class JudgeQueue {
     this.reservedRows = 0;
     this.opts = opts;
     // Java: 这两个是实例字段，外部可调
-    this.timeToKeepFailed = opts.timeToKeepFailed ?? TIME_TO_KEEP_FAILED;
-    this.timeToKeepSolved = opts.timeToKeepSolved ?? TIME_TO_KEEP_SOLVED;
+    this.timeToKeepFailed = opts.timeToKeepFailed ?? 3000;
+    this.timeToKeepSolved = opts.timeToKeepSolved ?? 3000;
   }
 
   /** 新提交进队（JudgePresentation.createSubmissionRecord） */
@@ -134,7 +134,8 @@ export class JudgeQueue {
       : 0;
     const sr = {
       submission,
-      anim: new Animator(Math.max(initialX, TEAMS_PER_SCREEN + 2), SUBMISSION_MOVEMENT),
+      // 从可见区下沿进场（短距离、看得清）
+      anim: new Animator(Math.max(initialX, TEAMS_PER_SCREEN), SUBMISSION_MOVEMENT),
       action: null,
       actionAge: 0,
       fullAge: 0,

@@ -355,7 +355,9 @@ function renderJudge(pane) {
   for (const sub of M.submissions.values()) {
     if (!judgeSeen.has(sub.id)) {
       judgeSeen.add(sub.id);
-      q.add(sub);        // 源码：从 teamsPerScreen+2（屏幕下方）滑到目标行
+      const sr = q.add(sub);
+      // 我的设计：从「自己行位的下一格」滑上来——短距离、每条都是独立的一次位移
+      if (sr) sr.anim.reset(sr.anim.xTarget + 1);
     } else {
       q.refresh(sub);            // Java listener：对象更新也走 handleSubmission
     }
