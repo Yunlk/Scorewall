@@ -1,269 +1,381 @@
-/* 判题队列视图（#56）—— JudgePresentation.drawSubmission / drawRight 移植
+/* 判题队列渲染 —— JudgePresentation / AbstractScoreboardPresentation / ShadedRectangle 移植
  *
- * 行内结构（坐标以该行左上角为原点）：
- *   名次   TextImage.drawString(rank, x, 5)              → 顶边 5，基线 5+ascent
- *   队名   TextHelper.drawString(name, xx, ascent+5, w)   → 基线 ascent+5
- *   解题   TextImage.drawString(n, ..., 5)                → 顶边 5
- *   罚时   TextImage.drawString(t, ..., 5)                → 顶边 5
- *   格子   y = rowHeight/2 + CUBE_INSET/2 + 3
+ * 版面（TitledPresentation.paint:137-161）：
+ *   y ∈ [0, titleHeight)          时钟(左 1/12) + 标题(居中)
+ *   y ∈ [titleHeight, +headerH)   表头图：黑底 + 白线 + Rank/Name/Solved/Time
+ *   内容区 translate(0, headerH+titleH) + clip(height-headerH-titleH)
  *
- * 渲染约定：每行独立 ctx.save()/restore()，唯一出口，textAlign 进出行都复位。
+ * 行内（JudgePresentation.drawSubmission:283-329 / drawRight:331-402）：
+ *   名次  rowItalicsFont  TextImage y=5（顶边）
+ *   队名  rowFont         TextHelper 基线 ascent+5
+ *   解题  rowItalicsFont  TextImage y=5
+ *   罚时  rowFont         TextImage y=5
+ *   格子  y = (int)rowHeight/2 + CUBE_INSET/2 + 3
+ *
+ * 格子底色（ShadedRectangle.getPaint）：recent 时是「纯色→darker 0.55」的垂直渐变，
+ * 非 recent 是纯色；k 在 ICPCColors.CCOUNT 上做三角波 —— 这才是原版的闪法。
  */
 
 import { rel2sec } from './scoring.js';
 
+// ---------- TitledPresentation / AbstractScoreboardPresentation 常量 ----------
 const BORDER = 8;
+const CLOCK_MARGIN = 2;
 const CUBE_INSET = 5;
 const ARC = 7;
 const ROWS = 12;
+const CCOUNT = 15;
+
 const FONT_FAMILY = '"ICPCFont", Arial, "Microsoft YaHei", sans-serif';
 const f = (px, bold) => `${bold ? 'bold ' : ''}${px}px ${FONT_FAMILY}`;
 
-const CCOUNT = 15;
-const RECENT_MS = 20000;           // ContestUtil.isRecent 的窗口（近似）
+// ---------- ICPCColors ----------
+const PENDING_COLOR = [66, 114, 245];
+const SOLVED_COLOR = [0, 230, 0];
+const FAILED_COLOR = [240, 0, 0];
+const YELLOW = [255, 223, 54];
 
-const BASE = {
-  solved: [0, 230, 0],
-  failed: [240, 0, 0],
-  pending: [66, 114, 245],
-};
+const BG_COLOR = [60, 60, 60];                 // AbstractScoreboardPresentation.BG_COLOR
+const CUBE_BG = [40, 40, 40];                  // ShadedRectangle.BG
+const CUBE_BG_TEXT = [196, 196, 196, 175];     // ShadedRectangle.BG_TEXT
 
-/** ShadedRectangle.getPaint：recent 时在 base 与 alphaDarker(base,128,0.5) 之间来回取色 */
-function pulseColor(status, recent, tMs) {
-  const c = BASE[status] || BASE.pending;
-  let k;
-  if (recent) {
-    k = Math.floor(((tMs * 45) / 1000) % (CCOUNT * 2));
-    if (k > CCOUNT - 1) k = CCOUNT * 2 - 1 - k;
-  } else {
-    k = Math.floor(CCOUNT / 3);
+/** Utility.darker */
+function darker(c, k) {
+  return [Math.max(Math.floor(c[0] * k), 0), Math.max(Math.floor(c[1] * k), 0), Math.max(Math.floor(c[2] * k), 0)];
+}
+/** Utility.alphaDarker(c, alpha, f) */
+function alphaDarker(c, alpha, k) {
+  return [Math.max(Math.floor(c[0] * k), 0), Math.max(Math.floor(c[1] * k), 0), Math.max(Math.floor(c[2] * k), 0), alpha];
+}
+/** Utility.getColorsBetween —— steps 个颜色，索引 i 取 x = i/(steps-1) */
+function colorsBetween(c1, c2, steps) {
+  const a = toUnit(c1);
+  const b = toUnit(c2);
+  const out = new Array(steps);
+  for (let i = 0; i < steps; i++) {
+    const x = i / (steps - 1);
+    out[i] = [0, 1, 2, 3].map(j => a[j] * (1 - x) + b[j] * x);
   }
-  const f = 1 - 0.5 * (k / (CCOUNT - 1));          // 颜色 ×0.5
-  const a = 1 - 0.5 * (k / (CCOUNT - 1));          // alpha 255→128
-  return `rgba(${Math.round(c[0] * f)},${Math.round(c[1] * f)},${Math.round(c[2] * f)},${a.toFixed(3)})`;
+  return out;
+}
+function toUnit(c) {
+  const a = c.length > 3 ? c[3] / 255 : 1;
+  return [c[0] / 255, c[1] / 255, c[2] / 255, a];
+}
+function css(c) {
+  const r = Math.round(c[0] * 255);
+  const g = Math.round(c[1] * 255);
+  const b = Math.round(c[2] * 255);
+  const a = c.length > 3 ? c[3] : 1;
+  return `rgba(${r},${g},${b},${a})`;
 }
 
-const C = {
-  solved: 'rgb(0,230,0)',
-  failed: 'rgb(240,0,0)',
-  pending: 'rgb(66,114,245)',
-  solvedDim: 'rgb(0,92,0)',            // Utility.darker(SOLVED_COLOR, 0.4f)
-  cellBg: 'rgb(40,40,40)',
-  cellText: 'rgba(196,196,196,0.69)',
-  rowBg: 'rgb(60,60,60)',
-  frozenClock: 'rgb(255,223,54)',
-};
+// ICPCColors.PENDING / SOLVED / FAILED
+const PENDING = colorsBetween(PENDING_COLOR, alphaDarker(PENDING_COLOR, 128, 0.5), CCOUNT);
+const SOLVED = colorsBetween(SOLVED_COLOR, alphaDarker(SOLVED_COLOR, 128, 0.5), CCOUNT);
+const FAILED = colorsBetween(FAILED_COLOR, alphaDarker(FAILED_COLOR, 128, 0.5), CCOUNT);
+const SOLVED_DIM = darker(SOLVED_COLOR, 0.4);   // JudgePresentation:376 Utility.darker(SOLVED_COLOR, 0.4f)
 
-function roundRect(ctx, x, y, w, h, r) {
+function roundRectPath(ctx, x, y, w, h) {
   ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.arcTo(x + w, y, x + w, y + h, r);
-  ctx.arcTo(x + w, y + h, x, y + h, r);
-  ctx.arcTo(x, y + h, x, y, r);
-  ctx.arcTo(x, y, x + w, y, r);
+  ctx.moveTo(x + ARC, y);
+  ctx.lineTo(x + w - ARC, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + ARC);
+  ctx.lineTo(x + w, y + h - ARC);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - ARC, y + h);
+  ctx.lineTo(x + ARC, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - ARC);
+  ctx.lineTo(x, y + ARC);
+  ctx.quadraticCurveTo(x, y, x + ARC, y);
   ctx.closePath();
 }
 
-/** 与总榜同源的几何（AbstractScoreboardPresentation.setup） */
-export function judgeLayout(W, H, nProb) {
-  const headerH = Math.floor(H / 50);
-  const titleH = Math.floor(H / 30);
-  const rowH = (H - headerH - titleH) / ROWS;
-  const size0 = Math.trunc(H * 72 * 0.028 / 96);
-  const base = (H / ROWS) * 36 * 0.95 / 96;
-  const cubeH = Math.floor(rowH / 2.5) - CUBE_INSET;
-  let cubeW = Math.floor(((rowH / 1.8) - CUBE_INSET) * 10);
-  while (cubeW > 30 && (cubeW + CUBE_INSET) * nProb > W - rowH * 3 - 70) cubeW -= 2;
-  return {
-    W, H, headerH, titleH, rowH, cubeH, cubeW, nProb,
-    rowFont: base * 1.25,
-    statusFont: base * 0.7,
-    problemFont: base * 0.5,
-    headerFont: Math.min(size0, base * 0.85),
-    titleFont: size0 * 2.2,
-    clockFont: size0 * 1.25,
-  };
-}
-
-function ascentOf(ctx, font) {
+/** 字体度量：模拟 FontMetrics.ascent/descent/height */
+function metrics(ctx, font) {
   ctx.font = font;
   const m = ctx.measureText('Mg');
-  return m.actualBoundingBoxAscent || m.fontBoundingBoxAscent || 0;
+  const asc = m.fontBoundingBoxAscent || m.actualBoundingBoxAscent || 0;
+  const desc = m.fontBoundingBoxDescent || m.actualBoundingBoxDescent || 0;
+  return { asc, desc, height: asc + desc };
 }
-
 function widthOf(ctx, font, s) {
   ctx.font = font;
   return ctx.measureText(String(s)).width;
 }
 
-/** 画一帧。rows 顺序 = Java List 顺序（老的在前）；可带 y（小数行号）与 alpha */
+/** 与总榜同源的几何（AbstractScoreboardPresentation.setup:104-131） */
+export function judgeLayout(W, H, nProb) {
+  const dpi = 96;
+  const size0 = Math.trunc((H * 72.0 * 0.028) / dpi);
+  const headerH = Math.trunc(H / 50);
+  const titleH = Math.trunc(H / 30);
+  const rowH = (H - headerH - titleH) / ROWS;
+  const size = (rowH * 36 * 0.95) / dpi;
+
+  const cubeH = Math.floor(rowH / 2.5) - CUBE_INSET;
+  let cubeW = Math.floor((rowH / 1.8 - CUBE_INSET) * 10);
+  while (cubeW > 30 && (cubeW + CUBE_INSET) * nProb > W - rowH * 3 - 70) cubeW -= 2;
+
+  return {
+    W, H, headerH, titleH, rowH, cubeH, cubeW, nProb,
+    rowFont: f(size * 1.25, true),          // rowFont
+    rowItalicsFont: f(size * 1.25, true),   // rowItalicsFont（源码同为 BOLD size*1.25）
+    statusFont: f(size * 0.7, true),        // statusFont
+    problemFont: f(size * 0.5, false),      // problemFont
+    headerFont: f(Math.min(size0, size * 0.85), true),
+    titleFont: f(size0 * 2.2, true),
+    clockFont: f(size0 * 1.25, true),
+    size,
+  };
+}
+
+/** ShadedRectangle.getPaint：返回 {fill, isPlain, textColor} */
+function paintOf(status, recent, nowMs) {
+  let k;
+  if (recent) {
+    k = Math.floor(((nowMs * 45.0) / 1000.0) % (CCOUNT * 2));
+    if (k > CCOUNT - 1) k = CCOUNT * 2 - 1 - k;
+  } else {
+    k = Math.floor(CCOUNT / 3);
+  }
+
+  const arr = status === 'solved' ? SOLVED : status === 'failed' ? FAILED : PENDING;
+  const c = arr[k];
+  if (!recent) return { solid: css(c) };
+  // MyGradientPaint: (0,0,c) → (0,h,darker(c,0.55))
+  return { top: css(c), bottom: css(darker(c, 0.55)) };
+}
+
+/** 画一个圆角格子（ShadedRectangle.createRoundRect + g.drawImage 等价物） */
+function drawCube(ctx, x, y, w, h, paint, outline, text, font, plain) {
+  const inset = outline ? 1 : 0;
+  if (outline) ctx.translate(1, 1);
+  const ww = w - inset * 2;
+  const hh = h - inset * 2;
+
+  roundRectPath(ctx, x + (outline ? 0 : 0), y + (outline ? 0 : 0), ww, hh);
+  if (paint.solid) {
+    ctx.fillStyle = paint.solid;
+  } else {
+    const g = ctx.createLinearGradient(0, y, 0, y + hh);
+    g.addColorStop(0, paint.top);
+    g.addColorStop(1, paint.bottom);
+    ctx.fillStyle = g;
+  }
+  ctx.fill();
+
+  if (outline) {
+    ctx.strokeStyle = outline;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.lineWidth = 1;
+    ctx.translate(-1, -1);
+  }
+
+  if (text) {
+    const m = metrics(ctx, font);
+    ctx.font = font;
+    ctx.fillStyle = plain ? css(toUnit(CUBE_BG_TEXT)) : '#fff';
+    if (plain) {
+      ctx.fillText(text, x + (ww - widthOf(ctx, font, text)) / 2, y + (hh + m.height) / 2 - m.desc + 1);
+    } else {
+      ctx.fillText(text, x + (ww - widthOf(ctx, font, text)) / 2, y + hh / 2 + m.height / 2 - m.desc + 1);
+    }
+  }
+}
+
+/** AbstractScoreboardPresentation.drawHeader:290-317 —— 黑底 + 白线 + 四个列名 */
+function drawHeaderBand(ctx, L, w) {
+  const { W, headerH, titleH } = L;
+  const headerTop = titleH;
+
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, headerTop, W, headerH + 2);
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, headerTop + headerH - 1, W, 1);   // drawLine
+
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = '#fff';
+  ctx.font = L.headerFont;
+
+  const hy = headerTop + headerH - 3;
+  const hw = s => widthOf(ctx, L.headerFont, s);
+  ctx.fillText('Rank', BORDER + (w.w199 - hw('Rank')) / 2, hy);
+  ctx.fillText('Name', BORDER + w.w199sp + L.rowH, hy);
+  ctx.fillText('Solved', W - BORDER - w.w9999sp - (hw('Solved') + w.w99) / 2, hy);
+  ctx.fillText('Time', W - BORDER - (hw('Time') + w.w9999) / 2, hy);
+}
+
+/**
+ * 画一帧。
+ * @param rows [{ y, alpha, rank, teamName, solved, time, cells, currentProblem, currentStatus, currentText }]
+ * @param probs [{id,label}]
+ * @param times {elapsedText, remainText}
+ * @param opts  {frozen, now}
+ */
 export function drawJudgeFrame(ctx, L, rows, probs, times, opts = {}) {
   const { W, H, headerH, titleH, rowH, cubeW, cubeH } = L;
   const contentTop = titleH + headerH;
+  const contentH = H - contentTop;
 
   ctx.clearRect(0, 0, W, H);
   ctx.fillStyle = '#000';
   ctx.fillRect(0, 0, W, H);
-
-  // ---------- 标题带 ----------
-  const clockF = f(L.clockFont, true);
-  const titleF = f(L.titleFont, true);
-  const clockAsc = ascentOf(ctx, clockF) + 2;
-  const titleAsc = ascentOf(ctx, titleF);
-
-  ctx.textAlign = 'center';
+  ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
-  ctx.fillStyle = opts.frozen ? C.frozenClock : '#fff';
-  ctx.font = clockF;
-  ctx.fillText(times.elapsedText, W / 12, clockAsc);
-  ctx.fillText(times.remainText, W * 11 / 12, clockAsc);
-  ctx.fillStyle = '#fff';
-  ctx.font = titleF;
-  ctx.fillText('Judge Queue', W / 2, titleAsc);
 
-  // ---------- 行背景（只画偶数行） ----------
-  for (let i = 0; i < ROWS; i += 2) {
-    ctx.fillStyle = C.rowBg;
-    ctx.fillRect(0, contentTop + i * rowH, W, rowH);
-  }
-
-  // ---------- 内容区裁剪：行滑出时不能盖住标题带 ----------
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(0, contentTop, W, H - contentTop);
-  ctx.clip();
-
-  // ---------- 度量（Java 用 FontMetrics 现算） ----------
-  const fr = f(L.rowFont, true);
+  // ---------- 标题带：时钟 + 标题（TitledPresentation.paint:142-150） ----------
+  // 注意顺序：先画表头图，再画时钟/标题 —— 否则 50px 的标题会被 21px 的表头黑条切掉下半截
+  const clockM = metrics(ctx, L.clockFont);
+  const clockAsc = clockM.asc + CLOCK_MARGIN;
+  const titleM = metrics(ctx, L.titleFont);
+  const fr = L.rowFont;
+  const fh = L.headerFont;
   const w199 = widthOf(ctx, fr, '199');
   const w199sp = widthOf(ctx, fr, '199 ');
   const w9999 = widthOf(ctx, fr, '9999');
   const w9999sp = widthOf(ctx, fr, ' 9999');
   const w99 = widthOf(ctx, fr, '99');
+
+  drawHeaderBand(ctx, L, { w199, w199sp, w9999, w9999sp, w99 });
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = opts.frozen ? css(toUnit(YELLOW)) : '#fff';
+  ctx.font = L.clockFont;
+  ctx.fillText(times.elapsedText, W / 12, clockAsc);
+  ctx.fillText(times.remainText, (W * 11) / 12, clockAsc);
+
+  ctx.fillStyle = '#fff';
+  ctx.font = L.titleFont;
+  ctx.fillText('Judge Queue', W / 2, titleM.asc);
+
+  // ---------- 内容区（paintImpl:160-193） ----------
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, contentTop, W, contentH);
+  ctx.clip();
+  ctx.translate(0, contentTop);
+
+  // 偶数行背景（drawRowBackground，BG_COLOR）
+  for (let i = 0; i < ROWS; i += 2) {
+    ctx.fillStyle = css(toUnit(BG_COLOR));
+    ctx.fillRect(0, i * rowH, W, rowH);
+  }
+
+  // 度量（Java 用 FontMetrics 现算）
+  const rowM = metrics(ctx, fr);
+  const indent = BORDER + w199sp + rowH;
+  const cubeDy = Math.trunc(rowH / 2) + Math.trunc(CUBE_INSET / 2) + 3;
+  const nameBaseline = rowM.asc + 5;
+  const textImageY = 5 + rowM.asc;
   const w199_9_9999 = widthOf(ctx, fr, '199 9 9999');
 
-  const indent = BORDER + w199sp + rowH;
-  const cellDy = Math.floor(rowH / 2) + CUBE_INSET / 2 + 3;
-  const asc = ascentOf(ctx, fr);
-  const nameBaseline = asc + 5;          // TextHelper: ascent + 5
-  const topBaseline = 5 + asc;           // TextImage: 顶边 5
-
-  for (let i = 0; i < rows.length; i++) {
-    const r = rows[i];
-    const y = contentTop + (r.y !== undefined ? r.y : i) * rowH;
-    if (y + rowH < contentTop || y > contentTop + ROWS * rowH) continue;
+  for (const r of rows) {
+    const y = (r.y !== undefined ? r.y : 0) * rowH;
+    if (y >= contentH) continue;                 // Java: yy < height - headerHeight
+    if (y + rowH < 0) continue;
 
     ctx.save();
     ctx.globalAlpha = r.alpha === undefined ? 1 : r.alpha;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
 
-    // 名次
-    const rank = String(r.rank);
-    ctx.font = fr;
+    // 名次（rowItalicsFont）
+    ctx.font = L.rowItalicsFont;
     ctx.fillStyle = '#fff';
-    ctx.fillText(rank, BORDER + (w199 - widthOf(ctx, fr, rank)) / 2, y + topBaseline);
+    const rank = String(r.rank);
+    ctx.fillText(rank, BORDER + (w199 - widthOf(ctx, L.rowItalicsFont, rank)) / 2, y + textImageY);
 
-    // 队名（超宽按 TextHelper 缩字号）
+    // 队名（TextHelper.drawString 缩字号适配）
     const nameX = BORDER + w199sp + rowH;
     const avail = W - BORDER * 2 - w199_9_9999 - rowH;
-    let fs = L.rowFont;
-    const nw = widthOf(ctx, f(fs, true), r.teamName || '');
-    if (nw > avail) fs = Math.max(fs * 0.55, fs * avail / nw);
+    let fs = L.size * 1.25;
+    let nw = widthOf(ctx, f(px0(fs), true), r.teamName || '');
+    if (nw > avail && nw > 0) fs = Math.max(fs * 0.5, (fs * avail) / nw);
     ctx.font = f(fs, true);
     ctx.fillStyle = '#fff';
     ctx.fillText(r.teamName || '', nameX, y + nameBaseline);
 
-    // 解题数
+    // 解题数 / 罚时
     ctx.font = fr;
     ctx.fillStyle = '#fff';
     if (r.solved > 0) {
       const s = String(r.solved);
-      ctx.fillText(s, W - BORDER - w9999sp - (w99 + widthOf(ctx, fr, s)) / 2, y + topBaseline);
+      ctx.fillText(s, W - BORDER - w9999sp - (w99 + widthOf(ctx, fr, s)) / 2, y + textImageY);
     }
-    // 罚时（ContestUtil.getTime → 整数分钟）
     if (r.time > 0) {
       const s = String(r.time);
-      ctx.fillText(s, W - BORDER - (w9999 + widthOf(ctx, fr, s)) / 2, y + topBaseline);
+      ctx.font = fr;
+      ctx.fillText(s, W - BORDER - (w9999 + widthOf(ctx, fr, s)) / 2, y + textImageY);
     }
 
-    // 题目格子
-    const cubTop = y + cellDy;
-    const cellMid = cubTop + cubeH / 2;
+    // 题目格子（drawRight:359-401）
+    const cubeTop = y + cubeDy;
     for (let j = 0; j < probs.length; j++) {
-      const x = indent + j * (cubeW + CUBE_INSET);
-      const isCurrent = r.currentProblem === j;
+      const xx = indent + j * (cubeW + CUBE_INSET);
       const c = r.cells ? r.cells[j] : null;
 
-      if (isCurrent) {
-        const st = r.currentStatus;
-        const recent = (r.currentAgeMs !== undefined) && (r.currentAgeMs < RECENT_MS);
-        ctx.fillStyle = pulseColor(st, recent, opts.now || 0);
-        roundRect(ctx, x, cubTop, cubeW, cubeH, ARC);
-        ctx.fill();
-        ctx.fillStyle = '#fff';
-        ctx.font = f(L.statusFont, true);
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(r.currentText || '', x + cubeW / 2, cellMid);
-      } else if (c && c.solvedAt !== null) {
-        ctx.fillStyle = C.solvedDim;
-        roundRect(ctx, x, cubTop, cubeW, cubeH, ARC);
-        ctx.fill();
+      if (j === r.currentProblem) {
+        const recent = r.currentRecent !== false;
+        drawCube(ctx, xx, cubeTop, cubeW, cubeH, paintOf(r.currentStatus, recent, opts.now || 0), null,
+          r.currentText || '', L.statusFont, false);
+      } else if (c && c.solvedAt !== null && c.solvedAt !== undefined) {
+        // 已解出：只显示暗绿块，不带文字（源码注释：文字太干扰）
+        drawCube(ctx, xx, cubeTop, cubeW, cubeH, { solid: css(toUnit(SOLVED_DIM)) }, null, '', L.statusFont, false);
       } else {
-        ctx.fillStyle = C.cellBg;
-        roundRect(ctx, x, cubTop, cubeW, cubeH, ARC);
-        ctx.fill();
-        ctx.fillStyle = C.cellText;
-        ctx.font = f(L.problemFont, false);
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(probs[j].label, x + cubeW / 2, cellMid);
+        // drawRoundRectPlain：BG + 题号
+        drawCube(ctx, xx, cubeTop, cubeW, cubeH, { solid: css(toUnit(CUBE_BG)) }, null,
+          probs[j].label, L.problemFont, true);
       }
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'alphabetic';
     }
 
     ctx.restore();
   }
 
-  ctx.restore();          // 解除内容区裁剪
+  ctx.restore();
+}
+
+/** 字号取整（避免 measureText 每帧算浮点） */
+function px0(v) {
+  return Math.round(v * 100) / 100;
 }
 
 /** 一条提交 → 一行 */
-export function rowOf(sub, model, byTeam, pidx, verdicts) {
+export function rowOf(sub, model, byTeam, pidx, statusMap) {
   const st = byTeam.get(sub.team_id);
-  // verdicts: Map<submission_id, judgement_type_id>
-  const jtId = verdicts ? (verdicts.get(sub.id) || null) : null;
-  const jt = jtId ? model.judgementTypes.get(jtId) : null;
-  const status = !jt ? 'pending' : jt.solved ? 'solved' : jt.penalty ? 'failed' : 'pending';
+  const verdict = statusMap ? statusMap.get(sub.id) : null;   // 'solved' | 'failed' | null
+  const status = verdict === 'solved' ? 'solved' : verdict === 'failed' ? 'failed' : 'pending';
   const sec = rel2sec(sub.contest_time);
   return {
-    currentAgeMs: sub._ageMs,          // 由调用方填
     teamName: st ? st.team.name : sub.team_id,
     rank: st ? st.rank : '-',
     solved: st ? st.solved : 0,
     time: st ? Math.floor(st.penalty / 60) : 0,
     cells: st ? st.cells : null,
-    currentProblem: pidx.get(sub.problem_id) ?? -1,
+    currentProblem: pidx.has(sub.problem_id) ? pidx.get(sub.problem_id) : -1,
     currentStatus: status,
     currentText: String(Math.floor(sec / 60)),
+    currentRecent: true,
+    subId: sub.id,
   };
 }
 
-/** 最近 N 条提交铺成行（Java List：老的在前） */
-export function seedRows(model, standings, limit = ROWS) {
-  const { submissions, problems } = model;
-  const probs = [...problems.values()].sort((a, b) => a.ordinal - b.ordinal);
+/**
+ * 静态铺排（?anim=0 或首屏播种）。
+ *
+ * 顺序取 Map 插入顺序（= 事件到达顺序 = Java 里 submissions 列表的顺序），
+ * 不能用 contest_time 排序：同一时间戳的提交只属于同一队，会把画面塞成一行队名。
+ */
+export function seedRows(model, standings, statusMap, limit = ROWS) {
+  const probs = [...model.problems.values()].sort((a, b) => a.ordinal - b.ordinal);
   const pidx = new Map(probs.map((p, i) => [p.id, i]));
   const byTeam = new Map(standings.rows.map(r => [r.team.id, r]));
 
-  const subs = [...submissions.values()]
-    .sort((a, b) => rel2sec(b.contest_time) - rel2sec(a.contest_time))
-    .slice(0, limit)
-    .reverse();
+  const all = [...model.submissions.values()];
+  const subs = all.slice(Math.max(0, all.length - limit));
 
-  return { probs, rows: subs.map(s => rowOf(s, model, byTeam, pidx)) };
+  return { probs, rows: subs.map((s, i) => ({ ...rowOf(s, model, byTeam, pidx, statusMap), y: i })) };
 }
 
-export { BORDER, CUBE_INSET, ARC, ROWS };
+export { BORDER, CUBE_INSET, ARC, ROWS, CCOUNT };

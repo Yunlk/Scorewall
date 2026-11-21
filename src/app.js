@@ -14,7 +14,7 @@ import { makeLayout, drawFrame, MS_PER_PAGE, SCROLL_MS } from './standings-canva
 import { drawCountdown } from './countdown-canvas.js';
 import { makeState, freezeAtSec, isJudgementHidden } from './state.js';
 import { judgeLayout, drawJudgeFrame, seedRows, rowOf } from './judge-canvas.js';
-import { JudgeQueue } from './judge-queue.js';
+import { JudgeQueue, TEAMS_PER_SCREEN } from './judge-queue.js';
 
 const Q = new URLSearchParams(location.search);
 const SRC = (Q.get('src') || 'http://127.0.0.1:8081/api/contests/144333').replace(/\/$/, '');
@@ -39,8 +39,27 @@ const M = {
 function apply(type, id, data) {
   const bag = BAGS[type];
   if (!bag) return;
+  if (type === 'judgements' || type === 'judgement-types') judgeDirty = true;
   if (data == null) { bag.delete(id); return; }
   bag.set(id, data);
+}
+
+/** submission_id -> 'solved' | 'failed'；只有带 judgement_type_id 的 judgement 才算已判 */
+const judgeStatus = new Map();
+let judgeDirty = true;
+
+/** 重建 judgeStatus（judgements 或 judgement-types 变化时才跑） */
+function syncJudgeStatus() {
+  if (!judgeDirty) return;
+  judgeDirty = false;
+  judgeStatus.clear();
+  for (const j of M.judgements.values()) {
+    if (!j.submission_id || !j.judgement_type_id) continue;
+    const jt = M.judgementTypes.get(j.judgement_type_id);
+    if (!jt) continue;
+    if (jt.solved) judgeStatus.set(j.submission_id, 'solved');
+    else if (jt.penalty) judgeStatus.set(j.submission_id, 'failed');
+  }
 }
 
 const BAGS = {
@@ -281,28 +300,16 @@ function draw() {
   dirty = false;
 }
 
-/** #56 判题队列（动画版：JudgeQueue 驱动行号） */
+/** #56 判题队列（JudgePresentation 状态机） */
 let judgeQ = null, judgeSeen = new Set(), judgeLast = 0, judgePrimed = false;
 
 function judgeQueue() {
   if (judgeQ) return judgeQ;
   judgeQ = new JudgeQueue({
-    judged: sub => {
-      for (const j of M.judgements.values()) if (j.submission_id === sub.id) return true;
-      return false;
-    },
-    solved: sub => {
-      for (const j of M.judgements.values()) {
-        if (j.submission_id === sub.id) {
-          const jt = M.judgementTypes.get(j.judgement_type_id);
-          return !!(jt && jt.solved);
-        }
-      }
-      return false;
-    },
+    judged: sub => judgeStatus.has(sub.id),
+    solved: sub => judgeStatus.get(sub.id) === 'solved',
     frozen: () => !!(M.state && M.state.isFrozen()),
-    // 源码默认：AC 停 11 秒、WA 停 8 秒，然后才走
-    // timeToKeepSolved / timeToKeepFailed 可用 URL 覆盖，见下
+    // 源码 JudgePresentation:34-35：AC 停 11s、WA 停 8s
     timeToKeepSolved: Q.has('keepSolved') ? Number(Q.get('keepSolved')) : undefined,
     timeToKeepFailed: Q.has('keepFailed') ? Number(Q.get('keepFailed')) : undefined,
   });
@@ -321,45 +328,44 @@ function renderJudge(pane) {
   const t = contestTimes();
   const times = { elapsedText: fmtClock(t.elapsed, true), remainText: fmtClock(t.remain, true) };
   const frozen = !!(M.state && M.state.isFrozen());
+  const now = performance.now();
 
-  // 动画默认开启；&anim=0 退回静态铺排（用于截图/静态夹具）
+  syncJudgeStatus();
+
+  // 静态铺排（截图 / 静态夹具）
   if (Q.get('anim') === '0') {
-    const seeded = seedRows(M, data);
-    drawJudgeFrame(ctx, L, seeded.rows, seeded.probs, times, { frozen });
+    const seeded = seedRows(M, data, judgeStatus);
+    drawJudgeFrame(ctx, L, seeded.rows, seeded.probs, times, { frozen, now });
     return;
   }
 
   const byTeam = new Map(data.rows.map(r => [r.team.id, r]));
   const pidx = new Map(data.probs.map((p, i) => [p.id, i]));
   const q = judgeQueue();
-  const now = performance.now();
 
-  // 首次：用最近提交把队列摆好（不放动画）
-  // 源码 aboutToShow：封榜时队列清空且不播种
+  // JudgePresentation.aboutToShow:87-104
+  // 封榜时队列不播种；否则只把「未判」的放进来，其余仅标记为已见
   if (!judgePrimed && M.submissions.size > 0) {
-    const isFrozenNow = !!(M.state && M.state.isFrozen());
-    const judgedIds = new Set();
-    for (const j of M.judgements.values()) judgedIds.add(j.submission_id);
-    const list = isFrozenNow ? [] : [...M.submissions.values()]
-      .filter(s => !judgedIds.has(s.id))                 // 只留待判的，已判的进队列会立刻滑出
-      .sort((x, y) => rel2sec(x.contest_time) - rel2sec(y.contest_time))
-      .slice(-12);
-    // 源码 aboutToShow：只把「未判」的放进队列，其余仅标记为已见过
-    for (const sub of M.submissions.values()) judgeSeen.add(sub.id);
-    list.forEach(sub => q.add(sub));      // 顺序即行位，位置由 updateTargets 决定
-    q.updateTargets(true);
+    if (!frozen) {
+      const list = [...M.submissions.values()]
+        .filter(s => !judgeStatus.has(s.id))
+        .sort((x, y) => rel2sec(x.contest_time) - rel2sec(y.contest_time))
+        .slice(-TEAMS_PER_SCREEN);
+      list.forEach(s => q.add(s));
+      q.updateTargets(true);          // 直接摆到位，不播入场动画
+    }
+    for (const s of M.submissions.values()) judgeSeen.add(s.id);
     judgePrimed = true;
     judgeLast = now;
   }
 
+  // 新提交进队：起点由 createSubmissionRecord 决定（屏幕下方 14 行），自己滑上来
   for (const sub of M.submissions.values()) {
     if (!judgeSeen.has(sub.id)) {
       judgeSeen.add(sub.id);
-      const sr = q.add(sub);
-      // 我的设计：从「自己行位的下一格」滑上来——短距离、每条都是独立的一次位移
-      if (sr) sr.anim.reset(sr.anim.xTarget + 1);
+      q.add(sub);
     } else {
-      q.refresh(sub);            // Java listener：对象更新也走 handleSubmission
+      q.refresh(sub);
     }
   }
 
@@ -367,14 +373,10 @@ function renderJudge(pane) {
   judgeLast = now;
   q.update(dt);
 
-  const verdicts = new Map();
-  for (const j of M.judgements.values()) verdicts.set(j.submission_id, j.judgement_type_id);
-
   const rows = q.records.map(sr => {
-    const r = rowOf(sr.submission, M, byTeam, pidx, verdicts);
+    const r = rowOf(sr.submission, M, byTeam, pidx, judgeStatus);
     r.y = sr.anim.getValue();
     r.alpha = q.alphaOf(sr);
-    r.currentAgeMs = sr.fullAge;        // 记录在队列里的年龄 → 决定是否脉动
     return r;
   });
 
@@ -387,7 +389,8 @@ function renderJudge(pane) {
     ctx.fillStyle = '#0f0';
     ctx.textAlign = 'left';
     ctx.fillText(`subs=${M.submissions.size} judges=${M.judgements.size} queue=${q.records.length} ` +
-      `judgedRows=${rows.filter(r => r.currentStatus !== 'pending').length} types=${M.judgementTypes.size}`, 20, H - 24);
+      `judged=${judgeStatus.size} types=${M.judgementTypes.size} ` +
+      `acts=${q.records.map(r => (r.action || '-')[0]).join('')}`, 20, H - 24);
     ctx.restore();
   }
 }
@@ -431,6 +434,7 @@ async function bootstrap() {
   (orgs || []).forEach(o => M.orgs.set(o.id, o));
   (jtypes || []).forEach(t => M.judgementTypes.set(t.id, t));
   (sites || []).forEach(s => M.startStatus.set(s.id, s));
+  judgeDirty = true;
   M.state = makeState(st);
   syncContestExtras();
   dirty = true;
