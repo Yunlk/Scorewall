@@ -17,6 +17,7 @@ import { judgeLayout, drawJudgeFrame, seedRows, rowOf } from './judge-canvas.js'
 import { JudgeQueue, TEAMS_PER_SCREEN } from './judge-queue.js';
 import { problemLayout, drawProblemFrame, problemStats, problemRepeat, makeColorFn } from './problem-canvas.js';
 import { makeProblemChart, CHART_REPEAT } from './chart-canvas.js';
+import { tileLayout, buildGroups, drawTileRank, tileRepeat, scrollOffset, DEFAULT_COLUMNS } from './tilerank-canvas.js';
 import { FtsQueue, drawFtsFrame } from './fts-canvas.js';
 
 const Q = new URLSearchParams(location.search);
@@ -311,7 +312,7 @@ window.addEventListener('unhandledrejection', ev => {
 
 function layout() {
   if (VIEW === 'standings' || VIEW === 'judge' || VIEW === 'countdown'
-    || VIEW === 'problems' || VIEW === 'chart' || VIEW === 'fts') {
+    || VIEW === 'problems' || VIEW === 'chart' || VIEW === 'fts' || VIEW === 'tilerank') {
     paneA.style.display = 'block';
     paneB.classList.add('hidden');
   }
@@ -323,6 +324,7 @@ function draw() {
   if (VIEW === 'problems') { renderProblems(paneA); dirty = false; return; }
   if (VIEW === 'chart') { renderChart(paneA); dirty = false; return; }
   if (VIEW === 'fts') { renderFts(paneA); dirty = false; return; }
+  if (VIEW === 'tilerank') { renderTileRank(paneA); dirty = false; return; }
   // 有滚动动画，必须每帧重画（对齐 Java 的立即模式）
   const at = freezeAtSec(durationMs(), freezeMs());
   const data = computeStandings(M, {
@@ -464,6 +466,43 @@ function renderProblems(pane) {
   const t = (performance.now() - problemStart) % repeat;
 
   drawProblemFrame(ctx, L, data.probs, stats, t, problemColorFn);
+}
+
+/** #? 按过题数分档的瓦片榜（TileRankScoreboardPresentation 移植） */
+let tileStart = 0;
+let tileLast = 0;
+
+function renderTileRank(pane) {
+  const { ctx, W, H } = ensureCanvas(pane);
+  if (!W || !H) return;
+
+  const at = freezeAtSec(durationMs(), freezeMs());
+  const data = computeStandings(M, {
+    hideJudgement: sub => isJudgementHidden(M.state, rel2sec(sub.contest_time), at),
+  });
+  if (!data.rows.length) return;
+
+  const L = tileLayout(W, H, ROWS_PARAM, DEFAULT_COLUMNS);
+  const groups = buildGroups(data.rows, DEFAULT_COLUMNS);
+
+  const now = performance.now();
+  if (!tileStart) tileStart = now;
+  const repeat = tileRepeat(data.rows.length, ROWS_PARAM, DEFAULT_COLUMNS);
+  const t = (now - tileStart) % repeat;
+  const scrollPx = scrollOffset(t, H, ROWS_PARAM, DEFAULT_COLUMNS, data.rows.length);
+
+  drawTileRank(ctx, L, groups, data.probs, scrollPx, {
+    frozen: !!(M.state && M.state.isFrozen()),
+  });
+
+  if (Q.get('debug') === '1') {
+    ctx.save();
+    ctx.font = '20px monospace';
+    ctx.fillStyle = '#0f0';
+    ctx.textAlign = 'left';
+    ctx.fillText(`groups=${groups.length} teams=${data.rows.length} t=${t.toFixed(0)} scroll=${scrollPx.toFixed(0)} repeat=${repeat}`, 20, H - 24);
+    ctx.restore();
+  }
 }
 
 /** #29 每题首杀榜（FirstToSolvePresentation 移植） */
