@@ -9,7 +9,7 @@
 const ROWS = 12, CUBE_INSET = 5, BORDER = 8, ARC = 7;
 const MS_PER_PAGE = 12000, SCROLL_MS = 1500;
 
-const FONT = '"ICPCFont", Arial, "Microsoft YaHei", sans-serif';
+const FONT = '\"ICPCFont\", Arial, \"Microsoft YaHei\", sans-serif';
 const f = (px, bold, italic) => `${italic ? 'italic ' : ''}${bold ? 'bold ' : ''}${px}px ${FONT}`;
 
 export function makeLayout(W, H, nProb) {
@@ -162,7 +162,7 @@ export function drawFrame(ctx, L, rows, probs, times, scrollPx, perProblem, fade
     // 滚动后可见窗口是 [scrollPx, scrollPx + contentH]
     const contentH = H - contentTop;
     if (y + barH <= scrollPx || y >= scrollPx + contentH) continue;
-    drawRow(ctx, L, r, probs, y, indent);
+    drawRow(ctx, L, r, probs, y, indent, opts.now || 0, opts.elapsedSec);
   }
 
   // ---------- 底部两行统计（drawStatsRow） ----------
@@ -264,7 +264,7 @@ function drawLegend(ctx, W, H) {
   ctx.restore();
 }
 
-function drawRow(ctx, L, r, probs, y, indent) {
+function drawRow(ctx, L, r, probs, y, indent, nowMs, elapsedSec) {
   const { W, rowH, cubeW, cubeH, rowFont } = L;
   ctx.textBaseline = 'middle';
 

@@ -10,7 +10,7 @@
 'use strict';
 
 import { rel2sec, fmtClock, computeStandings, resolveUrl } from './scoring.js';
-import { makeLayout, drawFrame, MS_PER_PAGE, SCROLL_MS } from './standings-canvas.js?v=3';
+import { makeLayout, drawFrame, MS_PER_PAGE, SCROLL_MS } from './standings-canvas.js?v=4';
 import { drawCountdown } from './countdown-canvas.js';
 import { makeState, freezeAtSec, isJudgementHidden } from './state.js';
 import { judgeLayout, drawJudgeFrame, seedRows, rowOf } from './judge-canvas.js';
@@ -278,7 +278,11 @@ function renderStandings(pane, data) {
 
   const alpha = FORCE_FADE !== null ? FORCE_FADE : Math.max(0, Math.min(1, fade));
   drawFrame(ctx, L, data.rows, data.probs, times, scrollPx, perProblemStats(data), alpha,
-    { frozen: !!(M.state && M.state.isFrozen()) });
+    {
+      frozen: !!(M.state && M.state.isFrozen()),
+      now: performance.now(),
+      elapsedSec: Math.floor(contestTimes().elapsed / 1000),
+    });
 }
 
 function esc(s) {
