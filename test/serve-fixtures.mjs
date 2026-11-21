@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const SRC = join(here, '..', 'src');
-const FIXES = { 1: join(here,'fixtures','smoke'), 2: join(here,'fixtures','scroll') };
+const FIXES = { 1: join(here,'fixtures','smoke'), 2: join(here,'fixtures','scroll'), 4: join(here,'fixtures','lncpc') };
 let FIX = FIXES[1];
 
 // ---- 实时模拟：真实载荷 + 串行判题机 ----

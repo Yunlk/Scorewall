@@ -1,0 +1,1118 @@
+[
+  {
+    "id": "S1",
+    "team_id": "p-H13",
+    "problem_id": "10",
+    "contest_time": "0:01:45.235"
+  },
+  {
+    "id": "S2",
+    "team_id": "p-C13",
+    "problem_id": "10",
+    "contest_time": "0:01:59.728"
+  },
+  {
+    "id": "S3",
+    "team_id": "p-G13",
+    "problem_id": "10",
+    "contest_time": "0:02:01.612"
+  },
+  {
+    "id": "S4",
+    "team_id": "p-I12",
+    "problem_id": "10",
+    "contest_time": "0:02:11.960"
+  },
+  {
+    "id": "S5",
+    "team_id": "p-K14",
+    "problem_id": "10",
+    "contest_time": "0:02:16.561"
+  },
+  {
+    "id": "S6",
+    "team_id": "p-E9",
+    "problem_id": "10",
+    "contest_time": "0:02:29.208"
+  },
+  {
+    "id": "S7",
+    "team_id": "p-B11",
+    "problem_id": "10",
+    "contest_time": "0:02:48.024"
+  },
+  {
+    "id": "S8",
+    "team_id": "p-B9",
+    "problem_id": "10",
+    "contest_time": "0:02:55.109"
+  },
+  {
+    "id": "S9",
+    "team_id": "p-B5",
+    "problem_id": "10",
+    "contest_time": "0:02:59.310"
+  },
+  {
+    "id": "S10",
+    "team_id": "p-L6",
+    "problem_id": "10",
+    "contest_time": "0:03:00.564"
+  },
+  {
+    "id": "S11",
+    "team_id": "p-G6",
+    "problem_id": "10",
+    "contest_time": "0:03:01.205"
+  },
+  {
+    "id": "S12",
+    "team_id": "p-E10",
+    "problem_id": "10",
+    "contest_time": "0:03:23.133"
+  },
+  {
+    "id": "S13",
+    "team_id": "p-D14",
+    "problem_id": "10",
+    "contest_time": "0:03:26.926"
+  },
+  {
+    "id": "S14",
+    "team_id": "p-D15",
+    "problem_id": "10",
+    "contest_time": "0:03:26.991"
+  },
+  {
+    "id": "S15",
+    "team_id": "p-L9",
+    "problem_id": "10",
+    "contest_time": "0:03:29.513"
+  },
+  {
+    "id": "S16",
+    "team_id": "p-I5",
+    "problem_id": "10",
+    "contest_time": "0:03:32.532"
+  },
+  {
+    "id": "S17",
+    "team_id": "p-D6",
+    "problem_id": "10",
+    "contest_time": "0:03:33.787"
+  },
+  {
+    "id": "S18",
+    "team_id": "p-I2",
+    "problem_id": "10",
+    "contest_time": "0:03:35.737"
+  },
+  {
+    "id": "S19",
+    "team_id": "p-A12",
+    "problem_id": "10",
+    "contest_time": "0:03:41.165"
+  },
+  {
+    "id": "S20",
+    "team_id": "p-M2",
+    "problem_id": "10",
+    "contest_time": "0:03:41.899"
+  },
+  {
+    "id": "S21",
+    "team_id": "p-N1",
+    "problem_id": "10",
+    "contest_time": "0:03:42.715"
+  },
+  {
+    "id": "S22",
+    "team_id": "p-A7",
+    "problem_id": "10",
+    "contest_time": "0:03:46.291"
+  },
+  {
+    "id": "S23",
+    "team_id": "p-A11",
+    "problem_id": "10",
+    "contest_time": "0:03:47.555"
+  },
+  {
+    "id": "S24",
+    "team_id": "p-L13",
+    "problem_id": "10",
+    "contest_time": "0:03:47.878"
+  },
+  {
+    "id": "S25",
+    "team_id": "p-H6",
+    "problem_id": "10",
+    "contest_time": "0:03:53.665"
+  },
+  {
+    "id": "S26",
+    "team_id": "p-D14",
+    "problem_id": "10",
+    "contest_time": "0:03:55.445"
+  },
+  {
+    "id": "S27",
+    "team_id": "p-E3",
+    "problem_id": "10",
+    "contest_time": "0:03:55.539"
+  },
+  {
+    "id": "S28",
+    "team_id": "p-F10",
+    "problem_id": "10",
+    "contest_time": "0:03:58.018"
+  },
+  {
+    "id": "S29",
+    "team_id": "p-G14",
+    "problem_id": "10",
+    "contest_time": "0:03:58.612"
+  },
+  {
+    "id": "S30",
+    "team_id": "p-F9",
+    "problem_id": "10",
+    "contest_time": "0:04:03.774"
+  },
+  {
+    "id": "S31",
+    "team_id": "p-N5",
+    "problem_id": "10",
+    "contest_time": "0:04:04.580"
+  },
+  {
+    "id": "S32",
+    "team_id": "p-A6",
+    "problem_id": "10",
+    "contest_time": "0:04:07.216"
+  },
+  {
+    "id": "S33",
+    "team_id": "p-F11",
+    "problem_id": "10",
+    "contest_time": "0:04:08.524"
+  },
+  {
+    "id": "S34",
+    "team_id": "p-G15",
+    "problem_id": "10",
+    "contest_time": "0:04:10.481"
+  },
+  {
+    "id": "S35",
+    "team_id": "p-F15",
+    "problem_id": "10",
+    "contest_time": "0:04:13.673"
+  },
+  {
+    "id": "S36",
+    "team_id": "p-C6",
+    "problem_id": "10",
+    "contest_time": "0:04:14.023"
+  },
+  {
+    "id": "S37",
+    "team_id": "p-E15",
+    "problem_id": "10",
+    "contest_time": "0:04:14.934"
+  },
+  {
+    "id": "S38",
+    "team_id": "p-M6",
+    "problem_id": "10",
+    "contest_time": "0:04:17.436"
+  },
+  {
+    "id": "S39",
+    "team_id": "p-E1",
+    "problem_id": "10",
+    "contest_time": "0:04:17.713"
+  },
+  {
+    "id": "S40",
+    "team_id": "p-J16",
+    "problem_id": "10",
+    "contest_time": "0:04:17.740"
+  },
+  {
+    "id": "S41",
+    "team_id": "p-A4",
+    "problem_id": "10",
+    "contest_time": "0:04:18.336"
+  },
+  {
+    "id": "S42",
+    "team_id": "p-H2",
+    "problem_id": "10",
+    "contest_time": "0:04:18.547"
+  },
+  {
+    "id": "S43",
+    "team_id": "p-A13",
+    "problem_id": "10",
+    "contest_time": "0:04:21.806"
+  },
+  {
+    "id": "S44",
+    "team_id": "p-M16",
+    "problem_id": "10",
+    "contest_time": "0:04:22.140"
+  },
+  {
+    "id": "S45",
+    "team_id": "p-B6",
+    "problem_id": "10",
+    "contest_time": "0:04:23.751"
+  },
+  {
+    "id": "S46",
+    "team_id": "p-J13",
+    "problem_id": "10",
+    "contest_time": "0:04:26.000"
+  },
+  {
+    "id": "S47",
+    "team_id": "p-A10",
+    "problem_id": "10",
+    "contest_time": "0:04:27.233"
+  },
+  {
+    "id": "S48",
+    "team_id": "p-G7",
+    "problem_id": "10",
+    "contest_time": "0:04:28.530"
+  },
+  {
+    "id": "S49",
+    "team_id": "p-J9",
+    "problem_id": "10",
+    "contest_time": "0:04:32.109"
+  },
+  {
+    "id": "S50",
+    "team_id": "p-J8",
+    "problem_id": "10",
+    "contest_time": "0:04:34.488"
+  },
+  {
+    "id": "S51",
+    "team_id": "p-C9",
+    "problem_id": "10",
+    "contest_time": "0:04:35.398"
+  },
+  {
+    "id": "S52",
+    "team_id": "p-K6",
+    "problem_id": "10",
+    "contest_time": "0:04:36.523"
+  },
+  {
+    "id": "S53",
+    "team_id": "p-C1",
+    "problem_id": "10",
+    "contest_time": "0:04:36.985"
+  },
+  {
+    "id": "S54",
+    "team_id": "p-I10",
+    "problem_id": "10",
+    "contest_time": "0:04:37.399"
+  },
+  {
+    "id": "S55",
+    "team_id": "p-B12",
+    "problem_id": "10",
+    "contest_time": "0:04:38.068"
+  },
+  {
+    "id": "S56",
+    "team_id": "p-H7",
+    "problem_id": "10",
+    "contest_time": "0:04:39.434"
+  },
+  {
+    "id": "S57",
+    "team_id": "p-B10",
+    "problem_id": "10",
+    "contest_time": "0:04:39.466"
+  },
+  {
+    "id": "S58",
+    "team_id": "p-D16",
+    "problem_id": "10",
+    "contest_time": "0:04:39.652"
+  },
+  {
+    "id": "S59",
+    "team_id": "p-G5",
+    "problem_id": "10",
+    "contest_time": "0:04:41.025"
+  },
+  {
+    "id": "S60",
+    "team_id": "p-F16",
+    "problem_id": "10",
+    "contest_time": "0:04:42.246"
+  },
+  {
+    "id": "S61",
+    "team_id": "p-H5",
+    "problem_id": "10",
+    "contest_time": "0:04:43.340"
+  },
+  {
+    "id": "S62",
+    "team_id": "p-I1",
+    "problem_id": "10",
+    "contest_time": "0:04:47.267"
+  },
+  {
+    "id": "S63",
+    "team_id": "p-M14",
+    "problem_id": "1",
+    "contest_time": "0:04:47.962"
+  },
+  {
+    "id": "S64",
+    "team_id": "p-I13",
+    "problem_id": "10",
+    "contest_time": "0:04:49.641"
+  },
+  {
+    "id": "S65",
+    "team_id": "p-B4",
+    "problem_id": "10",
+    "contest_time": "0:04:53.278"
+  },
+  {
+    "id": "S66",
+    "team_id": "p-A11",
+    "problem_id": "10",
+    "contest_time": "0:04:55.117"
+  },
+  {
+    "id": "S67",
+    "team_id": "p-J13",
+    "problem_id": "10",
+    "contest_time": "0:04:55.173"
+  },
+  {
+    "id": "S68",
+    "team_id": "p-M1",
+    "problem_id": "10",
+    "contest_time": "0:04:57.242"
+  },
+  {
+    "id": "S69",
+    "team_id": "p-D5",
+    "problem_id": "10",
+    "contest_time": "0:04:59.505"
+  },
+  {
+    "id": "S70",
+    "team_id": "p-F5",
+    "problem_id": "10",
+    "contest_time": "0:04:59.635"
+  },
+  {
+    "id": "S71",
+    "team_id": "p-K8",
+    "problem_id": "10",
+    "contest_time": "0:05:05.271"
+  },
+  {
+    "id": "S72",
+    "team_id": "p-J12",
+    "problem_id": "10",
+    "contest_time": "0:05:06.967"
+  },
+  {
+    "id": "S73",
+    "team_id": "p-M14",
+    "problem_id": "10",
+    "contest_time": "0:05:11.222"
+  },
+  {
+    "id": "S74",
+    "team_id": "p-F13",
+    "problem_id": "10",
+    "contest_time": "0:05:12.330"
+  },
+  {
+    "id": "S75",
+    "team_id": "p-L4",
+    "problem_id": "10",
+    "contest_time": "0:05:12.797"
+  },
+  {
+    "id": "S76",
+    "team_id": "p-I15",
+    "problem_id": "10",
+    "contest_time": "0:05:12.942"
+  },
+  {
+    "id": "S77",
+    "team_id": "p-G16",
+    "problem_id": "10",
+    "contest_time": "0:05:13.978"
+  },
+  {
+    "id": "S78",
+    "team_id": "p-N7",
+    "problem_id": "10",
+    "contest_time": "0:05:15.314"
+  },
+  {
+    "id": "S79",
+    "team_id": "p-A9",
+    "problem_id": "10",
+    "contest_time": "0:05:16.270"
+  },
+  {
+    "id": "S80",
+    "team_id": "p-L3",
+    "problem_id": "10",
+    "contest_time": "0:05:16.470"
+  },
+  {
+    "id": "S81",
+    "team_id": "p-N6",
+    "problem_id": "10",
+    "contest_time": "0:05:19.051"
+  },
+  {
+    "id": "S82",
+    "team_id": "p-J3",
+    "problem_id": "10",
+    "contest_time": "0:05:21.549"
+  },
+  {
+    "id": "S83",
+    "team_id": "p-C11",
+    "problem_id": "10",
+    "contest_time": "0:05:26.996"
+  },
+  {
+    "id": "S84",
+    "team_id": "p-H11",
+    "problem_id": "0",
+    "contest_time": "0:05:27.542"
+  },
+  {
+    "id": "S85",
+    "team_id": "p-C16",
+    "problem_id": "10",
+    "contest_time": "0:05:29.947"
+  },
+  {
+    "id": "S86",
+    "team_id": "p-H8",
+    "problem_id": "10",
+    "contest_time": "0:05:32.779"
+  },
+  {
+    "id": "S87",
+    "team_id": "p-L7",
+    "problem_id": "10",
+    "contest_time": "0:05:32.825"
+  },
+  {
+    "id": "S88",
+    "team_id": "p-A14",
+    "problem_id": "10",
+    "contest_time": "0:05:34.101"
+  },
+  {
+    "id": "S89",
+    "team_id": "p-B14",
+    "problem_id": "10",
+    "contest_time": "0:05:34.231"
+  },
+  {
+    "id": "S90",
+    "team_id": "p-J16",
+    "problem_id": "10",
+    "contest_time": "0:05:35.263"
+  },
+  {
+    "id": "S91",
+    "team_id": "p-F8",
+    "problem_id": "10",
+    "contest_time": "0:05:36.386"
+  },
+  {
+    "id": "S92",
+    "team_id": "p-A2",
+    "problem_id": "10",
+    "contest_time": "0:05:36.710"
+  },
+  {
+    "id": "S93",
+    "team_id": "p-K2",
+    "problem_id": "10",
+    "contest_time": "0:05:37.345"
+  },
+  {
+    "id": "S94",
+    "team_id": "p-G8",
+    "problem_id": "10",
+    "contest_time": "0:05:39.420"
+  },
+  {
+    "id": "S95",
+    "team_id": "p-J10",
+    "problem_id": "10",
+    "contest_time": "0:05:40.498"
+  },
+  {
+    "id": "S96",
+    "team_id": "p-L15",
+    "problem_id": "10",
+    "contest_time": "0:05:45.075"
+  },
+  {
+    "id": "S97",
+    "team_id": "p-H11",
+    "problem_id": "10",
+    "contest_time": "0:05:50.277"
+  },
+  {
+    "id": "S98",
+    "team_id": "p-B3",
+    "problem_id": "10",
+    "contest_time": "0:05:52.985"
+  },
+  {
+    "id": "S99",
+    "team_id": "p-E7",
+    "problem_id": "10",
+    "contest_time": "0:05:54.359"
+  },
+  {
+    "id": "S100",
+    "team_id": "p-H14",
+    "problem_id": "10",
+    "contest_time": "0:05:54.711"
+  },
+  {
+    "id": "S101",
+    "team_id": "p-D3",
+    "problem_id": "10",
+    "contest_time": "0:05:58.842"
+  },
+  {
+    "id": "S102",
+    "team_id": "p-D9",
+    "problem_id": "10",
+    "contest_time": "0:05:59.808"
+  },
+  {
+    "id": "S103",
+    "team_id": "p-D1",
+    "problem_id": "10",
+    "contest_time": "0:06:00.718"
+  },
+  {
+    "id": "S104",
+    "team_id": "p-E8",
+    "problem_id": "10",
+    "contest_time": "0:06:02.837"
+  },
+  {
+    "id": "S105",
+    "team_id": "p-H10",
+    "problem_id": "10",
+    "contest_time": "0:06:04.742"
+  },
+  {
+    "id": "S106",
+    "team_id": "p-C8",
+    "problem_id": "10",
+    "contest_time": "0:06:05.323"
+  },
+  {
+    "id": "S107",
+    "team_id": "p-K7",
+    "problem_id": "10",
+    "contest_time": "0:06:06.657"
+  },
+  {
+    "id": "S108",
+    "team_id": "p-E14",
+    "problem_id": "10",
+    "contest_time": "0:06:07.515"
+  },
+  {
+    "id": "S109",
+    "team_id": "p-G9",
+    "problem_id": "10",
+    "contest_time": "0:06:08.624"
+  },
+  {
+    "id": "S110",
+    "team_id": "p-N3",
+    "problem_id": "10",
+    "contest_time": "0:06:08.931"
+  },
+  {
+    "id": "S111",
+    "team_id": "p-M3",
+    "problem_id": "10",
+    "contest_time": "0:06:14.653"
+  },
+  {
+    "id": "S112",
+    "team_id": "p-L16",
+    "problem_id": "1",
+    "contest_time": "0:06:15.041"
+  },
+  {
+    "id": "S113",
+    "team_id": "p-L11",
+    "problem_id": "10",
+    "contest_time": "0:06:15.133"
+  },
+  {
+    "id": "S114",
+    "team_id": "p-J2",
+    "problem_id": "10",
+    "contest_time": "0:06:15.160"
+  },
+  {
+    "id": "S115",
+    "team_id": "p-L1",
+    "problem_id": "10",
+    "contest_time": "0:06:18.385"
+  },
+  {
+    "id": "S116",
+    "team_id": "p-I11",
+    "problem_id": "10",
+    "contest_time": "0:06:19.202"
+  },
+  {
+    "id": "S117",
+    "team_id": "p-F12",
+    "problem_id": "10",
+    "contest_time": "0:06:22.090"
+  },
+  {
+    "id": "S118",
+    "team_id": "p-H2",
+    "problem_id": "4",
+    "contest_time": "0:06:22.217"
+  },
+  {
+    "id": "S119",
+    "team_id": "p-G10",
+    "problem_id": "10",
+    "contest_time": "0:06:23.431"
+  },
+  {
+    "id": "S120",
+    "team_id": "p-H16",
+    "problem_id": "10",
+    "contest_time": "0:06:25.264"
+  },
+  {
+    "id": "S121",
+    "team_id": "p-F6",
+    "problem_id": "10",
+    "contest_time": "0:06:27.808"
+  },
+  {
+    "id": "S122",
+    "team_id": "p-H4",
+    "problem_id": "10",
+    "contest_time": "0:06:29.737"
+  },
+  {
+    "id": "S123",
+    "team_id": "p-F14",
+    "problem_id": "10",
+    "contest_time": "0:06:33.828"
+  },
+  {
+    "id": "S124",
+    "team_id": "p-L14",
+    "problem_id": "10",
+    "contest_time": "0:06:34.927"
+  },
+  {
+    "id": "S125",
+    "team_id": "p-L8",
+    "problem_id": "10",
+    "contest_time": "0:06:35.153"
+  },
+  {
+    "id": "S126",
+    "team_id": "p-C3",
+    "problem_id": "10",
+    "contest_time": "0:06:37.074"
+  },
+  {
+    "id": "S127",
+    "team_id": "p-G11",
+    "problem_id": "10",
+    "contest_time": "0:06:38.749"
+  },
+  {
+    "id": "S128",
+    "team_id": "p-B16",
+    "problem_id": "10",
+    "contest_time": "0:06:40.620"
+  },
+  {
+    "id": "S129",
+    "team_id": "p-K9",
+    "problem_id": "10",
+    "contest_time": "0:06:41.733"
+  },
+  {
+    "id": "S130",
+    "team_id": "p-F13",
+    "problem_id": "1",
+    "contest_time": "0:06:46.941"
+  },
+  {
+    "id": "S131",
+    "team_id": "p-J6",
+    "problem_id": "10",
+    "contest_time": "0:06:54.350"
+  },
+  {
+    "id": "S132",
+    "team_id": "p-I8",
+    "problem_id": "10",
+    "contest_time": "0:06:57.374"
+  },
+  {
+    "id": "S133",
+    "team_id": "p-G2",
+    "problem_id": "10",
+    "contest_time": "0:06:58.134"
+  },
+  {
+    "id": "S134",
+    "team_id": "p-C2",
+    "problem_id": "10",
+    "contest_time": "0:07:03.118"
+  },
+  {
+    "id": "S135",
+    "team_id": "p-J4",
+    "problem_id": "10",
+    "contest_time": "0:07:03.193"
+  },
+  {
+    "id": "S136",
+    "team_id": "p-H12",
+    "problem_id": "10",
+    "contest_time": "0:07:04.466"
+  },
+  {
+    "id": "S137",
+    "team_id": "p-I16",
+    "problem_id": "10",
+    "contest_time": "0:07:05.434"
+  },
+  {
+    "id": "S138",
+    "team_id": "p-C10",
+    "problem_id": "10",
+    "contest_time": "0:07:07.449"
+  },
+  {
+    "id": "S139",
+    "team_id": "p-J16",
+    "problem_id": "10",
+    "contest_time": "0:07:13.673"
+  },
+  {
+    "id": "S140",
+    "team_id": "p-K6",
+    "problem_id": "9",
+    "contest_time": "0:07:13.686"
+  },
+  {
+    "id": "S141",
+    "team_id": "p-B13",
+    "problem_id": "10",
+    "contest_time": "0:07:17.067"
+  },
+  {
+    "id": "S142",
+    "team_id": "p-M13",
+    "problem_id": "10",
+    "contest_time": "0:07:17.174"
+  },
+  {
+    "id": "S143",
+    "team_id": "p-K4",
+    "problem_id": "10",
+    "contest_time": "0:07:18.259"
+  },
+  {
+    "id": "S144",
+    "team_id": "p-J15",
+    "problem_id": "10",
+    "contest_time": "0:07:22.126"
+  },
+  {
+    "id": "S145",
+    "team_id": "p-A16",
+    "problem_id": "10",
+    "contest_time": "0:07:24.267"
+  },
+  {
+    "id": "S146",
+    "team_id": "p-L16",
+    "problem_id": "10",
+    "contest_time": "0:07:28.508"
+  },
+  {
+    "id": "S147",
+    "team_id": "p-E13",
+    "problem_id": "10",
+    "contest_time": "0:07:28.527"
+  },
+  {
+    "id": "S148",
+    "team_id": "p-K5",
+    "problem_id": "10",
+    "contest_time": "0:07:34.279"
+  },
+  {
+    "id": "S149",
+    "team_id": "p-J7",
+    "problem_id": "10",
+    "contest_time": "0:07:35.563"
+  },
+  {
+    "id": "S150",
+    "team_id": "p-A3",
+    "problem_id": "9",
+    "contest_time": "0:07:36.057"
+  },
+  {
+    "id": "S151",
+    "team_id": "p-A8",
+    "problem_id": "10",
+    "contest_time": "0:07:40.774"
+  },
+  {
+    "id": "S152",
+    "team_id": "p-A9",
+    "problem_id": "9",
+    "contest_time": "0:07:41.634"
+  },
+  {
+    "id": "S153",
+    "team_id": "p-I4",
+    "problem_id": "1",
+    "contest_time": "0:07:49.849"
+  },
+  {
+    "id": "S154",
+    "team_id": "p-H3",
+    "problem_id": "10",
+    "contest_time": "0:08:00.649"
+  },
+  {
+    "id": "S155",
+    "team_id": "p-M15",
+    "problem_id": "10",
+    "contest_time": "0:08:04.909"
+  },
+  {
+    "id": "S156",
+    "team_id": "p-D2",
+    "problem_id": "10",
+    "contest_time": "0:08:09.859"
+  },
+  {
+    "id": "S157",
+    "team_id": "p-E15",
+    "problem_id": "9",
+    "contest_time": "0:08:18.444"
+  },
+  {
+    "id": "S158",
+    "team_id": "p-K3",
+    "problem_id": "10",
+    "contest_time": "0:08:30.433"
+  },
+  {
+    "id": "S159",
+    "team_id": "p-B1",
+    "problem_id": "10",
+    "contest_time": "0:08:33.598"
+  },
+  {
+    "id": "S160",
+    "team_id": "p-M9",
+    "problem_id": "10",
+    "contest_time": "0:08:33.795"
+  },
+  {
+    "id": "S161",
+    "team_id": "p-I12",
+    "problem_id": "3",
+    "contest_time": "0:08:35.936"
+  },
+  {
+    "id": "S162",
+    "team_id": "p-H9",
+    "problem_id": "9",
+    "contest_time": "0:08:40.816"
+  },
+  {
+    "id": "S163",
+    "team_id": "p-F3",
+    "problem_id": "10",
+    "contest_time": "0:08:49.719"
+  },
+  {
+    "id": "S164",
+    "team_id": "p-C2",
+    "problem_id": "10",
+    "contest_time": "0:08:51.482"
+  },
+  {
+    "id": "S165",
+    "team_id": "p-B11",
+    "problem_id": "3",
+    "contest_time": "0:08:52.850"
+  },
+  {
+    "id": "S166",
+    "team_id": "p-C12",
+    "problem_id": "10",
+    "contest_time": "0:09:05.025"
+  },
+  {
+    "id": "S167",
+    "team_id": "p-D12",
+    "problem_id": "10",
+    "contest_time": "0:09:13.882"
+  },
+  {
+    "id": "S168",
+    "team_id": "p-G3",
+    "problem_id": "10",
+    "contest_time": "0:09:14.279"
+  },
+  {
+    "id": "S169",
+    "team_id": "p-E16",
+    "problem_id": "10",
+    "contest_time": "0:09:15.429"
+  },
+  {
+    "id": "S170",
+    "team_id": "p-G10",
+    "problem_id": "10",
+    "contest_time": "0:09:15.460"
+  },
+  {
+    "id": "S171",
+    "team_id": "p-D8",
+    "problem_id": "10",
+    "contest_time": "0:09:15.810"
+  },
+  {
+    "id": "S172",
+    "team_id": "p-L6",
+    "problem_id": "3",
+    "contest_time": "0:09:17.125"
+  },
+  {
+    "id": "S173",
+    "team_id": "p-M12",
+    "problem_id": "3",
+    "contest_time": "0:09:20.069"
+  },
+  {
+    "id": "S174",
+    "team_id": "p-I6",
+    "problem_id": "10",
+    "contest_time": "0:09:21.494"
+  },
+  {
+    "id": "S175",
+    "team_id": "p-J11",
+    "problem_id": "10",
+    "contest_time": "0:09:24.038"
+  },
+  {
+    "id": "S176",
+    "team_id": "p-H15",
+    "problem_id": "10",
+    "contest_time": "0:09:30.541"
+  },
+  {
+    "id": "S177",
+    "team_id": "p-C5",
+    "problem_id": "10",
+    "contest_time": "0:09:30.715"
+  },
+  {
+    "id": "S178",
+    "team_id": "p-D4",
+    "problem_id": "10",
+    "contest_time": "0:09:32.716"
+  },
+  {
+    "id": "S179",
+    "team_id": "p-H10",
+    "problem_id": "9",
+    "contest_time": "0:09:38.696"
+  },
+  {
+    "id": "S180",
+    "team_id": "p-K2",
+    "problem_id": "1",
+    "contest_time": "0:09:38.875"
+  },
+  {
+    "id": "S181",
+    "team_id": "p-K16",
+    "problem_id": "10",
+    "contest_time": "0:09:43.950"
+  },
+  {
+    "id": "S182",
+    "team_id": "p-E6",
+    "problem_id": "10",
+    "contest_time": "0:09:44.208"
+  },
+  {
+    "id": "S183",
+    "team_id": "p-D7",
+    "problem_id": "10",
+    "contest_time": "0:09:44.683"
+  },
+  {
+    "id": "S184",
+    "team_id": "p-B8",
+    "problem_id": "10",
+    "contest_time": "0:09:48.220"
+  },
+  {
+    "id": "S185",
+    "team_id": "p-K12",
+    "problem_id": "10",
+    "contest_time": "0:09:49.716"
+  },
+  {
+    "id": "S186",
+    "team_id": "p-I8",
+    "problem_id": "9",
+    "contest_time": "0:09:58.208"
+  }
+]

@@ -1,0 +1,1304 @@
+[
+  {
+    "id": "J1",
+    "submission_id": "S1",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:01:45.235",
+    "end_contest_time": "0:01:53.235"
+  },
+  {
+    "id": "J2",
+    "submission_id": "S2",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:01:59.728",
+    "end_contest_time": "0:02:07.728"
+  },
+  {
+    "id": "J3",
+    "submission_id": "S3",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:02:01.612",
+    "end_contest_time": "0:02:09.612"
+  },
+  {
+    "id": "J4",
+    "submission_id": "S4",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:02:11.960",
+    "end_contest_time": "0:02:19.960"
+  },
+  {
+    "id": "J5",
+    "submission_id": "S5",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:02:16.561",
+    "end_contest_time": "0:02:24.561"
+  },
+  {
+    "id": "J6",
+    "submission_id": "S6",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:02:29.208",
+    "end_contest_time": "0:02:37.208"
+  },
+  {
+    "id": "J7",
+    "submission_id": "S7",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:02:48.024",
+    "end_contest_time": "0:02:56.024"
+  },
+  {
+    "id": "J8",
+    "submission_id": "S8",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:02:55.109",
+    "end_contest_time": "0:03:03.109"
+  },
+  {
+    "id": "J9",
+    "submission_id": "S9",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:02:59.310",
+    "end_contest_time": "0:03:07.310"
+  },
+  {
+    "id": "J10",
+    "submission_id": "S10",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:03:00.564",
+    "end_contest_time": "0:03:08.564"
+  },
+  {
+    "id": "J11",
+    "submission_id": "S11",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:03:01.205",
+    "end_contest_time": "0:03:09.205"
+  },
+  {
+    "id": "J12",
+    "submission_id": "S12",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:03:23.133",
+    "end_contest_time": "0:03:31.133"
+  },
+  {
+    "id": "J13",
+    "submission_id": "S13",
+    "judgement_type_id": "WA",
+    "start_contest_time": "0:03:26.926",
+    "end_contest_time": "0:03:34.926"
+  },
+  {
+    "id": "J14",
+    "submission_id": "S14",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:03:26.991",
+    "end_contest_time": "0:03:34.991"
+  },
+  {
+    "id": "J15",
+    "submission_id": "S15",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:03:29.513",
+    "end_contest_time": "0:03:37.513"
+  },
+  {
+    "id": "J16",
+    "submission_id": "S16",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:03:32.532",
+    "end_contest_time": "0:03:40.532"
+  },
+  {
+    "id": "J17",
+    "submission_id": "S17",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:03:33.787",
+    "end_contest_time": "0:03:41.787"
+  },
+  {
+    "id": "J18",
+    "submission_id": "S18",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:03:35.737",
+    "end_contest_time": "0:03:43.737"
+  },
+  {
+    "id": "J19",
+    "submission_id": "S19",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:03:41.165",
+    "end_contest_time": "0:03:49.165"
+  },
+  {
+    "id": "J20",
+    "submission_id": "S20",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:03:41.899",
+    "end_contest_time": "0:03:49.899"
+  },
+  {
+    "id": "J21",
+    "submission_id": "S21",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:03:42.715",
+    "end_contest_time": "0:03:50.715"
+  },
+  {
+    "id": "J22",
+    "submission_id": "S22",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:03:46.291",
+    "end_contest_time": "0:03:54.291"
+  },
+  {
+    "id": "J23",
+    "submission_id": "S23",
+    "judgement_type_id": "WA",
+    "start_contest_time": "0:03:47.555",
+    "end_contest_time": "0:03:55.555"
+  },
+  {
+    "id": "J24",
+    "submission_id": "S24",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:03:47.878",
+    "end_contest_time": "0:03:55.878"
+  },
+  {
+    "id": "J25",
+    "submission_id": "S25",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:03:53.665",
+    "end_contest_time": "0:04:01.665"
+  },
+  {
+    "id": "J26",
+    "submission_id": "S26",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:03:55.445",
+    "end_contest_time": "0:04:03.445"
+  },
+  {
+    "id": "J27",
+    "submission_id": "S27",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:03:55.539",
+    "end_contest_time": "0:04:03.539"
+  },
+  {
+    "id": "J28",
+    "submission_id": "S28",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:03:58.018",
+    "end_contest_time": "0:04:06.018"
+  },
+  {
+    "id": "J29",
+    "submission_id": "S29",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:03:58.612",
+    "end_contest_time": "0:04:06.612"
+  },
+  {
+    "id": "J30",
+    "submission_id": "S30",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:04:03.774",
+    "end_contest_time": "0:04:11.774"
+  },
+  {
+    "id": "J31",
+    "submission_id": "S31",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:04:04.580",
+    "end_contest_time": "0:04:12.580"
+  },
+  {
+    "id": "J32",
+    "submission_id": "S32",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:04:07.216",
+    "end_contest_time": "0:04:15.216"
+  },
+  {
+    "id": "J33",
+    "submission_id": "S33",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:04:08.524",
+    "end_contest_time": "0:04:16.524"
+  },
+  {
+    "id": "J34",
+    "submission_id": "S34",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:04:10.481",
+    "end_contest_time": "0:04:18.481"
+  },
+  {
+    "id": "J35",
+    "submission_id": "S35",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:04:13.673",
+    "end_contest_time": "0:04:21.673"
+  },
+  {
+    "id": "J36",
+    "submission_id": "S36",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:04:14.023",
+    "end_contest_time": "0:04:22.023"
+  },
+  {
+    "id": "J37",
+    "submission_id": "S37",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:04:14.934",
+    "end_contest_time": "0:04:22.934"
+  },
+  {
+    "id": "J38",
+    "submission_id": "S38",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:04:17.436",
+    "end_contest_time": "0:04:25.436"
+  },
+  {
+    "id": "J39",
+    "submission_id": "S39",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:04:17.713",
+    "end_contest_time": "0:04:25.713"
+  },
+  {
+    "id": "J40",
+    "submission_id": "S40",
+    "judgement_type_id": "WA",
+    "start_contest_time": "0:04:17.740",
+    "end_contest_time": "0:04:25.740"
+  },
+  {
+    "id": "J41",
+    "submission_id": "S41",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:04:18.336",
+    "end_contest_time": "0:04:26.336"
+  },
+  {
+    "id": "J42",
+    "submission_id": "S42",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:04:18.547",
+    "end_contest_time": "0:04:26.547"
+  },
+  {
+    "id": "J43",
+    "submission_id": "S43",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:04:21.806",
+    "end_contest_time": "0:04:29.806"
+  },
+  {
+    "id": "J44",
+    "submission_id": "S44",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:04:22.140",
+    "end_contest_time": "0:04:30.140"
+  },
+  {
+    "id": "J45",
+    "submission_id": "S45",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:04:23.751",
+    "end_contest_time": "0:04:31.751"
+  },
+  {
+    "id": "J46",
+    "submission_id": "S46",
+    "judgement_type_id": "CE",
+    "start_contest_time": "0:04:26.000",
+    "end_contest_time": "0:04:34.000"
+  },
+  {
+    "id": "J47",
+    "submission_id": "S47",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:04:27.233",
+    "end_contest_time": "0:04:35.233"
+  },
+  {
+    "id": "J48",
+    "submission_id": "S48",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:04:28.530",
+    "end_contest_time": "0:04:36.530"
+  },
+  {
+    "id": "J49",
+    "submission_id": "S49",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:04:32.109",
+    "end_contest_time": "0:04:40.109"
+  },
+  {
+    "id": "J50",
+    "submission_id": "S50",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:04:34.488",
+    "end_contest_time": "0:04:42.488"
+  },
+  {
+    "id": "J51",
+    "submission_id": "S51",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:04:35.398",
+    "end_contest_time": "0:04:43.398"
+  },
+  {
+    "id": "J52",
+    "submission_id": "S52",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:04:36.523",
+    "end_contest_time": "0:04:44.523"
+  },
+  {
+    "id": "J53",
+    "submission_id": "S53",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:04:36.985",
+    "end_contest_time": "0:04:44.985"
+  },
+  {
+    "id": "J54",
+    "submission_id": "S54",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:04:37.399",
+    "end_contest_time": "0:04:45.399"
+  },
+  {
+    "id": "J55",
+    "submission_id": "S55",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:04:38.068",
+    "end_contest_time": "0:04:46.068"
+  },
+  {
+    "id": "J56",
+    "submission_id": "S56",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:04:39.434",
+    "end_contest_time": "0:04:47.434"
+  },
+  {
+    "id": "J57",
+    "submission_id": "S57",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:04:39.466",
+    "end_contest_time": "0:04:47.466"
+  },
+  {
+    "id": "J58",
+    "submission_id": "S58",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:04:39.652",
+    "end_contest_time": "0:04:47.652"
+  },
+  {
+    "id": "J59",
+    "submission_id": "S59",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:04:41.025",
+    "end_contest_time": "0:04:49.025"
+  },
+  {
+    "id": "J60",
+    "submission_id": "S60",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:04:42.246",
+    "end_contest_time": "0:04:50.246"
+  },
+  {
+    "id": "J61",
+    "submission_id": "S61",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:04:43.340",
+    "end_contest_time": "0:04:51.340"
+  },
+  {
+    "id": "J62",
+    "submission_id": "S62",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:04:47.267",
+    "end_contest_time": "0:04:55.267"
+  },
+  {
+    "id": "J63",
+    "submission_id": "S63",
+    "judgement_type_id": "WA",
+    "start_contest_time": "0:04:47.962",
+    "end_contest_time": "0:04:55.962"
+  },
+  {
+    "id": "J64",
+    "submission_id": "S64",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:04:49.641",
+    "end_contest_time": "0:04:57.641"
+  },
+  {
+    "id": "J65",
+    "submission_id": "S65",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:04:53.278",
+    "end_contest_time": "0:05:01.278"
+  },
+  {
+    "id": "J66",
+    "submission_id": "S66",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:04:55.117",
+    "end_contest_time": "0:05:03.117"
+  },
+  {
+    "id": "J67",
+    "submission_id": "S67",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:04:55.173",
+    "end_contest_time": "0:05:03.173"
+  },
+  {
+    "id": "J68",
+    "submission_id": "S68",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:04:57.242",
+    "end_contest_time": "0:05:05.242"
+  },
+  {
+    "id": "J69",
+    "submission_id": "S69",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:04:59.505",
+    "end_contest_time": "0:05:07.505"
+  },
+  {
+    "id": "J70",
+    "submission_id": "S70",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:04:59.635",
+    "end_contest_time": "0:05:07.635"
+  },
+  {
+    "id": "J71",
+    "submission_id": "S71",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:05:05.271",
+    "end_contest_time": "0:05:13.271"
+  },
+  {
+    "id": "J72",
+    "submission_id": "S72",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:05:06.967",
+    "end_contest_time": "0:05:14.967"
+  },
+  {
+    "id": "J73",
+    "submission_id": "S73",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:05:11.222",
+    "end_contest_time": "0:05:19.222"
+  },
+  {
+    "id": "J74",
+    "submission_id": "S74",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:05:12.330",
+    "end_contest_time": "0:05:20.330"
+  },
+  {
+    "id": "J75",
+    "submission_id": "S75",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:05:12.797",
+    "end_contest_time": "0:05:20.797"
+  },
+  {
+    "id": "J76",
+    "submission_id": "S76",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:05:12.942",
+    "end_contest_time": "0:05:20.942"
+  },
+  {
+    "id": "J77",
+    "submission_id": "S77",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:05:13.978",
+    "end_contest_time": "0:05:21.978"
+  },
+  {
+    "id": "J78",
+    "submission_id": "S78",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:05:15.314",
+    "end_contest_time": "0:05:23.314"
+  },
+  {
+    "id": "J79",
+    "submission_id": "S79",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:05:16.270",
+    "end_contest_time": "0:05:24.270"
+  },
+  {
+    "id": "J80",
+    "submission_id": "S80",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:05:16.470",
+    "end_contest_time": "0:05:24.470"
+  },
+  {
+    "id": "J81",
+    "submission_id": "S81",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:05:19.051",
+    "end_contest_time": "0:05:27.051"
+  },
+  {
+    "id": "J82",
+    "submission_id": "S82",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:05:21.549",
+    "end_contest_time": "0:05:29.549"
+  },
+  {
+    "id": "J83",
+    "submission_id": "S83",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:05:26.996",
+    "end_contest_time": "0:05:34.996"
+  },
+  {
+    "id": "J84",
+    "submission_id": "S84",
+    "judgement_type_id": "WA",
+    "start_contest_time": "0:05:27.542",
+    "end_contest_time": "0:05:35.542"
+  },
+  {
+    "id": "J85",
+    "submission_id": "S85",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:05:29.947",
+    "end_contest_time": "0:05:37.947"
+  },
+  {
+    "id": "J86",
+    "submission_id": "S86",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:05:32.779",
+    "end_contest_time": "0:05:40.779"
+  },
+  {
+    "id": "J87",
+    "submission_id": "S87",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:05:32.825",
+    "end_contest_time": "0:05:40.825"
+  },
+  {
+    "id": "J88",
+    "submission_id": "S88",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:05:34.101",
+    "end_contest_time": "0:05:42.101"
+  },
+  {
+    "id": "J89",
+    "submission_id": "S89",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:05:34.231",
+    "end_contest_time": "0:05:42.231"
+  },
+  {
+    "id": "J90",
+    "submission_id": "S90",
+    "judgement_type_id": "WA",
+    "start_contest_time": "0:05:35.263",
+    "end_contest_time": "0:05:43.263"
+  },
+  {
+    "id": "J91",
+    "submission_id": "S91",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:05:36.386",
+    "end_contest_time": "0:05:44.386"
+  },
+  {
+    "id": "J92",
+    "submission_id": "S92",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:05:36.710",
+    "end_contest_time": "0:05:44.710"
+  },
+  {
+    "id": "J93",
+    "submission_id": "S93",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:05:37.345",
+    "end_contest_time": "0:05:45.345"
+  },
+  {
+    "id": "J94",
+    "submission_id": "S94",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:05:39.420",
+    "end_contest_time": "0:05:47.420"
+  },
+  {
+    "id": "J95",
+    "submission_id": "S95",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:05:40.498",
+    "end_contest_time": "0:05:48.498"
+  },
+  {
+    "id": "J96",
+    "submission_id": "S96",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:05:45.075",
+    "end_contest_time": "0:05:53.075"
+  },
+  {
+    "id": "J97",
+    "submission_id": "S97",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:05:50.277",
+    "end_contest_time": "0:05:58.277"
+  },
+  {
+    "id": "J98",
+    "submission_id": "S98",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:05:52.985",
+    "end_contest_time": "0:06:00.985"
+  },
+  {
+    "id": "J99",
+    "submission_id": "S99",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:05:54.359",
+    "end_contest_time": "0:06:02.359"
+  },
+  {
+    "id": "J100",
+    "submission_id": "S100",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:05:54.711",
+    "end_contest_time": "0:06:02.711"
+  },
+  {
+    "id": "J101",
+    "submission_id": "S101",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:05:58.842",
+    "end_contest_time": "0:06:06.842"
+  },
+  {
+    "id": "J102",
+    "submission_id": "S102",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:05:59.808",
+    "end_contest_time": "0:06:07.808"
+  },
+  {
+    "id": "J103",
+    "submission_id": "S103",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:06:00.718",
+    "end_contest_time": "0:06:08.718"
+  },
+  {
+    "id": "J104",
+    "submission_id": "S104",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:06:02.837",
+    "end_contest_time": "0:06:10.837"
+  },
+  {
+    "id": "J105",
+    "submission_id": "S105",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:06:04.742",
+    "end_contest_time": "0:06:12.742"
+  },
+  {
+    "id": "J106",
+    "submission_id": "S106",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:06:05.323",
+    "end_contest_time": "0:06:13.323"
+  },
+  {
+    "id": "J107",
+    "submission_id": "S107",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:06:06.657",
+    "end_contest_time": "0:06:14.657"
+  },
+  {
+    "id": "J108",
+    "submission_id": "S108",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:06:07.515",
+    "end_contest_time": "0:06:15.515"
+  },
+  {
+    "id": "J109",
+    "submission_id": "S109",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:06:08.624",
+    "end_contest_time": "0:06:16.624"
+  },
+  {
+    "id": "J110",
+    "submission_id": "S110",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:06:08.931",
+    "end_contest_time": "0:06:16.931"
+  },
+  {
+    "id": "J111",
+    "submission_id": "S111",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:06:14.653",
+    "end_contest_time": "0:06:22.653"
+  },
+  {
+    "id": "J112",
+    "submission_id": "S112",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:06:15.041",
+    "end_contest_time": "0:06:23.041"
+  },
+  {
+    "id": "J113",
+    "submission_id": "S113",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:06:15.133",
+    "end_contest_time": "0:06:23.133"
+  },
+  {
+    "id": "J114",
+    "submission_id": "S114",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:06:15.160",
+    "end_contest_time": "0:06:23.160"
+  },
+  {
+    "id": "J115",
+    "submission_id": "S115",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:06:18.385",
+    "end_contest_time": "0:06:26.385"
+  },
+  {
+    "id": "J116",
+    "submission_id": "S116",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:06:19.202",
+    "end_contest_time": "0:06:27.202"
+  },
+  {
+    "id": "J117",
+    "submission_id": "S117",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:06:22.090",
+    "end_contest_time": "0:06:30.090"
+  },
+  {
+    "id": "J118",
+    "submission_id": "S118",
+    "judgement_type_id": "WA",
+    "start_contest_time": "0:06:22.217",
+    "end_contest_time": "0:06:30.217"
+  },
+  {
+    "id": "J119",
+    "submission_id": "S119",
+    "judgement_type_id": "WA",
+    "start_contest_time": "0:06:23.431",
+    "end_contest_time": "0:06:31.431"
+  },
+  {
+    "id": "J120",
+    "submission_id": "S120",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:06:25.264",
+    "end_contest_time": "0:06:33.264"
+  },
+  {
+    "id": "J121",
+    "submission_id": "S121",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:06:27.808",
+    "end_contest_time": "0:06:35.808"
+  },
+  {
+    "id": "J122",
+    "submission_id": "S122",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:06:29.737",
+    "end_contest_time": "0:06:37.737"
+  },
+  {
+    "id": "J123",
+    "submission_id": "S123",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:06:33.828",
+    "end_contest_time": "0:06:41.828"
+  },
+  {
+    "id": "J124",
+    "submission_id": "S124",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:06:34.927",
+    "end_contest_time": "0:06:42.927"
+  },
+  {
+    "id": "J125",
+    "submission_id": "S125",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:06:35.153",
+    "end_contest_time": "0:06:43.153"
+  },
+  {
+    "id": "J126",
+    "submission_id": "S126",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:06:37.074",
+    "end_contest_time": "0:06:45.074"
+  },
+  {
+    "id": "J127",
+    "submission_id": "S127",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:06:38.749",
+    "end_contest_time": "0:06:46.749"
+  },
+  {
+    "id": "J128",
+    "submission_id": "S128",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:06:40.620",
+    "end_contest_time": "0:06:48.620"
+  },
+  {
+    "id": "J129",
+    "submission_id": "S129",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:06:41.733",
+    "end_contest_time": "0:06:49.733"
+  },
+  {
+    "id": "J130",
+    "submission_id": "S130",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:06:46.941",
+    "end_contest_time": "0:06:54.941"
+  },
+  {
+    "id": "J131",
+    "submission_id": "S131",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:06:54.350",
+    "end_contest_time": "0:07:02.350"
+  },
+  {
+    "id": "J132",
+    "submission_id": "S132",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:06:57.374",
+    "end_contest_time": "0:07:05.374"
+  },
+  {
+    "id": "J133",
+    "submission_id": "S133",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:06:58.134",
+    "end_contest_time": "0:07:06.134"
+  },
+  {
+    "id": "J134",
+    "submission_id": "S134",
+    "judgement_type_id": "CE",
+    "start_contest_time": "0:07:03.118",
+    "end_contest_time": "0:07:11.118"
+  },
+  {
+    "id": "J135",
+    "submission_id": "S135",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:07:03.193",
+    "end_contest_time": "0:07:11.193"
+  },
+  {
+    "id": "J136",
+    "submission_id": "S136",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:07:04.466",
+    "end_contest_time": "0:07:12.466"
+  },
+  {
+    "id": "J137",
+    "submission_id": "S137",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:07:05.434",
+    "end_contest_time": "0:07:13.434"
+  },
+  {
+    "id": "J138",
+    "submission_id": "S138",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:07:07.449",
+    "end_contest_time": "0:07:15.449"
+  },
+  {
+    "id": "J139",
+    "submission_id": "S139",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:07:13.673",
+    "end_contest_time": "0:07:21.673"
+  },
+  {
+    "id": "J140",
+    "submission_id": "S140",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:07:13.686",
+    "end_contest_time": "0:07:21.686"
+  },
+  {
+    "id": "J141",
+    "submission_id": "S141",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:07:17.067",
+    "end_contest_time": "0:07:25.067"
+  },
+  {
+    "id": "J142",
+    "submission_id": "S142",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:07:17.174",
+    "end_contest_time": "0:07:25.174"
+  },
+  {
+    "id": "J143",
+    "submission_id": "S143",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:07:18.259",
+    "end_contest_time": "0:07:26.259"
+  },
+  {
+    "id": "J144",
+    "submission_id": "S144",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:07:22.126",
+    "end_contest_time": "0:07:30.126"
+  },
+  {
+    "id": "J145",
+    "submission_id": "S145",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:07:24.267",
+    "end_contest_time": "0:07:32.267"
+  },
+  {
+    "id": "J146",
+    "submission_id": "S146",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:07:28.508",
+    "end_contest_time": "0:07:36.508"
+  },
+  {
+    "id": "J147",
+    "submission_id": "S147",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:07:28.527",
+    "end_contest_time": "0:07:36.527"
+  },
+  {
+    "id": "J148",
+    "submission_id": "S148",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:07:34.279",
+    "end_contest_time": "0:07:42.279"
+  },
+  {
+    "id": "J149",
+    "submission_id": "S149",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:07:35.563",
+    "end_contest_time": "0:07:43.563"
+  },
+  {
+    "id": "J150",
+    "submission_id": "S150",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:07:36.057",
+    "end_contest_time": "0:07:44.057"
+  },
+  {
+    "id": "J151",
+    "submission_id": "S151",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:07:40.774",
+    "end_contest_time": "0:07:48.774"
+  },
+  {
+    "id": "J152",
+    "submission_id": "S152",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:07:41.634",
+    "end_contest_time": "0:07:49.634"
+  },
+  {
+    "id": "J153",
+    "submission_id": "S153",
+    "judgement_type_id": "WA",
+    "start_contest_time": "0:07:49.849",
+    "end_contest_time": "0:07:57.849"
+  },
+  {
+    "id": "J154",
+    "submission_id": "S154",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:08:00.649",
+    "end_contest_time": "0:08:08.649"
+  },
+  {
+    "id": "J155",
+    "submission_id": "S155",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:08:04.909",
+    "end_contest_time": "0:08:12.909"
+  },
+  {
+    "id": "J156",
+    "submission_id": "S156",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:08:09.859",
+    "end_contest_time": "0:08:17.859"
+  },
+  {
+    "id": "J157",
+    "submission_id": "S157",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:08:18.444",
+    "end_contest_time": "0:08:26.444"
+  },
+  {
+    "id": "J158",
+    "submission_id": "S158",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:08:30.433",
+    "end_contest_time": "0:08:38.433"
+  },
+  {
+    "id": "J159",
+    "submission_id": "S159",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:08:33.598",
+    "end_contest_time": "0:08:41.598"
+  },
+  {
+    "id": "J160",
+    "submission_id": "S160",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:08:33.795",
+    "end_contest_time": "0:08:41.795"
+  },
+  {
+    "id": "J161",
+    "submission_id": "S161",
+    "judgement_type_id": "WA",
+    "start_contest_time": "0:08:35.936",
+    "end_contest_time": "0:08:43.936"
+  },
+  {
+    "id": "J162",
+    "submission_id": "S162",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:08:40.816",
+    "end_contest_time": "0:08:48.816"
+  },
+  {
+    "id": "J163",
+    "submission_id": "S163",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:08:49.719",
+    "end_contest_time": "0:08:57.719"
+  },
+  {
+    "id": "J164",
+    "submission_id": "S164",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:08:51.482",
+    "end_contest_time": "0:08:59.482"
+  },
+  {
+    "id": "J165",
+    "submission_id": "S165",
+    "judgement_type_id": "WA",
+    "start_contest_time": "0:08:52.850",
+    "end_contest_time": "0:09:00.850"
+  },
+  {
+    "id": "J166",
+    "submission_id": "S166",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:09:05.025",
+    "end_contest_time": "0:09:13.025"
+  },
+  {
+    "id": "J167",
+    "submission_id": "S167",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:09:13.882",
+    "end_contest_time": "0:09:21.882"
+  },
+  {
+    "id": "J168",
+    "submission_id": "S168",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:09:14.279",
+    "end_contest_time": "0:09:22.279"
+  },
+  {
+    "id": "J169",
+    "submission_id": "S169",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:09:15.429",
+    "end_contest_time": "0:09:23.429"
+  },
+  {
+    "id": "J170",
+    "submission_id": "S170",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:09:15.460",
+    "end_contest_time": "0:09:23.460"
+  },
+  {
+    "id": "J171",
+    "submission_id": "S171",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:09:15.810",
+    "end_contest_time": "0:09:23.810"
+  },
+  {
+    "id": "J172",
+    "submission_id": "S172",
+    "judgement_type_id": "WA",
+    "start_contest_time": "0:09:17.125",
+    "end_contest_time": "0:09:25.125"
+  },
+  {
+    "id": "J173",
+    "submission_id": "S173",
+    "judgement_type_id": "WA",
+    "start_contest_time": "0:09:20.069",
+    "end_contest_time": "0:09:28.069"
+  },
+  {
+    "id": "J174",
+    "submission_id": "S174",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:09:21.494",
+    "end_contest_time": "0:09:29.494"
+  },
+  {
+    "id": "J175",
+    "submission_id": "S175",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:09:24.038",
+    "end_contest_time": "0:09:32.038"
+  },
+  {
+    "id": "J176",
+    "submission_id": "S176",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:09:30.541",
+    "end_contest_time": "0:09:38.541"
+  },
+  {
+    "id": "J177",
+    "submission_id": "S177",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:09:30.715",
+    "end_contest_time": "0:09:38.715"
+  },
+  {
+    "id": "J178",
+    "submission_id": "S178",
+    "judgement_type_id": "CE",
+    "start_contest_time": "0:09:32.716",
+    "end_contest_time": "0:09:40.716"
+  },
+  {
+    "id": "J179",
+    "submission_id": "S179",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:09:38.696",
+    "end_contest_time": "0:09:46.696"
+  },
+  {
+    "id": "J180",
+    "submission_id": "S180",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:09:38.875",
+    "end_contest_time": "0:09:46.875"
+  },
+  {
+    "id": "J181",
+    "submission_id": "S181",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:09:43.950",
+    "end_contest_time": "0:09:51.950"
+  },
+  {
+    "id": "J182",
+    "submission_id": "S182",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:09:44.208",
+    "end_contest_time": "0:09:52.208"
+  },
+  {
+    "id": "J183",
+    "submission_id": "S183",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:09:44.683",
+    "end_contest_time": "0:09:52.683"
+  },
+  {
+    "id": "J184",
+    "submission_id": "S184",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:09:48.220",
+    "end_contest_time": "0:09:56.220"
+  },
+  {
+    "id": "J185",
+    "submission_id": "S185",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:09:49.716",
+    "end_contest_time": "0:09:57.716"
+  },
+  {
+    "id": "J186",
+    "submission_id": "S186",
+    "judgement_type_id": "AC",
+    "start_contest_time": "0:09:58.208",
+    "end_contest_time": "0:10:06.208"
+  }
+]

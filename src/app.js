@@ -206,20 +206,32 @@ function renderStandings(pane, data) {
   if (tt < FADE_IN_MS) fade = tt / FADE_IN_MS;
   else if (tt > endTime) fade = Math.max(0, 1 - (tt - endTime) / FADE_OUT_MS);
 
-  // 翻页：ScrollAnimator(INITIAL_DELAY_MS, MS_PER_PAGE, 1500) 的等价实现
-  let scrollPx = 0;
-  if (pages > 1 && tt > INITIAL_DELAY_MS) {
-    const k = Math.min(pages, (tt - INITIAL_DELAY_MS) / MS_PER_PAGE);
-    let page = Math.min(pages - 1, Math.floor(k));
-    const frac = k - Math.floor(k);
-    const anim = SCROLL_MS / MS_PER_PAGE;          // 1500 / 12000 = 0.125
-    if (frac > 1 - anim) {
-      const q = (frac - (1 - anim)) / anim;
-      const ease = q < 0.5 ? 2 * q * q : 1 - Math.pow(-2 * q + 2, 2) / 2;
-      page = Math.min(pages - 1, page + ease);
-    }
-    scrollPx = page * 12 * L.rowH;
+  // 翻页：ScrollAnimator.getScroll() 的逐行照抄
+  // 滚动跨页边界发生（提前 scrollTime/2、延后 scrollTime/2），用 smoothImpl 插值
+  function f(x) {
+    if (x < 0) return -Math.exp(1 / x);
+    if (x === 0) return 0;
+    return Math.exp(-1 / x);
   }
+  function smoothImpl(x) {
+    const a = f(x), b = f(1 - x);
+    return a / (a + b);
+  }
+  function getScroll(time) {
+    const SCROLL_TIME = SCROLL_MS;                     // 1500
+    if (time < INITIAL_DELAY_MS + SCROLL_TIME / 2) return 0;
+    let t2 = time - INITIAL_DELAY_MS;
+    const page = Math.floor(t2 / MS_PER_PAGE);
+    t2 -= page * MS_PER_PAGE;
+    if (t2 < SCROLL_TIME / 2)
+      return page - smoothImpl(0.5 - t2 / SCROLL_TIME);
+    if (t2 > MS_PER_PAGE - SCROLL_TIME / 2)
+      return page + smoothImpl(0.5 - (MS_PER_PAGE - t2) / SCROLL_TIME);
+    return page;
+  }
+
+  const scrollPages = pages > 1 ? Math.max(0, getScroll(tt)) : 0;
+  const scrollPx = Math.min(scrollPages, pages - 1) * 12 * L.rowH;
 
   const alpha = FORCE_FADE !== null ? FORCE_FADE : Math.max(0, Math.min(1, fade));
   drawFrame(ctx, L, data.rows, data.probs, times, scrollPx, perProblemStats(data), alpha,
@@ -289,6 +301,9 @@ function judgeQueue() {
       return false;
     },
     frozen: () => !!(M.state && M.state.isFrozen()),
+    // 判完立刻动：AC 往上、WA 往下，没有停留
+    timeToKeepSolved: 0,
+    timeToKeepFailed: 0,
   });
   return judgeQ;
 }
@@ -328,8 +343,9 @@ function renderJudge(pane) {
       .filter(s => !judgedIds.has(s.id))                 // 只留待判的，已判的进队列会立刻滑出
       .sort((x, y) => rel2sec(x.contest_time) - rel2sec(y.contest_time))
       .slice(-12);
+    // 源码 aboutToShow：只把「未判」的放进队列，其余仅标记为已见过
+    for (const sub of M.submissions.values()) judgeSeen.add(sub.id);
     list.forEach((sub, i) => {
-      judgeSeen.add(sub.id);
       const sr = q.add(sub);
       if (sr) sr.anim.reset(i);            // 老的在上面，新的在下面（Java List 顺序）
     });
@@ -339,8 +355,14 @@ function renderJudge(pane) {
   }
 
   for (const sub of M.submissions.values()) {
-    if (!judgeSeen.has(sub.id)) { judgeSeen.add(sub.id); q.add(sub); }
-    else q.refresh(sub);          // Java listener：对象更新也走 handleSubmission
+    if (!judgeSeen.has(sub.id)) {
+      judgeSeen.add(sub.id);
+      const sr = q.add(sub);
+      // 判题队列不滚动：新提交直接落在自己的行位上
+      if (sr) sr.anim.reset(sr.anim.xTarget);
+    } else {
+      q.refresh(sub);            // Java listener：对象更新也走 handleSubmission
+    }
   }
 
   const dt = Math.min(200, Math.max(0, now - judgeLast));
