@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const SRC = join(here, '..', 'src');
-const FIXES = { 1: join(here,'fixtures','smoke'), 2: join(here,'fixtures','scroll'), 4: join(here,'fixtures','lncpc') };
+const FIXES = { 1: join(here,'fixtures','smoke'), 2: join(here,'fixtures','scroll'), 4: join(here,'fixtures','lncpc'), 5: join(here,'fixtures','lncpc') };
 let FIX = FIXES[1];
 
 // ---- 实时模拟：真实载荷 + 串行判题机 ----
@@ -142,7 +142,7 @@ function revStart(windowMs = 600000, speed = 12) {
     revEmit({ type: 'submissions', id: sub.id, data: sub });
 
     // 0.6~2.4 秒后出判题（压缩）
-    const judgeDelay = 600 + Math.random() * 1800;
+    const judgeDelay = 200 + Math.random() * Math.min(1800, 9000 / Math.max(1, REV.speed));
     setTimeout(() => {
       const j = {
         id: 'J' + r.id, submission_id: sub.id,

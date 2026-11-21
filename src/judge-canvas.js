@@ -231,12 +231,10 @@ export function drawJudgeFrame(ctx, L, rows, probs, times, opts = {}) {
 }
 
 /** 一条提交 → 一行 */
-export function rowOf(sub, model, byTeam, pidx) {
+export function rowOf(sub, model, byTeam, pidx, verdicts) {
   const st = byTeam.get(sub.team_id);
-  let jtId = null;
-  for (const j of model.judgements.values()) {
-    if (j.submission_id === sub.id) { jtId = j.judgement_type_id; break; }
-  }
+  // verdicts: Map<submission_id, judgement_type_id>
+  const jtId = verdicts ? (verdicts.get(sub.id) || null) : null;
   const jt = jtId ? model.judgementTypes.get(jtId) : null;
   const status = !jt ? 'pending' : jt.solved ? 'solved' : jt.penalty ? 'failed' : 'pending';
   const sec = rel2sec(sub.contest_time);

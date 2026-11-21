@@ -365,8 +365,11 @@ function renderJudge(pane) {
   judgeLast = now;
   q.update(dt);
 
+  const verdicts = new Map();
+  for (const j of M.judgements.values()) verdicts.set(j.submission_id, j.judgement_type_id);
+
   const rows = q.records.map(sr => {
-    const r = rowOf(sr.submission, M, byTeam, pidx);
+    const r = rowOf(sr.submission, M, byTeam, pidx, verdicts);
     r.y = sr.anim.getValue();
     r.alpha = q.alphaOf(sr);
     r.currentAgeMs = sr.fullAge;        // 记录在队列里的年龄 → 决定是否脉动
@@ -374,6 +377,17 @@ function renderJudge(pane) {
   });
 
   drawJudgeFrame(ctx, L, rows, data.probs, times, { frozen, now });
+
+  // 调试：?debug=1 显示页面侧真实计数
+  if (Q.get('debug') === '1') {
+    ctx.save();
+    ctx.font = '20px monospace';
+    ctx.fillStyle = '#0f0';
+    ctx.textAlign = 'left';
+    ctx.fillText(`subs=${M.submissions.size} judges=${M.judgements.size} queue=${q.records.length} ` +
+      `judgedRows=${rows.filter(r => r.currentStatus !== 'pending').length}`, 20, H - 24);
+    ctx.restore();
+  }
 }
 
 /** #15 带工位状态的倒计时 */
