@@ -6,3 +6,4 @@ config.local.json
 vendor/
 tmp-*.png
 tmp-*/
+tmp-*.mjs
