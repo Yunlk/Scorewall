@@ -118,8 +118,8 @@ export class JudgeQueue {
     this.reservedRows = 0;
     this.opts = opts;
     // Java: 这两个是实例字段，外部可调
-    this.timeToKeepFailed = opts.timeToKeepFailed ?? 3000;
-    this.timeToKeepSolved = opts.timeToKeepSolved ?? 3000;
+    this.timeToKeepFailed = opts.timeToKeepFailed ?? 5000;
+    this.timeToKeepSolved = opts.timeToKeepSolved ?? 5000;
   }
 
   /** 新提交进队（JudgePresentation.createSubmissionRecord） */

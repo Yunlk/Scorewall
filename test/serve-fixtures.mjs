@@ -16,7 +16,8 @@ import { fileURLToPath } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url));
 const SRC = join(here, '..', 'src');
 const FIXES = { 1: join(here,'fixtures','smoke'), 2: join(here,'fixtures','scroll'), 4: join(here,'fixtures','lncpc'), 5: join(here,'fixtures','lncpc'),
-  6: join(here,'fixtures','demo') };
+  6: join(here,'fixtures','demo'),
+  7: join(here,'fixtures','demo') };
 let FIX = FIXES[1];
 
 // ---- 实时模拟：真实载荷 + 串行判题机 ----
@@ -174,6 +175,11 @@ function d7emit(obj) {
 function d7start() {
   if (DEMO7.started) return;
   DEMO7.started = true;
+  setInterval(d7round, 14000);
+  d7round();
+}
+
+function d7round() {
   const plan = [
     { t: 800,  sub: { id: 'D1', team_id: 't1', problem_id: 'A', contest_time: '0:01:00.000' } },
     { t: 2500, sub: { id: 'D2', team_id: 't2', problem_id: 'B', contest_time: '0:01:30.000' } },
@@ -183,13 +189,28 @@ function d7start() {
     { t: 7000, j: { id: 'JD2', submission_id: 'D2', judgement_type_id: 'WA' } },
     { t: 9500, j: { id: 'JD3', submission_id: 'D3', judgement_type_id: 'AC' } },
   ];
+  const round = DEMO7.round = (DEMO7.round || 0) + 1;
+  DEMO7.plan = plan;
   for (const step of plan) {
     setTimeout(() => {
-      if (step.sub) { DEMO7.subs.push(step.sub); d7emit({ type: 'submissions', id: step.sub.id, data: step.sub }); }
-      if (step.j) { DEMO7.judges.push(step.j); d7emit({ type: 'judgements', id: step.j.id, data: step.j }); }
+      if (step.sub) {
+        const sub = { ...step.sub, id: step.sub.id + 'r' + round };
+        DEMO7.subs.push(sub);
+        d7emit({ type: 'submissions', id: sub.id, data: sub });
+      }
+      if (step.j) {
+        const j = { ...step.j, id: step.j.id + 'r' + round, submission_id: step.j.submission_id + 'r' + round };
+        DEMO7.judges.push(j);
+        d7emit({ type: 'judgements', id: j.id, data: j });
+      }
     }, step.t);
   }
+  // 保持 subs/judges 只留最近两轮
+  if (DEMO7.subs.length > 16) DEMO7.subs.splice(0, DEMO7.subs.length - 16);
+  if (DEMO7.judges.length > 12) DEMO7.judges.splice(0, DEMO7.judges.length - 12);
 }
+
+setTimeout(d7start, 500);          // 服务启动就开始循环演示
 
 const fixture = n => JSON.parse(readFileSync(join(FIX, n + '.json'), 'utf8'));
 

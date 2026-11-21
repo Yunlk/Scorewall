@@ -387,7 +387,7 @@ function renderJudge(pane) {
     ctx.fillStyle = '#0f0';
     ctx.textAlign = 'left';
     ctx.fillText(`subs=${M.submissions.size} judges=${M.judgements.size} queue=${q.records.length} ` +
-      `judgedRows=${rows.filter(r => r.currentStatus !== 'pending').length}`, 20, H - 24);
+      `judgedRows=${rows.filter(r => r.currentStatus !== 'pending').length} types=${M.judgementTypes.size}`, 20, H - 24);
     ctx.restore();
   }
 }
@@ -458,11 +458,20 @@ setInterval(() => {
   hint.classList.toggle('show', stale);
 }, 5000);
 
-// 渲染循环：由 rAF 驱动，暂停时不耗 CPU，恢复后立刻补画
+// 渲染循环：rAF 驱动；后台标签页 rAF 会被暂停，用定时器兜底推进时间轴
+let lastDraw = 0;
 function loop() {
   draw();
+  lastDraw = performance.now();
   requestAnimationFrame(loop);
 }
+
+// 兜底：rAF 超过 500ms 没跑（页面被隐藏/OBS 遮挡），用定时器补一帧
+setInterval(() => {
+  if (performance.now() - lastDraw > 500) {
+    try { draw(); lastDraw = performance.now(); } catch (_) {}
+  }
+}, 250);
 
 window.addEventListener('resize', () => { dirty = true; });
 layout();
