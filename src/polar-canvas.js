@@ -108,19 +108,21 @@ function drawArc(ctx, dim, arcWidth, ang, color, bg) {
 
   ctx.fillStyle = css(color);
   ctx.beginPath();
+  // fillArc 填的是「扇形」：圆心 → 起点 → 弧 → 圆心。
+  // canvas 的 arc() 只给弧，必须先 moveTo(cx, cy)，否则 closePath 连的是弦，画出来是弓形。
+  ctx.moveTo(cx, cy);
   if (ang >= -360) {
-    // Java: fillArc(x, y, w, h, 90, ang) —— 从 12 点开始
+    // Java: fillArc(x, y, w, h, 90, ang) —— 90° 是 12 点，ang 为负即顺时针
     ctx.arc(cx, cy, r, -Math.PI / 2, -(Math.PI / 2 + (ang * Math.PI) / 180));
-    ctx.closePath();
   } else {
-    // Java: fillArc(450+ang, -720-ang) —— 超过一整圈时画补集
+    // Java: fillArc(450+ang, -720-ang) —— 超过一整圈时画补集那一块
     const start = 450 + ang;
     const extent = -720 - ang;
     ctx.arc(cx, cy, r,
       -(start * Math.PI) / 180,
       -((start + extent) * Math.PI) / 180);
-    ctx.closePath();
   }
+  ctx.closePath();
   ctx.fill();
 
   // 挖空内圆，形成环
