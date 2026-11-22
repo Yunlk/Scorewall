@@ -109,6 +109,23 @@
     </fieldset>
 
     <fieldset>
+      <legend>队伍校徽</legend>
+      <label>显示校徽</label>
+      <select id="logo">
+        <option value="1">显示（用 organizations[].logo）</option>
+        <option value="0">不显示（源码原生：没有就留空）</option>
+      </select>
+      <div class="hint">尺寸固定为 <code class="inline">rowHeight - 10</code>，等比缩放居中；没有 logo 时显示队名首字占位</div>
+
+      <label>校徽 tag</label>
+      <select id="logoTag">
+        <option value="dark">dark（深色界面，getModeTag 默认）</option>
+        <option value="light">light（浅色界面）</option>
+      </select>
+      <div class="hint">对应 <code class="inline">FileReference.TAG_DARK / TAG_LIGHT</code>：优先挑带该 tag 的图，其次没声明 tags 的通用图，最后才用任意图；选定一组后优先 SVG</div>
+    </fieldset>
+
+    <fieldset>
       <legend>单题统计配色</legend>
       <label>配色方式</label>
       <select id="probColor">
@@ -159,6 +176,8 @@
       if (v !== '' && v !== dflt) p.set(id, v);
     };
     put('rows', '12');
+    if ($('logo').value === '0') p.set('logo', '0');
+    if ($('logoTag').value !== 'dark') p.set('logoTag', $('logoTag').value);
     put('keepSolved', '11000');
     put('keepFailed', '8000');
     put('fadeRecent', '2000');
@@ -186,7 +205,7 @@
           $('copy').textContent = '已复制'; setTimeout(() => $('copy').textContent = '复制', 1200); }
     catch (_) { $('copy').textContent = '复制失败'; }
   };
-  ['src','view','page','fade','rows','keepSolved','keepFailed','fadeRecent','probColor','probPalette'].forEach(id => $(id).addEventListener('input', refresh));
+  ['src','view','page','fade','rows','logo','logoTag','keepSolved','keepFailed','fadeRecent','probColor','probPalette'].forEach(id => $(id).addEventListener('input', refresh));
   refresh();
 })();
 </script>

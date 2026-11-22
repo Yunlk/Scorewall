@@ -162,7 +162,7 @@ export function drawFrame(ctx, L, rows, probs, times, scrollPx, perProblem, fade
     // 滚动后可见窗口是 [scrollPx, scrollPx + contentH]
     const contentH = H - contentTop;
     if (y + barH <= scrollPx || y >= scrollPx + contentH) continue;
-    drawRow(ctx, L, r, probs, y, indent, opts.now || 0, opts.elapsedSec, opts.orgs);
+    drawRow(ctx, L, r, probs, y, indent, opts.now || 0, opts.elapsedSec, opts.orgs, opts);
   }
 
   // ---------- 底部两行统计（drawStatsRow） ----------
@@ -267,16 +267,26 @@ function drawLegend(ctx, W, H) {
 // AbstractScoreboardPresentation.getSmallTeamLogo：尺寸 rowHeight-10，垂直居中于整行，
 // x 从 BORDER + w("199 ") 开始（那段宽度就是留给 logo 的）
 // getBestFileReference:447-455 —— 优先 SVG，否则挑尺寸最接近的
-function pickLogoRef(org, size) {
+function pickLogoRef(org, size, tag) {
   const list = Array.isArray(org && org.logo) ? org.logo
     : (org && org.logo ? [org.logo] : []);
   if (!list.length) return null;
 
-  const svg = list.find(r => r && r.mime === 'image/svg+xml');
+  // getBestFileReference:410-445 —— 按 getModeTag() 过滤：
+  // 先找带目标 tag 的，再找没声明 tags 的通用图，最后才退到全部
+  let pool = list;
+  if (tag) {
+    const withTag = list.filter(r => r && Array.isArray(r.tags) && r.tags.includes(tag));
+    const untagged = list.filter(r => r && (!Array.isArray(r.tags) || !r.tags.length));
+    if (withTag.length) pool = withTag;
+    else if (untagged.length) pool = untagged;
+  }
+
+  const svg = pool.find(r => r && r.mime === 'image/svg+xml');
   if (svg) return svg;
 
   let best = null;
-  for (const r of list) {
+  for (const r of pool) {
     if (!r) continue;
     if (!best) { best = r; continue; }
     const bw = best.width || 0, bh = best.height || 0;
@@ -290,7 +300,8 @@ function pickLogoRef(org, size) {
   return best;
 }
 
-function drawTeamLogo(ctx, x, y, size, team, orgs) {
+function drawTeamLogo(ctx, x, y, size, team, orgs, showLogo) {
+  if (!showLogo) return;
   const org = orgs && team.organization_id ? orgs.get(team.organization_id) : null;
   const img = org && org._logoImg;
   if (img && img.complete && img.naturalWidth > 0) {
@@ -318,7 +329,7 @@ function drawTeamLogo(ctx, x, y, size, team, orgs) {
   ctx.textAlign = 'left';
 }
 
-function drawRow(ctx, L, r, probs, y, indent, nowMs, elapsedSec, orgs) {
+function drawRow(ctx, L, r, probs, y, indent, nowMs, elapsedSec, orgs, opts) {
   const { W, rowH, cubeW, cubeH, rowFont } = L;
   ctx.textBaseline = 'middle';
 
@@ -338,7 +349,7 @@ function drawRow(ctx, L, r, probs, y, indent, nowMs, elapsedSec, orgs) {
 
   // 队伍 logo
   const logoSize = Math.max(8, Math.floor(L.rowH) - 10);
-  drawTeamLogo(ctx, indent - L.rowH, y + (L.rowH - logoSize) / 2, logoSize, r.team, orgs);
+  drawTeamLogo(ctx, indent - L.rowH, y + (L.rowH - logoSize) / 2, logoSize, r.team, orgs, opts && opts.showLogo);
 
   // 队名（drawFit）
   const avail = Math.max(40, W - BORDER - w('199 9 9999 ', fr) - rowH - indent);

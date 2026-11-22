@@ -286,6 +286,8 @@ function renderStandings(pane, data) {
       now: performance.now(),
       elapsedSec: Math.floor(contestTimes().elapsed / 1000),
       orgs: M.orgs,
+      showLogo: Q.get('logo') !== '0',
+      logoTags: Q.get('logoTag') || 'dark',
     });
 }
 
@@ -299,8 +301,12 @@ function preloadOrgLogos() {
   for (const org of M.orgs.values()) {
     if (org._logoImg || !org.logo) continue;
     const list = Array.isArray(org.logo) ? org.logo : [org.logo];
-    // getBestFileReference：优先 SVG
-    const ref = list.find(r => r && r.mime === 'image/svg+xml') || list[0];
+    // getBestFileReference：按 tag 过滤后优先 SVG
+    const tag = Q.get('logoTag') || 'dark';
+    const withTag = list.filter(r => r && Array.isArray(r.tags) && r.tags.includes(tag));
+    const untagged = list.filter(r => r && (!Array.isArray(r.tags) || !r.tags.length));
+    const pool = withTag.length ? withTag : (untagged.length ? untagged : list);
+    const ref = pool.find(r => r && r.mime === 'image/svg+xml') || pool[0];
     const href = ref && (typeof ref === 'string' ? ref : ref.href);
     if (!href) continue;
     const img = new Image();
