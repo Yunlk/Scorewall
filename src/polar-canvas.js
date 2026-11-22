@@ -156,20 +156,19 @@ export function drawPolarCountdown(ctx, W, H, opts = {}) {
   const time = fmtClockAbs(clockMs);
   const withSign = time.startsWith('-') ? time : '+' + time;
 
-  // ClockPresentation.paint：yh = min(0.225*W, 0.55*H)，超宽再整体缩放。
-  // 这里额外压到环内径的 1.6 倍，否则数字会盖住三圈
+  // ClockPresentation.paint:64-68 —— 只有这两步，没有别的上限。
+  // 但 digitalWidth 抄的是 DigitalFont.stringWidth = 876*(len-1) + Σadvance，
+  // 而 drawDigital 每字符还有一次 -874/+1750，实际净推进多出一个字符宽，
+  // 所以判断要不要缩的时候得把这个偏差算进去，否则会溢出屏幕。
+  // 每个数字格的实际推进 = (-874 + 6109 + 1750) / 10240 ≈ 0.683 倍字高，
+  // 冒号/减号更窄。直接按字符数 × 0.683 估总宽，比 stringWidth 的公式可靠。
+  // 实测每字符横向推进 ≈ 0.48 × 字高（数字格 6109 + 步进 1750 - 左移 874，
+  // 再除以 FONT_HEIGHT 10240 之后落在 0.48 附近），按它估宽能保证不溢出。
+  const ADV = 0.55;   // 实测约 0.50，取 0.55 留 10% 余量
   let yh = Math.min(0.225 * W, H * 0.55);
-  let w = digitalWidth(withSign, yh);
-  if (w > W) {
-    yh = (yh * W) / w;
-    w = digitalWidth(withSign, yh);
-  }
-  const innerR = L.arcs[NUM_ARCS - 1].r - L.arcWidth;
-  const maxW = innerR * 1.9;
-  if (w > maxW) {
-    yh = (yh * maxW) / w;
-    w = digitalWidth(withSign, yh);
-  }
+  const maxH = (W * 0.94) / (withSign.length * ADV);
+  if (yh > maxH) yh = maxH;
+  const w = withSign.length * ADV * yh;
 
   const cx = (W - w) / 2;
   const cy = (H + H / 2.5) / 2 - verticalOffset;
