@@ -211,7 +211,14 @@ function d7round() {
 
 setTimeout(d7start, 500);          // 服务启动就开始循环演示
 
-const fixture = n => JSON.parse(readFileSync(join(FIX, n + '.json'), 'utf8'));
+// contest 的 start_time 换成「1 小时前」：夹具里写死的是 2026-05-17，
+// PolarCountdown / Countdown 会算出巨大的 clock 目标值，Animator（Movement(35000, 8e6)）
+// 十几分钟都爬不到，圆环宽度恒为 0、数字停在 0:00:00，看起来跟没渲染一样
+const fixture = n => {
+  const o = JSON.parse(readFileSync(join(FIX, n + '.json'), 'utf8'));
+  if (n === 'contest') o.start_time = new Date(Date.now() - 3600_000).toISOString();
+  return o;
+};
 
 // 事件类型名 -> 夹具文件名
 const COLLECTIONS = {
