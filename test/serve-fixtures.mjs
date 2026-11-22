@@ -216,7 +216,12 @@ setTimeout(d7start, 500);          // 服务启动就开始循环演示
 // 十几分钟都爬不到，圆环宽度恒为 0、数字停在 0:00:00，看起来跟没渲染一样
 const fixture = n => {
   const o = JSON.parse(readFileSync(join(FIX, n + '.json'), 'utf8'));
-  if (n === 'contest') o.start_time = new Date(Date.now() - 3600_000).toISOString();
+  if (n === 'contest') {
+    // 让比赛处于「1 小时前开始、2 小时后结束」：总时长 3 小时
+    o.start_time = new Date(Date.now() - 3600_000).toISOString();
+    o.duration = '3:00:00';
+    o.scoreboard_freeze_duration = '1:00:00';
+  }
   return o;
 };
 
