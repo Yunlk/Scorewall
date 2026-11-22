@@ -87,20 +87,25 @@ export function polarAngles(clockMs, durationMs) {
   if (maxHours === 0) return angle;
 
   const perHour = 360 / maxHours;
+  // Java 的整数除法对负数是向零截断，s/60 在 s=-3605 时得 -60，
+  // 60 + (-60) = 0，黄圈整整一分钟宽度为 0（看起来像消失/闪）。
+  // 这里改用 Math.floor 向下取整，让负半轴和正半轴连续。
   if (s < 0) {
     angle[0] = -(59 + (s % 120)) * 6;
-    angle[1] = -(60 + (Math.trunc(s / 60) % 120)) * 6;
-    angle[2] = Math.trunc(-((maxHours + (Math.trunc(s / 3600) % maxHours)) * perHour));
+    angle[1] = -(60 + (Math.floor(s / 60) % 120)) * 6;
+    angle[2] = Math.trunc(-((maxHours + (Math.floor(s / 3600) % maxHours)) * perHour));
   } else {
     angle[0] = -(s % 120) * 6;
-    angle[1] = -(Math.trunc(s / 60) % 120) * 6;
-    angle[2] = Math.trunc(-((Math.trunc(s / 3600) % maxHours) * perHour));
+    angle[1] = -(Math.floor(s / 60) % 120) * 6;
+    angle[2] = Math.trunc(-((Math.floor(s / 3600) % maxHours) * perHour));
   }
   return angle;
 }
 
 /** 一圈：填充环 + 用背景色挖掉内圆 */
 function drawArc(ctx, dim, arcWidth, ang, color, bg) {
+  // ang === 0 时 arc(start, start) 是退化路径，closePath+fill 会画出细条，看起来在闪
+  if (!ang) return;
   const { x, y, w, h } = dim;
   const cx = x + w / 2;
   const cy = y + h / 2;

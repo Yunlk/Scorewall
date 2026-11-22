@@ -521,7 +521,10 @@ function renderPolar(pane) {
     ctx.font = '20px monospace';
     ctx.fillStyle = '#0f0';
     ctx.textAlign = 'left';
+    const ck = Object.keys(M.contest || {}).join(',');
     ctx.fillText(`clock=${clockMs} elapsed=${Math.round(elapsed)} dur=${dur}`, 20, H - 24);
+    ctx.fillText(`contest.start_time=${M.contest && M.contest.start_time} keys=[${ck}]`, 20, H - 48);
+    ctx.fillText(`state.started=${M.state && M.state.started} SRC=${SRC}`, 20, H - 72);
     ctx.restore();
   }
 }
@@ -736,14 +739,17 @@ async function bootstrap() {
   // 先拉全量快照：SSE 连上之前也能画，重连后也靠这个恢复
   const one = async (name) => {
     try {
-      const r = await fetch(`${SRC}/${name}`);
+      // name 为空 => contest 本身。注意不能拼成 `${SRC}/`，末尾多一个斜杠服务端会 404，
+      // 那样 M.contest 永远是空对象，contestTimes() 只能退化成 now，elapsed 恒为 0
+      const r = await fetch(name ? `${SRC}/${name}` : SRC);
       if (!r.ok) return null;
       return await r.json();
     } catch (_) { return null; }
   };
-  const [teams, problems, subs, judges, orgs, jtypes, sites, st] = await Promise.all(
-    ['teams', 'problems', 'submissions', 'judgements', 'organizations',
+  const [contest, teams, problems, subs, judges, orgs, jtypes, sites, st] = await Promise.all(
+    ['', 'teams', 'problems', 'submissions', 'judgements', 'organizations',
      'judgement-types', 'start-status', 'state'].map(one));
+  if (contest) Object.assign(M.contest, contest);
   (teams || []).forEach(t => M.teams.set(t.id, t));
   (problems || []).forEach(p => M.problems.set(p.id, p));
   (subs || []).forEach(s => M.submissions.set(s.id, s));
