@@ -80,7 +80,7 @@ function judgeTick() {
       end_time: isoOf(endSec),
     };
     LIVE.judges.push(j);
-    emit({ type: 'judgements', id: j.id, data: j });
+    emit({ type: 'judgements', id: j.id, data: withJudgementTimes(j) });
   }, judgeSec * 1000);
 }
 
@@ -154,7 +154,7 @@ function revStart(windowMs = 600000, speed = 12) {
         end_contest_time: rel(r.timestamp + 1000),
       };
       REV.judges.push(j);
-      revEmit({ type: 'judgements', id: j.id, data: j });
+      revEmit({ type: 'judgements', id: j.id, data: withJudgementTimes(j) });
     }, judgeDelay);
 
     const next = REV.list[REV.idx];
@@ -202,7 +202,7 @@ function d7round() {
       if (step.j) {
         const j = { ...step.j, id: step.j.id + 'r' + round, submission_id: step.j.submission_id + 'r' + round };
         DEMO7.judges.push(j);
-        d7emit({ type: 'judgements', id: j.id, data: j });
+        d7emit({ type: 'judgements', id: j.id, data: withJudgementTimes(j) });
       }
     }, step.t);
   }
@@ -214,14 +214,24 @@ setTimeout(d7start, 500);          // 服务启动就开始循环演示
 // contest 的 start_time 换成「1 小时前」：夹具里写死的是 2026-05-17，
 // PolarCountdown / Countdown 会算出巨大的 clock 目标值，Animator（Movement(35000, 8e6)）
 // 十几分钟都爬不到，圆环宽度恒为 0、数字停在 0:00:00，看起来跟没渲染一样
+/** ICPC Tools 的 Judgement.getProperties 会直接 longValue() 读 start_time，缺了会 NPE */
+function withJudgementTimes(j) {
+  if (j.start_time) return j;
+  const t = new Date(Date.now() - 3600_000 + 60_000).toISOString();
+  return { ...j, start_time: t, end_time: t };
+}
+
 const fixture = n => {
   const o = JSON.parse(readFileSync(join(FIX, n + '.json'), 'utf8'));
+  const startedIso = () => new Date(Date.now() - 3600_000).toISOString();
   if (n === 'contest') {
     // 让比赛处于「1 小时前开始、2 小时后结束」：总时长 3 小时
-    o.start_time = new Date(Date.now() - 3600_000).toISOString();
+    o.start_time = startedIso();
     o.duration = '3:00:00';
     o.scoreboard_freeze_duration = '1:00:00';
   }
+  // state.started 也要跟着动，否则 Countdown/Clock 拿到的还是夹具里写死的 2026-05-17
+  if (n === 'state') o.started = startedIso();
   return o;
 };
 
@@ -301,7 +311,7 @@ const server = http.createServer((req, res) => {
     if (rest === 'event-feed') {
       res.writeHead(200, { 'Content-Type': 'application/x-ndjson; charset=utf-8', 'Cache-Control': 'no-cache', 'Access-Control-Allow-Origin': '*', Connection: 'keep-alive' });
       for (const sub of DEMO7.subs) { try { res.write(JSON.stringify({ type: 'submissions', id: sub.id, data: sub }) + '\n'); } catch (_) {} }
-      for (const j of DEMO7.judges) { try { res.write(JSON.stringify({ type: 'judgements', id: j.id, data: j }) + '\n'); } catch (_) {} }
+      for (const j of DEMO7.judges) { try { res.write(JSON.stringify({ type: 'judgements', id: j.id, data: withJudgementTimes(j) }) + '\n'); } catch (_) {} }
       const beat = setInterval(() => { try { res.write('\n'); } catch (_) { clearInterval(beat); } }, 15000);
       DEMO7.clients.add(res);
       d7start();
@@ -316,13 +326,13 @@ const server = http.createServer((req, res) => {
     const rest = path.slice('/api/contests/5'.length).replace(/^\//, '');
     FIX = join(here, 'fixtures', 'lncpc');
     if (rest === 'submissions') return json(res, REV.subs);
-    if (rest === 'judgements') return json(res, REV.judges);
+    if (rest === 'judgements') return json(res, REV.judges.map(withJudgementTimes));
     if (rest === 'state') return json(res, { id: '1', started: '2026-05-17T01:00:00.000Z', ended: null, frozen: null, thawed: null, finalized: null, end_of_updates: null });
     if (rest === 'event-feed' || rest === '') {
       if (rest === '') return json(res, fixture('contest'));
       res.writeHead(200, { 'Content-Type': 'application/x-ndjson; charset=utf-8', 'Cache-Control': 'no-cache', 'Access-Control-Allow-Origin': '*', Connection: 'keep-alive' });
       for (const sub of REV.subs) { try { res.write(JSON.stringify({ type: 'submissions', id: sub.id, data: sub }) + '\n'); } catch (_) {} }
-      for (const j of REV.judges) { try { res.write(JSON.stringify({ type: 'judgements', id: j.id, data: j }) + '\n'); } catch (_) {} }
+      for (const j of REV.judges) { try { res.write(JSON.stringify({ type: 'judgements', id: j.id, data: withJudgementTimes(j) }) + '\n'); } catch (_) {} }
       const beat = setInterval(() => { try { res.write('\n'); } catch (_) { clearInterval(beat); } }, 15000);
       REV.clients.add(res);
       req.on('close', () => { clearInterval(beat); REV.clients.delete(res); });
@@ -364,7 +374,7 @@ const server = http.createServer((req, res) => {
         try { res.write(JSON.stringify({ type: 'submissions', id: sub.id, data: sub }) + '\n'); } catch (_) {}
       }
       for (const j of LIVE.judges) {
-        try { res.write(JSON.stringify({ type: 'judgements', id: j.id, data: j }) + '\n'); } catch (_) {}
+        try { res.write(JSON.stringify({ type: 'judgements', id: j.id, data: withJudgementTimes(j) }) + '\n'); } catch (_) {}
       }
       LIVE.clients.add(res);
       req.on('close', () => { clearInterval(beat); LIVE.clients.delete(res); });
