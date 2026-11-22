@@ -162,7 +162,7 @@ export function drawFrame(ctx, L, rows, probs, times, scrollPx, perProblem, fade
     // 滚动后可见窗口是 [scrollPx, scrollPx + contentH]
     const contentH = H - contentTop;
     if (y + barH <= scrollPx || y >= scrollPx + contentH) continue;
-    drawRow(ctx, L, r, probs, y, indent, opts.now || 0, opts.elapsedSec);
+    drawRow(ctx, L, r, probs, y, indent, opts.now || 0, opts.elapsedSec, opts.orgs);
   }
 
   // ---------- 底部两行统计（drawStatsRow） ----------
@@ -264,7 +264,61 @@ function drawLegend(ctx, W, H) {
   ctx.restore();
 }
 
-function drawRow(ctx, L, r, probs, y, indent, nowMs, elapsedSec) {
+// AbstractScoreboardPresentation.getSmallTeamLogo：尺寸 rowHeight-10，垂直居中于整行，
+// x 从 BORDER + w("199 ") 开始（那段宽度就是留给 logo 的）
+// getBestFileReference:447-455 —— 优先 SVG，否则挑尺寸最接近的
+function pickLogoRef(org, size) {
+  const list = Array.isArray(org && org.logo) ? org.logo
+    : (org && org.logo ? [org.logo] : []);
+  if (!list.length) return null;
+
+  const svg = list.find(r => r && r.mime === 'image/svg+xml');
+  if (svg) return svg;
+
+  let best = null;
+  for (const r of list) {
+    if (!r) continue;
+    if (!best) { best = r; continue; }
+    const bw = best.width || 0, bh = best.height || 0;
+    const rw = r.width || 0, rh = r.height || 0;
+    if (bw < size && bh < size) {
+      if (rw > bw || rh > bh) best = r;
+    } else if (bw > size && bh > size) {
+      if (rw < bw || rh < bh) { if (rw >= size || rh >= size) best = r; }
+    }
+  }
+  return best;
+}
+
+function drawTeamLogo(ctx, x, y, size, team, orgs) {
+  const org = orgs && team.organization_id ? orgs.get(team.organization_id) : null;
+  const img = org && org._logoImg;
+  if (img && img.complete && img.naturalWidth > 0) {
+    // ImageScaler.scaleImage：等比缩到装进 size×size，再在框内居中（不比拉伸）
+    const sc = Math.min(size / img.naturalWidth, size / img.naturalHeight);
+    const dw = Math.round(img.naturalWidth * sc);
+    const dh = Math.round(img.naturalHeight * sc);
+    ctx.drawImage(img, x + (size - dw) / 2, y + (size - dh) / 2, dw, dh);
+    return;
+  }
+
+  // 没有 logo 时用队名首字 + 名字哈希出的颜色占位
+  let h = 0;
+  for (const ch of String(team.name || '')) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  ctx.fillStyle = `hsl(${h % 360},42%,40%)`;
+  ctx.beginPath();
+  ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#fff';
+  ctx.font = `bold ${Math.floor(size * 0.52)}px ${FONT}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(String(team.name || '?').charAt(0), x + size / 2, y + size / 2 + 1);
+  ctx.textAlign = 'left';
+}
+
+function drawRow(ctx, L, r, probs, y, indent, nowMs, elapsedSec, orgs) {
   const { W, rowH, cubeW, cubeH, rowFont } = L;
   ctx.textBaseline = 'middle';
 
@@ -281,6 +335,10 @@ function drawRow(ctx, L, r, probs, y, indent, nowMs, elapsedSec) {
   ctx.font = fr;
   ctx.fillStyle = '#fff';
   ctx.fillText(String(r.rank), BORDER + (w199 - w(String(r.rank), fr)) / 2, baseY);
+
+  // 队伍 logo
+  const logoSize = Math.max(8, Math.floor(L.rowH) - 10);
+  drawTeamLogo(ctx, indent - L.rowH, y + (L.rowH - logoSize) / 2, logoSize, r.team, orgs);
 
   // 队名（drawFit）
   const avail = Math.max(40, W - BORDER - w('199 9 9999 ', fr) - rowH - indent);

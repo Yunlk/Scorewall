@@ -279,17 +279,34 @@ function renderStandings(pane, data) {
   const scrollPx = Math.min(scrollPages, pages - 1) * 12 * L.rowH;
 
   const alpha = FORCE_FADE !== null ? FORCE_FADE : Math.max(0, Math.min(1, fade));
+  preloadOrgLogos();
   drawFrame(ctx, L, data.rows, data.probs, times, scrollPx, perProblemStats(data), alpha,
     {
       frozen: !!(M.state && M.state.isFrozen()),
       now: performance.now(),
       elapsedSec: Math.floor(contestTimes().elapsed / 1000),
+      orgs: M.orgs,
     });
 }
 
 function esc(s) {
   return String(s == null ? '' : s)
     .replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+
+/** 组织 logo 预加载（CCS organizations[].logo 是 {href, mime, width, height} 数组） */
+function preloadOrgLogos() {
+  for (const org of M.orgs.values()) {
+    if (org._logoImg || !org.logo) continue;
+    const list = Array.isArray(org.logo) ? org.logo : [org.logo];
+    // getBestFileReference：优先 SVG
+    const ref = list.find(r => r && r.mime === 'image/svg+xml') || list[0];
+    const href = ref && (typeof ref === 'string' ? ref : ref.href);
+    if (!href) continue;
+    const img = new Image();
+    img.src = resolveUrl(SRC, href);
+    org._logoImg = img;
+  }
 }
 
 // ---------------- 主循环：SSE 驱动 ----------------
