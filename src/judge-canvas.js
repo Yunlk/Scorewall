@@ -17,6 +17,7 @@
  */
 
 import { rel2sec } from './scoring.js';
+import { drawTeamLogo } from './team-logo.js';
 
 // ---------- TitledPresentation / AbstractScoreboardPresentation 常量 ----------
 const BORDER = 8;
@@ -318,6 +319,10 @@ export function drawJudgeFrame(ctx, L, rows, probs, times, opts = {}) {
     const rank = String(r.rank);
     ctx.fillText(rank, BORDER + (w199 - widthOf(ctx, L.rowItalicsFont, rank)) / 2, y + textY);
 
+    // 队标（JudgePresentation.paintCell:314-318，和总榜同一套公式）
+    const logoSize = Math.max(8, Math.floor(rowH) - 10);
+    drawTeamLogo(ctx, BORDER + w199sp, y + (rowH - logoSize) / 2, logoSize, r.team, opts.orgs, opts.showLogo);
+
     // 队名：和总榜同一套 —— 超宽就缩字号（下限 0.55×），基线不动
     const nameX = BORDER + w199sp + rowH;
     const avail = Math.max(40, W - BORDER - w199_9_9999 - rowH);
@@ -392,6 +397,8 @@ export function rowOf(sub, model, byTeam, pidx, statusMap, elapsedSec, ftsSet) {
   const sec = rel2sec(sub.contest_time);
   const recent = !verdict ? true : (elapsedSec == null ? true : sec > elapsedSec - 300);
   return {
+    // drawTeamLogo 需要 organization_id / name，只有 teamName 不够
+    team: st ? st.team : { name: sub.team_id },
     teamName: st ? st.team.name : sub.team_id,
     rank: st ? st.rank : '-',
     solved: st ? st.solved : 0,

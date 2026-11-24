@@ -18,6 +18,7 @@
  */
 
 import { PALETTE, css, metrics, widthOf, roundRectPath } from './judge-canvas.js';
+import { drawTeamLogo } from './team-logo.js';
 import { Animator, Movement } from './judge-queue.js';
 
 export const TILE_H_GAP = 10;
@@ -110,7 +111,7 @@ export function scrollOffset(tMs, H, rows = DEFAULT_ROWS, columns = DEFAULT_COLU
 }
 
 /** 单个队伍瓦片（TeamTileHelper.paintTile 的简化版） */
-function drawTile(ctx, L, x, y, r, probs) {
+function drawTile(ctx, L, x, y, r, probs, opts) {
   const { tileW, tileH } = L;
   const GAP = 3;                      // TeamTileHelper.IN_TILE_GAP
   const bgArc = Math.trunc(tileW / 40);
@@ -136,6 +137,12 @@ function drawTile(ctx, L, x, y, r, probs) {
   ctx.fillStyle = '#fff';
   const rank = String(r.rank);
   ctx.fillText(rank, (ww - widthOf(ctx, L.rankFont, rank)) / 2, (tileH + rankFm.asc) / 2);
+
+  // 队标（TeamTileHelper:150-167）：尺寸 tileDim.height-10，x 居中于「ww 到 ww+tileH」那段，
+  // y 垂直居中于整块瓦片
+  const logoSize = Math.max(8, Math.floor(tileH) - 10);
+  drawTeamLogo(ctx, ww + (tileH - logoSize) / 2, (tileH - logoSize) / 2,
+    logoSize, r.team, opts && opts.orgs, opts && opts.showLogo);
 
   // 队名：从 ww + tileH + GAP 开始（前面那段宽度留给 logo），顶边 tileH/10
   const nameX = ww + tileH + GAP;
@@ -272,7 +279,7 @@ export function drawTileRank(ctx, L, groups, probs, scrollPx, opts = {}) {
       const tx = L.margin + t.col * (tileW + TILE_H_GAP);
       const ty = (g.y + t.rowInGroup) * (tileH + TILE_V_GAP);
       if (ty + tileH < scrollPx || ty > scrollPx + H) continue;
-      drawTile(ctx, L, tx, ty, t.row, probs);
+      drawTile(ctx, L, tx, ty, t.row, probs, opts);
     }
   }
 

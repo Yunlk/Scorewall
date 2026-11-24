@@ -11,6 +11,7 @@
  */
 
 import { PALETTE, css, metrics, widthOf, roundRectPath, cellPaint, judgeLayout, BORDER, CUBE_INSET } from './judge-canvas.js';
+import { drawTeamLogo } from './team-logo.js';
 import { Animator, Movement } from './judge-queue.js';
 
 /** AbstractScoreboardPresentation.ROW_MOVEMENT —— 注意和判题队列的 (5,9) 不同 */
@@ -207,6 +208,11 @@ export function drawFtsFrame(ctx, L, rows, times, opts = {}) {
     ctx.font = L.rowItalicsFont;
     ctx.fillStyle = '#fff';
     ctx.fillText(r.timeText, BORDER + (w199 - widthOf(ctx, L.rowItalicsFont, r.timeText)) / 2, y + textY);
+
+    // 队标（FirstToSolvePresentation:252-256，和总榜同一套公式）
+    const logoSize = Math.max(8, Math.floor(rowH) - 10);
+    drawTeamLogo(ctx, BORDER + w199sp, y + (rowH - logoSize) / 2, logoSize,
+      r.team || { name: r.teamName }, opts.orgs, opts.showLogo);
 
     // 队名：和总榜同一套 —— 超宽就缩字号（下限 0.55×），基线不动
     const nameX = BORDER + w199sp + rowH;

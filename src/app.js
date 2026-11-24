@@ -26,6 +26,9 @@ const SRC = (Q.get('src') || 'http://127.0.0.1:8081/api/contests/144333').replac
 const VIEW = Q.get('view') || 'standings';
 /** AbstractScoreboardPresentation.setNumRows() —— 行数直接决定字号（源码支持 rows: 属性） */
 const ROWS_PARAM = Math.max(1, Number(Q.get('rows')) || 12);
+/** 校徽开关 / tag（config 里「显示校徽」「校徽 tag」两项） */
+const LOGO_ON = Q.get('logo') !== '0';
+const LOGO_TAG = Q.get('logoTag') || 'dark';
 
 
 
@@ -286,8 +289,8 @@ function renderStandings(pane, data) {
       now: performance.now(),
       elapsedSec: Math.floor(contestTimes().elapsed / 1000),
       orgs: M.orgs,
-      showLogo: Q.get('logo') !== '0',
-      logoTags: Q.get('logoTag') || 'dark',
+      showLogo: LOGO_ON,
+      logoTags: LOGO_TAG,
     });
 }
 
@@ -302,7 +305,7 @@ function preloadOrgLogos() {
     if (org._logoImg || !org.logo) continue;
     const list = Array.isArray(org.logo) ? org.logo : [org.logo];
     // getBestFileReference：按 tag 过滤后优先 SVG
-    const tag = Q.get('logoTag') || 'dark';
+    const tag = LOGO_TAG;
     const withTag = list.filter(r => r && Array.isArray(r.tags) && r.tags.includes(tag));
     const untagged = list.filter(r => r && (!Array.isArray(r.tags) || !r.tags.length));
     const pool = withTag.length ? withTag : (untagged.length ? untagged : list);
@@ -444,7 +447,7 @@ function renderJudge(pane) {
     return r;
   });
 
-  drawJudgeFrame(ctx, L, rows, data.probs, times, { frozen, now });
+  drawJudgeFrame(ctx, L, rows, data.probs, times, { frozen, now, orgs: M.orgs, showLogo: LOGO_ON });
 
   // 调试：?debug=1 显示页面侧真实计数
   if (Q.get('debug') === '1') {
@@ -554,6 +557,8 @@ function renderTileRank(pane) {
 
   drawTileRank(ctx, L, groups, data.probs, scrollPx, {
     frozen: !!(M.state && M.state.isFrozen()),
+    orgs: M.orgs,
+    showLogo: LOGO_ON,
   });
 
   if (Q.get('debug') === '1') {
@@ -640,6 +645,7 @@ function renderFts(pane) {
       y: sr.anim.getValue(),
       timeText: String(Math.floor(sec / 60)),
       teamName: st ? st.team.name : sub.team_id,
+      team: st ? st.team : { name: sub.team_id },
       problemLabel: prob ? (prob.label || '') : '',
       probs,
       currentIndex: pi,
@@ -648,7 +654,7 @@ function renderFts(pane) {
     };
   });
 
-  drawFtsFrame(ctx, L, rows, times, { frozen, ftsCount: q.fts.length });
+  drawFtsFrame(ctx, L, rows, times, { frozen, ftsCount: q.fts.length, orgs: M.orgs, showLogo: LOGO_ON });
 
   if (Q.get('debug') === '1') {
     ctx.save();
