@@ -218,7 +218,7 @@ const LEGEND = {
   TEXT: ['First to Solve', 'Solved Problem', 'Rejected Submission', 'Pending Submission'],
 };
 
-function drawLegend(ctx, W, H) {
+export function drawLegend(ctx, W, H) {
   const { MARGIN, H_SPACING, V_SPACING, FONT_PX, TEXT } = LEGEND;
   ctx.save();
   ctx.font = `bold ${FONT_PX}px ${FONT}`;

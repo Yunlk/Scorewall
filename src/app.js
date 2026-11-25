@@ -19,6 +19,7 @@ import { problemLayout, drawProblemFrame, problemStats, problemRepeat, makeColor
 import { makeProblemChart, CHART_REPEAT } from './chart-canvas.js';
 import { tileLayout, buildGroups, drawTileRank, tileRepeat, scrollOffset, DEFAULT_COLUMNS } from './tilerank-canvas.js';
 import { drawPolarCountdown } from './polar-canvas.js';
+import { timelineLayout, drawTimelineFrame } from './timeline-canvas.js';
 import { FtsQueue, drawFtsFrame } from './fts-canvas.js';
 
 const Q = new URLSearchParams(location.search);
@@ -340,7 +341,7 @@ window.addEventListener('unhandledrejection', ev => {
 function layout() {
   if (VIEW === 'standings' || VIEW === 'judge' || VIEW === 'countdown'
     || VIEW === 'problems' || VIEW === 'chart' || VIEW === 'fts' || VIEW === 'tilerank'
-    || VIEW === 'polar') {
+    || VIEW === 'polar' || VIEW === 'timeline') {
     paneA.style.display = 'block';
     paneB.classList.add('hidden');
   }
@@ -354,6 +355,7 @@ function draw() {
   if (VIEW === 'fts') { renderFts(paneA); dirty = false; return; }
   if (VIEW === 'tilerank') { renderTileRank(paneA); dirty = false; return; }
   if (VIEW === 'polar') { renderPolar(paneA); dirty = false; return; }
+  if (VIEW === 'timeline') { renderTimeline(paneA); dirty = false; return; }
   // 有滚动动画，必须每帧重画（对齐 Java 的立即模式）
   const at = freezeAtSec(durationMs(), freezeMs());
   const data = computeStandings(M, {
@@ -530,6 +532,74 @@ function renderPolar(pane) {
     ctx.fillText(`state.started=${M.state && M.state.started} SRC=${SRC}`, 20, H - 72);
     ctx.restore();
   }
+}
+
+/** #? 题解时间轴（TimelinePresentation 移植） */
+let tlCache = null;
+
+/** 按队伍分组提交，并标出每题的首解与 recent */
+function timelineSubs(probs, pidx, elapsedSec) {
+  const n = M.submissions.size;
+  if (tlCache && tlCache.n === n && tlCache.elapsed === (elapsedSec | 0)) return tlCache.byTeam;
+
+  const all = [];
+  for (const sub of M.submissions.values()) {
+    const pi = pidx.has(sub.problem_id) ? pidx.get(sub.problem_id) : -1;
+    if (pi < 0) continue;
+    all.push({
+      sub, pi,
+      sec: rel2sec(sub.contest_time),
+      verdict: judgeStatus.get(sub.id) || null,
+    });
+  }
+
+  // 每题最早的一条 solved 才是 First to Solve
+  const firstAc = new Map();
+  for (const x of all) {
+    if (x.verdict !== 'solved') continue;
+    const cur = firstAc.get(x.pi);
+    if (!cur || x.sec < cur.sec) firstAc.set(x.pi, x.sub.id);
+  }
+
+  const byTeam = new Map();
+  for (const x of all) {
+    const item = {
+      tSec: x.sec,
+      label: (probs[x.pi] && probs[x.pi].label) || '',
+      status: x.verdict === 'solved' ? 'solved' : x.verdict === 'failed' ? 'failed' : 'pending',
+      isFts: x.verdict === 'solved' && firstAc.get(x.pi) === x.sub.id,
+      recent: elapsedSec == null ? true : x.sec > elapsedSec - 300,
+    };
+    if (!byTeam.has(x.sub.team_id)) byTeam.set(x.sub.team_id, []);
+    byTeam.get(x.sub.team_id).push(item);
+  }
+  for (const arr of byTeam.values()) arr.sort((a, b) => a.tSec - b.tSec);
+
+  tlCache = { n, elapsed: elapsedSec | 0, byTeam };
+  return byTeam;
+}
+
+function renderTimeline(pane) {
+  const { ctx, W, H } = ensureCanvas(pane);
+  if (!W || !H) return;
+
+  const at = freezeAtSec(durationMs(), freezeMs());
+  const data = computeStandings(M, {
+    hideJudgement: sub => isJudgementHidden(M.state, rel2sec(sub.contest_time), at),
+  });
+  const t = contestTimes();
+  const pidx = new Map(data.probs.map((p, i) => [p.id, i]));
+  const elapsedSec = Math.floor(t.elapsed / 1000);
+  const byTeam = timelineSubs(data.probs, pidx, elapsedSec);
+
+  drawTimelineFrame(ctx, timelineLayout(W, H), data.rows, data.probs, byTeam, {
+    elapsedText: fmtClock(t.elapsed, true),
+    remainText: fmtClock(t.remain, true),
+    duration: durationMs(),
+    freezeMs: freezeMs() || 0,
+    elapsed: t.elapsed,
+    frozen: !!(M.state && M.state.isFrozen()),
+  }, { orgs: M.orgs, showLogo: LOGO_ON });
 }
 
 /** #? 按过题数分档的瓦片榜（TileRankScoreboardPresentation 移植） */
