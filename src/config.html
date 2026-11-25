@@ -7,10 +7,10 @@
   :root { color-scheme: dark; }
   * { box-sizing: border-box; }
   body { margin: 0; background: #111; color: #e8e8e8; font: 15px/1.6 system-ui, "Microsoft YaHei", sans-serif; }
-  .wrap { max-width: 860px; margin: 0 auto; padding: 32px 24px 64px; }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 32px 24px 64px; }
   h1 { font-size: 22px; margin: 0 0 6px; }
-  .sub { color: #8b8b8b; margin-bottom: 28px; }
-  fieldset { border: 1px solid #2a2a2a; border-radius: 8px; padding: 18px 20px 22px; margin: 0 0 22px; }
+  .sub { color: #8b8b8b; margin-bottom: 24px; }
+  fieldset { border: 1px solid #2a2a2a; border-radius: 8px; padding: 18px 20px 22px; margin: 0 0 20px; }
   legend { padding: 0 8px; color: #9ad; font-size: 13px; letter-spacing: .05em; }
   label { display: block; margin: 14px 0 6px; font-size: 13px; color: #b5b5b5; }
   input, select { width: 100%; padding: 9px 10px; background: #1b1b1b; color: #eee;
@@ -29,79 +29,73 @@
   .ok { color: #7fd17f; }
   ol { padding-left: 20px; color: #b5b5b5; font-size: 13px; }
   code.inline { background: #1b1b1b; padding: 1px 5px; border-radius: 4px; }
+
+  /* 视图卡片 */
+  .views { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 8px; }
+  .vcard { text-align: left; padding: 10px 12px; border-radius: 8px; border: 1px solid #2a2a2a;
+    background: #171717; color: #ddd; cursor: pointer; font: inherit; line-height: 1.35;
+    display: flex; flex-direction: column; gap: 3px; }
+  .vcard:hover { border-color: #3d5f8f; background: #1b2330; }
+  .vcard.on { border-color: #4a7bd0; background: #16253d; color: #fff; }
+  .vcard b { font-weight: 600; font-size: 14px; }
+  .vcard small { color: #7f8b99; font-size: 11px; font-family: ui-monospace, Consolas, monospace; }
+  .vcard.on small { color: #8fb4e8; }
+  .vdesc { margin-top: 12px; padding: 10px 12px; border-left: 2px solid #34527f;
+    background: #151a22; border-radius: 0 6px 6px 0; font-size: 13px; color: #a8b4c2; }
+  .vdesc code { color: #8fb4e8; }
+
+  .hidden { display: none !important; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+  .grid2 a { display: block; padding: 8px 10px; background: #161616; border: 1px solid #2a2a2a;
+    border-radius: 6px; color: #bcd; text-decoration: none; font-size: 13px; }
+  .grid2 a:hover { background: #1c2530; border-color: #3d5f8f; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>Scorewall 配置</h1>
-  <div class="sub">生成大屏地址，直接贴进 OBS 的「浏览器源」即可</div>
+  <div class="sub">选视图 → 调参数 → 生成地址，贴进 OBS 的「浏览器源」</div>
 
   <form id="f">
     <fieldset>
       <legend>数据源</legend>
       <label>CCS 比赛地址</label>
-      <input id="src" value="http://127.0.0.1:8090/api/contests/1" spellcheck="false">
+      <input id="src" value="http://127.0.0.1:8090/api/contests/5" spellcheck="false">
       <div class="hint">末尾到 <code class="inline">/api/contests/&lt;id&gt;</code>，不要带斜杠</div>
-
-      <label>视图</label>
-      <select id="view">
-        <option value="standings">总榜（Current Standings）</option>
-        <option value="countdown">倒计时（带工位状态）</option>
-        <option value="judge">判题队列（Judge Queue）</option>
-        <option value="problems">单题统计（Problem Summary）</option>
-        <option value="chart">柱状图（Attempts &amp; Solutions）</option>
-        <option value="fts">首杀榜（First to Solve）</option>`n        <option value="tilerank">过题数分档瓦片榜（Tile Rank）</option>`n        <option value="polar">圆环倒计时（Polar Countdown）</option>
-        <option value="timeline">题解时间轴（Timeline）</option>
-      </select>
     </fieldset>
 
     <fieldset>
-      <legend>显示</legend>
-      <div class="row">
-        <div>
-          <label>强制页码</label>
-          <input id="page" type="number" min="0" placeholder="留空 = 自动翻页">
-          <div class="hint">0 是第一页；留空则按 12 秒翻页</div>
-        </div>
-        <div>
-          <label>强制透明度</label>
-          <input id="fade" type="number" min="0" max="1" step="0.05" placeholder="留空 = 自动淡入淡出">
-          <div class="hint">0 = 全透（黑屏），1 = 不透明；调试用</div>
-        </div>
-        <div>
-          <label>预览尺寸</label>
-          <div class="row">
-            <div><input id="w" type="number" value="960"></div>
-            <div><input id="h" type="number" value="1080"></div>
-          </div>
-          <div class="hint">OBS 里填的宽高（1080p 左/右半屏 = 960×1080）</div>
-        </div>
-      </div>
+      <legend>视图</legend>
+      <div class="views" id="views"></div>
+      <div class="vdesc" id="vdesc"></div>
     </fieldset>
 
-    <fieldset>
-      <legend>判题队列</legend>
+    <fieldset data-views="standings judge fts tilerank timeline">
+      <legend>行数 / 字号</legend>
       <label>屏幕行数</label>
       <select id="rows">
         <option value="12">12 行（源码默认，rowFont 40px）</option>
         <option value="14">14 行（rowFont 34px）</option>
         <option value="16">16 行（rowFont 30px）</option>
         <option value="18">18 行（rowFont 27px）</option>
-        <option value="10">10 行（FirstSolution 用的值，rowFont 48px）</option>
+        <option value="10">10 行（rowFont 48px）</option>
         <option value="8">8 行（rowFont 55px）</option>
       </select>
-      <div class="hint">对应源码 <code class="inline">setNumRows()</code>：行数直接决定字号，<b>不是</b>固定的</div>
+      <div class="hint"><code class="inline">setNumRows()</code> —— 行数直接决定字号，不是固定的</div>
+    </fieldset>
 
+    <fieldset data-views="judge">
+      <legend>判题队列节奏</legend>
       <div class="row">
         <div>
           <label>AC 后停留</label>
           <input id="keepSolved" type="number" min="0" step="500" value="11000">
-          <div class="hint">毫秒。源码默认 11000；到期后整行向上滑出（无淡出）</div>
+          <div class="hint">毫秒。源码默认 11000；到期整行向上滑出（无淡出）</div>
         </div>
         <div>
           <label>WA 后停留</label>
           <input id="keepFailed" type="number" min="0" step="500" value="8000">
-          <div class="hint">毫秒。源码默认 8000；到期后整行向下滑出并淡出</div>
+          <div class="hint">毫秒。源码默认 8000；到期整行向下滑出并淡出</div>
         </div>
       </div>
       <label>滑出淡出时长</label>
@@ -109,25 +103,29 @@
       <div class="hint">毫秒。源码 <code class="inline">TIME_TO_FADE_RECENT</code> = 2000</div>
     </fieldset>
 
-    <fieldset>
+    <fieldset data-views="standings judge fts tilerank timeline">
       <legend>队伍校徽</legend>
-      <label>显示校徽</label>
-      <select id="logo">
-        <option value="1">显示（用 organizations[].logo）</option>
-        <option value="0">不显示（源码原生：没有就留空）</option>
-      </select>
-      <div class="hint">尺寸固定为 <code class="inline">rowHeight - 10</code>，等比缩放居中；没有 logo 时显示队名首字占位</div>
-
-      <label>校徽 tag</label>
-      <select id="logoTag">
-        <option value="dark">dark（深色界面，getModeTag 默认）</option>
-        <option value="light">light（浅色界面）</option>
-      </select>
-      <div class="hint">对应 <code class="inline">FileReference.TAG_DARK / TAG_LIGHT</code>：优先挑带该 tag 的图，其次没声明 tags 的通用图，最后才用任意图；选定一组后优先 SVG</div>
+      <div class="row">
+        <div>
+          <label>显示校徽</label>
+          <select id="logo">
+            <option value="1">显示（用 organizations[].logo）</option>
+            <option value="0">不显示（源码原生：没有就留空）</option>
+          </select>
+        </div>
+        <div>
+          <label>校徽 tag</label>
+          <select id="logoTag">
+            <option value="dark">dark（深色界面，getModeTag 默认）</option>
+            <option value="light">light（浅色界面）</option>
+          </select>
+        </div>
+      </div>
+      <div class="hint">尺寸固定 <code class="inline">rowHeight - 10</code>（瓦片里是 <code class="inline">tileDim.height - 10</code>），等比缩放居中；无 logo 时显示队名首字占位。</div>
     </fieldset>
 
-    <fieldset>
-      <legend>单题统计配色</legend>
+    <fieldset data-views="problems chart">
+      <legend>单题配色</legend>
       <label>配色方式</label>
       <select id="probColor">
         <option value="data">用数据自带的 rgb</option>
@@ -138,16 +136,57 @@
 
       <label>自定义色板</label>
       <input id="probPalette" placeholder="#FF7109,#008100,#0096FF,#FF0000" spellcheck="false">
-      <div class="hint">逗号分隔的十六进制，按题号循环取色；只在「自定义色板」时生效</div>
+      <div class="hint">逗号分隔十六进制，按题号循环取色；只在「自定义色板」时生效</div>
+    </fieldset>
+
+    <fieldset data-views="polar">
+      <legend>圆环倒计时</legend>
+      <label>手动代入时刻（秒）</label>
+      <input id="at" type="number" min="0" placeholder="留空 = 用真实 start_time">
+      <div class="hint">数据源没有 <code class="inline">start_time</code> 时，圆环会一直是 0°（<code class="inline">clock</code> 停在 0）。填个数强行指定「比赛已进行到第几秒」便于调样式。</div>
+    </fieldset>
+
+    <fieldset>
+      <legend>显示 / 调试</legend>
+      <div class="row">
+        <div>
+          <label>强制页码</label>
+          <input id="page" type="number" min="0" placeholder="留空 = 自动翻页">
+          <div class="hint">0 是第一页；留空按 12 秒翻页</div>
+        </div>
+        <div>
+          <label>强制透明度</label>
+          <input id="fade" type="number" min="0" max="1" step="0.05" placeholder="留空 = 自动">
+          <div class="hint">0 = 全透，1 = 不透明</div>
+        </div>
+      </div>
+      <label>调试信息</label>
+      <select id="debug">
+        <option value="0">关</option>
+        <option value="1">开（左下角打印计数/时钟）</option>
+      </select>
+    </fieldset>
+
+    <fieldset>
+      <legend>预览尺寸</legend>
+      <div class="row">
+        <div><label>宽</label><input id="w" type="number" value="960"></div>
+        <div><label>高</label><input id="h" type="number" value="1080"></div>
+      </div>
+      <div class="hint">只影响下面「打开预览」的窗口大小，不写进 URL</div>
     </fieldset>
 
     <div class="btns">
       <button type="button" id="gen">生成地址</button>
       <button type="button" id="copy">复制</button>
-      <a class="btn" id="open" href="#" target="_blank" rel="noopener">打开预览</a>
+      <button type="button" id="openAll">打开全部视图</button>
     </div>
-
     <div class="out"><code id="url">—</code></div>
+
+    <fieldset style="margin-top:22px">
+      <legend>各视图直达</legend>
+      <div class="grid2" id="links"></div>
+    </fieldset>
   </form>
 
   <fieldset style="margin-top:28px">
@@ -157,7 +196,7 @@
       <li>URL 粘贴上面生成的地址</li>
       <li>宽度/高度填预览尺寸（960×1080 这种）</li>
       <li>勾选 <b>「关闭源时关闭页面」= 否</b>、<b>「场景激活时刷新」= 否</b></li>
-      <li>自定义 CSS 留空；如需透明背景，在页面里已默认黑底</li>
+      <li>自定义 CSS 留空；页面默认黑底</li>
     </ol>
   </fieldset>
 </div>
@@ -165,49 +204,135 @@
 <script>
 (function () {
   const $ = id => document.getElementById(id);
-  const state = () => {
+
+  const VIEWS = [
+    { id: 'standings', name: '总榜', src: 'LeaderboardPresentation',
+      desc: '按名次排的队伍表，每队一排题目格子。带统计行与右下角图例。' },
+    { id: 'judge', name: '判题队列', src: 'JudgePresentation',
+      desc: '实时判题流：每次提交滑入一行，AC 后向上滑出、WA 后向下淡出。' },
+    { id: 'countdown', name: '倒计时', src: 'StatusCountdownPresentation',
+      desc: '大赛时钟 + 各工位状态块。封榜后数字转黄。' },
+    { id: 'problems', name: '单题统计', src: 'ProblemSummaryPresentation',
+      desc: '每题的通过数 / 尝试数方块矩阵，颜色可配。' },
+    { id: 'chart', name: '柱状图', src: 'ProblemSummaryChart',
+      desc: '每题的尝试数与过题数柱状图，随时间平滑增长。' },
+    { id: 'fts', name: '首杀榜', src: 'FirstToSolvePresentation',
+      desc: '每道题第一个通过的队伍，按题目顺序列出。' },
+    { id: 'tilerank', name: '分档瓦片榜', src: 'TileRankScoreboardPresentation',
+      desc: '按过题数分组的瓦片，左侧是大号过题数，每组之间留档位间隙。' },
+    { id: 'polar', name: '圆环倒计时', src: 'PolarCountdownPresentation',
+      desc: '三圈同心环：蓝=小时、黄=分钟、红=秒，中心是七段管时钟。' },
+    { id: 'timeline', name: '题解时间轴', src: 'TimelinePresentation',
+      desc: '每队一条横向时间轴，每次提交是一个小方块，含封榜线与当前时刻线。' },
+  ];
+
+  let cur = new URLSearchParams(location.search).get('view') || 'standings';
+
+  // ---- 视图卡片 ----
+  function buildCards() {
+    const box = $('views');
+    box.innerHTML = '';
+    for (const v of VIEWS) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'vcard' + (v.id === cur ? ' on' : '');
+      b.dataset.view = v.id;
+      b.innerHTML = '<b>' + v.name + '</b><small>' + v.src + '</small>';
+      b.onclick = () => { cur = v.id; sync(); };
+      box.appendChild(b);
+    }
+  }
+
+  function sync() {
+    for (const b of document.querySelectorAll('.vcard')) b.classList.toggle('on', b.dataset.view === cur);
+    const v = VIEWS.find(x => x.id === cur);
+    $('vdesc').innerHTML = v ? v.desc : '';
+    for (const fs of document.querySelectorAll('fieldset[data-views]')) {
+      const list = fs.dataset.views.split(' ');
+      fs.classList.toggle('hidden', !list.includes(cur));
+    }
+    refresh();
+  }
+
+  // ---- URL ----
+  function state() {
     const p = new URLSearchParams();
     p.set('src', $('src').value.trim());
-    p.set('view', $('view').value);
+    p.set('view', cur);
+
     if ($('page').value !== '') p.set('page', $('page').value);
     if ($('fade').value !== '') p.set('fade', $('fade').value);
-    // 判题队列的三个时长：留空或等于默认值时不写进 URL
+    if ($('debug').value === '1') p.set('debug', '1');
+
+    // 只把当前视图真正用得到的参数写进 URL
+    const relevant = id => {
+      const fs = $(id).closest('fieldset');
+      return !fs || !fs.dataset.views || fs.dataset.views.split(' ').includes(cur);
+    };
     const put = (id, dflt) => {
+      if (!relevant(id)) return;
       const v = $(id).value.trim();
       if (v !== '' && v !== dflt) p.set(id, v);
     };
+
     put('rows', '12');
-    if ($('logo').value === '0') p.set('logo', '0');
-    if ($('logoTag').value !== 'dark') p.set('logoTag', $('logoTag').value);
     put('keepSolved', '11000');
     put('keepFailed', '8000');
     put('fadeRecent', '2000');
+    put('at', '');
 
-    // 单题统计配色：默认 data 不写进 URL
-    const pc = $('probColor').value;
-    if (pc !== 'data') p.set('probColor', pc);
-    const pp = $('probPalette').value.trim();
-    if (pp) p.set('probPalette', pp);
+    if (relevant('logo') && $('logo').value === '0') p.set('logo', '0');
+    if (relevant('logoTag') && $('logoTag').value !== 'dark') p.set('logoTag', $('logoTag').value);
+
+    if (relevant('probColor') && $('probColor').value !== 'data') p.set('probColor', $('probColor').value);
+    if (relevant('probPalette') && $('probPalette').value.trim()) p.set('probPalette', $('probPalette').value.trim());
 
     return p.toString();
-  };
-  function build(absolute) {
-    const base = absolute ? location.origin + location.pathname.replace(/config\.html?$/, '') : 'index.html';
-    return base + '?' + state();
   }
+
+  const baseUrl = () => location.origin + location.pathname.replace(/config\.html?$/, '');
+
   function refresh() {
-    const u = build(true);
-    $('url').textContent = u;
-    $('open').href = u;
+    $('url').textContent = baseUrl() + '?' + state();
+    buildLinks();          // 链接跟着参数一起变
   }
+
+  // 各视图直达链接
+  function buildLinks() {
+    const box = $('links');
+    box.innerHTML = '';
+    for (const v of VIEWS) {
+      const a = document.createElement('a');
+      const p = new URLSearchParams(state());
+      p.set('view', v.id);
+      a.href = baseUrl() + '?' + p.toString();
+      a.target = '_blank';
+      a.rel = 'noopener';
+      a.textContent = v.name + ' — ' + v.id;
+      box.appendChild(a);
+    }
+  }
+
   $('gen').onclick = refresh;
   $('copy').onclick = async () => {
-    try { await navigator.clipboard.writeText($('url').textContent);
-          $('copy').textContent = '已复制'; setTimeout(() => $('copy').textContent = '复制', 1200); }
-    catch (_) { $('copy').textContent = '复制失败'; }
+    try {
+      await navigator.clipboard.writeText($('url').textContent);
+      $('copy').textContent = '已复制';
+      setTimeout(() => ($('copy').textContent = '复制'), 1200);
+    } catch (_) { $('copy').textContent = '复制失败'; }
   };
-  ['src','view','page','fade','rows','logo','logoTag','keepSolved','keepFailed','fadeRecent','probColor','probPalette'].forEach(id => $(id).addEventListener('input', refresh));
-  refresh();
+  $('openAll').onclick = () => {
+    for (const a of document.querySelectorAll('#links a')) window.open(a.href);
+  };
+
+  // 输入变化 → 重算 URL（视图切换也会经过这里）
+  for (const el of document.querySelectorAll('input, select')) {
+    el.addEventListener('input', refresh);
+    el.addEventListener('change', refresh);
+  }
+
+  buildCards();
+  sync();
 })();
 </script>
 </body>
