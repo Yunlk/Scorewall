@@ -218,7 +218,7 @@ const LEGEND = {
   TEXT: ['First to Solve', 'Solved Problem', 'Rejected Submission', 'Pending Submission'],
 };
 
-export function drawLegend(ctx, W, H) {
+export function drawLegend(ctx, W, H, bottomOff = 200) {
   const { MARGIN, H_SPACING, V_SPACING, FONT_PX, TEXT } = LEGEND;
   ctx.save();
   ctx.font = `bold ${FONT_PX}px ${FONT}`;
@@ -233,7 +233,7 @@ export function drawLegend(ctx, W, H) {
 
   // 锚点：右下角 (width-30, height-200)，再左移到 -w
   const ax = W - 30 - w;
-  const ay = H - 200;
+  const ay = H - bottomOff;
 
   ctx.fillStyle = 'rgba(0,0,0,0.75)';            // new Color(0,0,0,192)
   ctx.fillRect(ax, ay, w, h);

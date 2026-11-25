@@ -16,7 +16,7 @@
  */
 
 import { drawTeamLogo } from './team-logo.js';
-import { widthOf, roundRectPath } from './judge-canvas.js';
+import { PALETTE, css, widthOf, roundRectPath } from './judge-canvas.js';
 import { drawLegend } from './standings-canvas.js';
 
 const ROWS = 12, CUBE_INSET = 5, BORDER = 8;
@@ -28,8 +28,8 @@ const FREEZE_COLOR = 'rgba(66,114,245,0.749)';
 const BLUE = 'rgb(92,138,221)';
 const ROW_BG = 'rgb(60,60,60)';
 // 时间轴方块是历史记录，用固定状态亮色（不用 judge 队列「非 recent 压暗」那套）
-const CUBE_COLORS = { solved: 'rgb(0,230,0)', failed: 'rgb(240,0,0)', pending: 'rgb(66,114,245)' };
-const CUBE_FTS = 'rgb(0,100,0)';
+// ShadedRectangle.getPaint:57-60 —— 非 recent 取 XXX[CCOUNT/3]，recent 才做闪动渐变
+const K_MID = Math.floor(15 / 3);
 const MS_PER_HOUR = 3600000;
 
 export function timelineLayout(W, H) {
@@ -100,7 +100,8 @@ function drawTimeArrow(ctx, x0, x1, axisY, numHours, getX) {
   ctx.moveTo(x1 - 7, axisY - 7);
   ctx.lineTo(x1, axisY);
   ctx.lineTo(x1 - 7, axisY + 7);
-  for (let hour = 1; hour <= numHours; hour++) {
+  // 源码 while (hour < numHours)：从 0 开始，含起点刻度
+  for (let hour = 0; hour < numHours; hour++) {
     const x = getX(hour * MS_PER_HOUR);
     if (x > x1) break;
     ctx.moveTo(x, axisY - 4);
@@ -239,7 +240,19 @@ export function drawTimelineFrame(ctx, L, rows, probs, subsByTeam, times, opts =
       const dy = close ? -offset * up : 0;
       const cy = axisDy + dy;
 
-      ctx.fillStyle = s.isFts ? CUBE_FTS : (CUBE_COLORS[s.status] || CUBE_COLORS.pending);
+      const arr = s.isFts ? PALETTE.FTS
+        : s.status === 'solved' ? PALETTE.SOLVED
+        : s.status === 'failed' ? PALETTE.FAILED : PALETTE.PENDING;
+      const base = arr[K_MID];
+      if (s.recent) {
+        // MyGradientPaint(c → darker(c, 0.55))，竖向
+        const grad = ctx.createLinearGradient(0, cy - cubeH / 2, 0, cy + cubeH / 2);
+        grad.addColorStop(0, css(base));
+        grad.addColorStop(1, css([Math.round(base[0] * 0.55), Math.round(base[1] * 0.55), Math.round(base[2] * 0.55)]));
+        ctx.fillStyle = grad;
+      } else {
+        ctx.fillStyle = css(base);
+      }
       roundRectPath(ctx, x, cy - cubeH / 2, cubeH, cubeH, Math.max(2, Math.floor(cubeH / 6)));
       ctx.fill();
 
@@ -285,5 +298,5 @@ export function drawTimelineFrame(ctx, L, rows, probs, subsByTeam, times, opts =
   ctx.restore();
 
   // paintLegend：右下角
-  drawLegend(ctx, W, H);
+  drawLegend(ctx, W, H, 230);   // TimelinePresentation.paintLegend:202 —— height-230
 }
