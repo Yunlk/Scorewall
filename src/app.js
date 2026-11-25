@@ -55,6 +55,22 @@ function apply(type, id, data) {
   bag.set(id, data);
 }
 
+/**
+ * 处理一条 CCS 事件。事件流的 type 是复数（contests / submissions），
+ * 和 REST 快照的 key 不完全对应，这里做一次归一。
+ * 像 nowcoder-bridge 这类适配器只推 event-feed、不提供 /submissions 这类 REST，
+ * 全量快照也得走这里灌进来。
+ */
+function applyEvent(ev) {
+  if (!ev || !ev.type) return;
+  const type = ev.type === 'contests' ? 'contest' : ev.type;
+  const data = ev.data;
+
+  if (type === 'contest') { Object.assign(M.contest, data || {}); return; }
+  if (type === 'state') { M.state = makeState(data); return; }
+  apply(type, ev.id || (data && data.id), data);
+}
+
 /** submission_id -> 'solved' | 'failed'；只有带 judgement_type_id 的 judgement 才算已判 */
 const judgeStatus = new Map();
 let judgeDirty = true;
@@ -819,7 +835,11 @@ async function bootstrap() {
       // 那样 M.contest 永远是空对象，contestTimes() 只能退化成 now，elapsed 恒为 0
       const r = await fetch(name ? `${SRC}/${name}` : SRC);
       if (!r.ok) return null;
-      return await r.json();
+      const j = await r.json();
+      // nowcoder-bridge 这类适配器对未实现的接口返回 200 + {"error":"not_found"}，
+      // 只看 r.ok 会把错误体当成数据，导致后面的 event-feed 回退永远不触发
+      if (j && typeof j === 'object' && !Array.isArray(j) && j.error) return null;
+      return j;
     } catch (_) { return null; }
   };
   const [contest, teams, problems, subs, judges, orgs, jtypes, sites, st] = await Promise.all(
@@ -834,6 +854,23 @@ async function bootstrap() {
   (jtypes || []).forEach(t => M.judgementTypes.set(t.id, t));
   (sites || []).forEach(s => M.startStatus.set(s.id, s));
   judgeDirty = true;
+
+  // 适配器（nowcoder-bridge 等）没有 /submissions、/judgements、/state 这些 REST，
+  // 但 event-feed?stream=false 会一次性吐出全量 NDJSON —— 用它补齐
+  if (!subs || !judges || !st) {
+    try {
+      const r = await fetch(`${SRC}/event-feed?stream=false`);
+      if (r.ok) {
+        const txt = await r.text();
+        for (const line of txt.split('\n')) {
+          const s = line.trim();
+          if (!s) continue;
+          try { applyEvent(JSON.parse(s)); } catch (_) { /* 坏行跳过 */ }
+        }
+      }
+    } catch (_) { /* 适配器不支持就退回纯 SSE */ }
+  }
+
   M.state = makeState(st);
   syncContestExtras();
   dirty = true;
@@ -846,8 +883,7 @@ function connect() {
     lastMsg = Date.now();
     try {
       const ev = JSON.parse(e.data);
-      if (ev.type === 'contest') { Object.assign(M.contest, ev.data || {}); }
-      else apply(ev.type, ev.id, ev.data);
+      applyEvent(ev);
       dirty = true;
     } catch (_) { /* 忽略坏包 */ }
   };
