@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Scorewall 远控</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+:root {
+  --bg: #0e1116; --card: #171b22; --line: #262c36;
+  --fg: #e6edf3; --dim: #8b949e; --ok: #2ea043; --warn: #d29922; --blue: #388bfd;
+}
+body {
+  background: var(--bg); color: var(--fg); min-height: 100vh; padding: 18px;
+  font: 15px/1.5 -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+}
+h1 { font-size: 19px; margin-bottom: 4px; }
+.sub { color: var(--dim); font-size: 13px; margin-bottom: 18px; }
+.card {
+  background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+  padding: 16px; margin-bottom: 14px;
+}
+.card > h2 { font-size: 14px; color: var(--dim); font-weight: 600; margin-bottom: 12px; letter-spacing: .04em; }
+.grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+button {
+  font: inherit; font-weight: 600; cursor: pointer; border-radius: 10px;
+  border: 1px solid var(--line); background: #1f242d; color: var(--fg);
+  padding: 14px 12px; transition: all .12s;
+}
+button:active { transform: scale(.97); }
+button:hover { border-color: #3d4characters; }
+button.on { background: #1b3a2a; border-color: var(--ok); color: #56d364; }
+button.big { font-size: 16px; padding: 18px 12px; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; }
+.row + .row { border-top: 1px solid var(--line); }
+.sw {
+  position: relative; width: 52px; height: 30px; border-radius: 15px;
+  background: #30363d; border: none; cursor: pointer; flex: none; transition: background .18s;
+}
+.sw.on { background: var(--ok); }
+.sw::after {
+  content: ''; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px;
+  border-radius: 50%; background: #fff; transition: transform .18s;
+}
+.sw.on::after { transform: translateX(22px); }
+.status { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--dim); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--dim); }
+.dot.ok { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+.dot.err { background: #f85149; }
+a.view {
+  display: block; text-align: center; text-decoration: none; padding: 12px 8px;
+  border-radius: 10px; background: #1f242d; border: 1px solid var(--line);
+  color: var(--fg); font-size: 14px;
+}
+a.view:active { transform: scale(.97); }
+.tip { font-size: 12px; color: var(--dim); margin-top: 10px; }
+code { background: #21262d; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+</style>
+</head>
+<body>
+
+<h1>Scorewall 远控</h1>
+<div class="sub">点完大屏 2 秒内跟上，不用刷新</div>
+
+<div class="card">
+  <h2>比赛阶段</h2>
+  <div class="grid">
+    <button class="big" data-phase="before">赛前</button>
+    <button class="big" data-phase="during">赛中</button>
+    <button class="big" data-phase="final">赛中后期</button>
+    <button class="big" data-phase="after">赛后</button>
+  </div>
+  <div class="grid" style="margin-top:10px">
+    <button class="big" data-phase="">自动（按时间）</button>
+  </div>
+</div>
+
+<div class="card">
+  <h2>工位状态</h2>
+  <div class="row">
+    <div>
+      <div>倒计时页显示工位</div>
+      <div class="tip" style="margin-top:2px">关掉就只剩大数字和状态文字</div>
+    </div>
+    <button class="sw" id="sites"></button>
+  </div>
+</div>
+
+<div class="card">
+  <h2>直接切视图</h2>
+  <div class="grid">
+    <a class="view" href="#" data-view="">轮播</a>
+    <a class="view" href="#" data-view="standings">榜单</a>
+    <a class="view" href="#" data-view="judge">判题</a>
+    <a class="view" href="#" data-view="countdown">倒计时</a>
+    <a class="view" href="#" data-view="problems">题目</a>
+    <a class="view" href="#" data-view="chart">曲线</a>
+    <a class="view" href="#" data-view="fts">首杀</a>
+    <a class="view" href="#" data-view="tilerank">方块</a>
+    <a class="view" href="#" data-view="polar">圆盘</a>
+    <a class="view" href="#" data-view="timeline">时间轴</a>
+  </div>
+  <div class="tip">「轮播」= 解除强制，回到按阶段自动轮播</div>
+</div>
+
+<div class="card">
+  <h2>状态</h2>
+  <div class="status"><span class="dot" id="dot"></span><span id="msg">连接中…</span></div>
+</div>
+
+<script>
+const API = location.origin + '/api/control';
+let state = { phase: '', sites: true, view: '' };
+
+const $ = id => document.getElementById(id);
+const dot = $('dot'), msg = $('msg');
+
+function render() {
+  for (const b of document.querySelectorAll('[data-phase]')) {
+    b.classList.toggle('on', (b.dataset.phase || '') === state.phase);
+  }
+  $('sites').classList.toggle('on', !!state.sites);
+  for (const a of document.querySelectorAll('[data-view]')) {
+    a.style.borderColor = (a.dataset.view || '') === state.view ? '#388bfd' : '';
+    a.style.color = (a.dataset.view || '') === state.view ? '#79c0ff' : '';
+  }
+}
+
+async function load() {
+  try {
+    const r = await fetch(API, { cache: 'no-store' });
+    state = await r.json();
+    dot.className = 'dot ok';
+    msg.textContent = `已连上 · 阶段 ${state.phase || '自动'} · 工位 ${state.sites ? '开' : '关'} · seq ${state.seq}`;
+    render();
+  } catch (e) {
+    dot.className = 'dot err';
+    msg.textContent = '连不上适配器：' + (e.message || e);
+  }
+}
+
+async function send(patch) {
+  Object.assign(state, patch);
+  render();
+  try {
+    const r = await fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch),
+    });
+    state = await r.json();
+    dot.className = 'dot ok';
+    msg.textContent = `已下发 · 阶段 ${state.phase || '自动'} · 工位 ${state.sites ? '开' : '关'} · seq ${state.seq}`;
+    render();
+  } catch (e) {
+    dot.className = 'dot err';
+    msg.textContent = '下发失败：' + (e.message || e);
+  }
+}
+
+for (const b of document.querySelectorAll('[data-phase]')) {
+  b.onclick = () => send({ phase: b.dataset.phase || '' });
+}
+$('sites').onclick = () => send({ sites: !state.sites });
+for (const a of document.querySelectorAll('[data-view]')) {
+  a.onclick = e => { e.preventDefault(); send({ view: a.dataset.view || '' }); };
+}
+
+load();
+setInterval(load, 3000);
+</script>
+</body>
+</html>

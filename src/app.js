@@ -33,6 +33,12 @@ const ROWS_PARAM = Math.max(1, Number(Q.get('rows')) || 12);
 /** 校徽开关 / tag（config 里「显示校徽」「校徽 tag」两项） */
 const LOGO_ON = Q.get('logo') !== '0';
 const LOGO_TAG = Q.get('logoTag') || 'dark';
+/** 工位状态开关（?sites=0 关闭）。远控可以随时改 */
+let SITES_ON = Q.get('sites') !== '0';
+/** 手动锁定阶段（?phase=before|during|final|after）；空 = 按时间自动判定 */
+let FORCE_PHASE = (Q.get('phase') || '').trim();
+/** 远控端点（适配器的 /api/control） */
+const CONTROL_URL = SRC.replace(/\/api\/contests\/.*$/, '') + '/api/control';
 
 
 
@@ -338,6 +344,38 @@ function preloadOrgLogos() {
     img.src = resolveUrl(SRC, href);
     org._logoImg = img;
   }
+}
+
+/**
+ * 远控轮询：每 2 秒问一次适配器的 /api/control。
+ * 控制页点一下按钮 → 这里读到变化 → 立刻切视图/阶段/工位开关，不用刷新大屏。
+ */
+let ctrlSeq = -1;
+async function pollControl() {
+  try {
+    const r = await fetch(CONTROL_URL, { cache: 'no-store' });
+    if (!r.ok) return;
+    const j = await r.json();
+    if (j.seq === ctrlSeq) return;              // 没变化
+    const first = ctrlSeq < 0;
+    ctrlSeq = j.seq;
+
+    if (typeof j.sites === 'boolean' && j.sites !== SITES_ON) {
+      SITES_ON = j.sites;
+      dirty = true;
+    }
+    const ph = (j.phase || '').trim();
+    if (ph !== FORCE_PHASE) {
+      FORCE_PHASE = ph;
+      dirty = true;
+    }
+    const v = (j.view || '').trim();
+    if (!first && v && v !== VIEW) {
+      VIEW = v;
+      resetViewState();
+      layout();
+    }
+  } catch (_) { /* 适配器没起或跨域，忽略 */ }
 }
 
 // ---------------- 主循环：SSE 驱动 ----------------
@@ -873,7 +911,7 @@ function renderCountdown(pane) {
   remain = Math.max(0, Math.min(dur, remain));       // 夹在 [0, duration]，避免 %48 回绕
   // 源码：if (contest.getState().isRunning()) s = "Status: Contest started"
   const running = !!(M.state && M.state.isRunning());
-  drawCountdown(ctx, W, H, sites, remain, running);
+  drawCountdown(ctx, W, H, SITES_ON ? sites : [], remain, running);
 }
 
 async function bootstrap() {
@@ -1012,6 +1050,7 @@ const PHASES = {
 
 /** 当前处于哪个阶段。用 contestTimes() 的 elapsed/remain，赛前 elapsed 为负。 */
 function currentPhase() {
+  if (FORCE_PHASE) return FORCE_PHASE;
   const t = contestTimes();
   if (t.elapsed < 0) return 'before';
   if (t.remain <= 0) return 'after';
@@ -1114,6 +1153,8 @@ function loop() {
 
 // 启动轮播（必须在 loop 外面：放里面会每帧新建一个 setInterval）
 startRotate();
+pollControl();
+setInterval(pollControl, 2000);
 
 
 // 兜底：rAF 超过 500ms 没跑（页面被隐藏/OBS 遮挡），用定时器补一帧
