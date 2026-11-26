@@ -27,7 +27,7 @@ const Q = new URLSearchParams(location.search);
 // 最后才退回本地适配器地址
 const SRC = (Q.get('src') || window.__SRC_DEFAULT__ || 'http://127.0.0.1:8081/api/contests/144333')
   .replace(/\/$/, '');
-const VIEW = Q.get('view') || 'standings';
+let VIEW = Q.get('view') || 'standings';
 /** AbstractScoreboardPresentation.setNumRows() —— 行数直接决定字号（源码支持 rows: 属性） */
 const ROWS_PARAM = Math.max(1, Number(Q.get('rows')) || 12);
 /** 校徽开关 / tag（config 里「显示校徽」「校徽 tag」两项） */
@@ -550,16 +550,19 @@ function renderPolar(pane) {
   const { ctx, W, H } = ensureCanvas(pane);
   if (!W || !H) return;
 
-  // CountdownPresentation.setClockTarget：clock = -getRemainingMillis()
-  //   未开始 → 倒计时到开始（负数绝对值递减）
-  //   已开始且未过封榜点 → 已过时间取负（负数绝对值递增）
-  //   过了封榜点 → 剩余时间取负（负数绝对值递减）
+  // CountdownPresentation.setClockTarget:50-62 + getRemainingMillis:76-110
+  //   clock = -getRemainingMillis()，而 getRemainingMillis 分两段：
+  //     未过 switchPoint → start-now = -elapsed        ⇒ clock = +elapsed（正计时）
+  //     过了 switchPoint → (start-now)+duration = remain ⇒ clock = -remain（倒计时）
+  //   switchPoint = duration - freezeDuration，没有封榜就是 2/3
   const t = contestTimes();
   const dur = durationMs();
   // fixture 的 contest.json 没有 start_time，elapsed 恒为 0；给个 ?at=<秒> 便于演示
   const atSec = Q.has('at') ? Number(Q.get('at')) : null;
   const elapsed = atSec != null ? atSec * 1000 : t.elapsed;
-  const clockMs = elapsed >= 0 ? -elapsed : -t.remain;
+  const fz = freezeMs();
+  const switchPoint = fz > 0 ? Math.max(0, dur - fz) : (dur * 2) / 3;
+  const clockMs = elapsed <= switchPoint ? elapsed : -(dur - elapsed);
 
   drawPolarCountdown(ctx, W, H, {
     clockMs,
@@ -969,11 +972,96 @@ setInterval(() => {
 
 // 渲染循环：rAF 驱动；后台标签页 rAF 会被暂停，用定时器兜底推进时间轴
 let lastDraw = 0;
+/**
+ * 自轮播：按比赛阶段自动切视图。
+ *
+ *   ?rotate=<秒>      切间隔（0 = 关闭）
+ *   ?before=<列表>    赛前（elapsed < 0），默认 countdown,polar
+ *   ?during=<列表>    赛中，默认 views 或全量
+ *   ?final=<列表>     赛末（剩余 <= finalMin 分钟），默认 countdown,judge,standings
+ *   ?after=<列表>     赛后（剩余 <= 0），默认 standings,fts
+ *   ?finalMin=<分>    赛末阈值，默认 15
+ *
+ * 不整页刷新（会黑一下、还要重新 bootstrap），只换 VIEW 并重置各视图的运行时状态。
+ */
+const ROTATE_SEC = Math.max(0, Number(Q.get('rotate')) || 0);
+const FINAL_MIN = Math.max(0, Number(Q.get('finalMin')) || 30);
+
+const parseList = (v, fallback) =>
+  (v || fallback).split(',').map(s => s.trim()).filter(Boolean);
+
+const PHASES = {
+  // 赛前：钉住大倒计时，不轮播
+  before: parseList(Q.get('before'), 'countdown'),
+  // 赛中：除了判题队列(judge)和每队过题时间轴(timeline)之外的都轮播
+  during: parseList(Q.get('during') || Q.get('views'),
+    'standings,problems,chart,fts,tilerank,polar'),
+  // 赛末：钉住大圆盘倒计时
+  final: parseList(Q.get('final'), 'polar'),
+  // 赛后：最终榜单
+  after: parseList(Q.get('after'), 'standings'),
+};
+
+/** 当前处于哪个阶段。用 contestTimes() 的 elapsed/remain，赛前 elapsed 为负。 */
+function currentPhase() {
+  const t = contestTimes();
+  if (t.elapsed < 0) return 'before';
+  if (t.remain <= 0) return 'after';
+  if (t.remain <= FINAL_MIN * 60000) return 'final';
+  return 'during';
+}
+
+/** 切换视图时把各模块的缓存/动画状态清掉，否则会接着上一个视图的进度画 */
+function resetViewState() {
+  judgeQ = null;
+  judgePrimed = false;
+  judgeSeen.clear();
+  judgeLast = 0;
+  problemStart = 0;
+  tileStart = 0;
+  tlCache = null;
+  chartObj = null;
+  chartKey = '';
+  chartLast = 0;
+  dirty = true;
+}
+
+function startRotate() {
+  if (!ROTATE_SEC) return;
+  let phase = currentPhase();
+  let list = PHASES[phase] || PHASES.during;
+  let idx = list.indexOf(VIEW);
+  if (idx < 0) idx = 0;
+
+  setInterval(() => {
+    const now = currentPhase();
+    if (now !== phase) {
+      // 阶段变了：换列表并从头开始，别接着上个阶段的进度
+      phase = now;
+      list = PHASES[phase] && PHASES[phase].length ? PHASES[phase] : PHASES.during;
+      idx = 0;
+    }
+    if (list.length < 2) {
+      // 单视图阶段：直接钉住那一个
+      if (VIEW !== list[0]) { VIEW = list[0]; resetViewState(); layout(); }
+      return;
+    }
+    idx = (idx + 1) % list.length;
+    VIEW = list[idx];
+    resetViewState();
+    layout();
+  }, ROTATE_SEC * 1000);
+}
+
 function loop() {
   draw();
   lastDraw = performance.now();
   requestAnimationFrame(loop);
 }
+
+// 启动轮播（必须在 loop 外面：放里面会每帧新建一个 setInterval）
+startRotate();
+
 
 // 兜底：rAF 超过 500ms 没跑（页面被隐藏/OBS 遮挡），用定时器补一帧
 setInterval(() => {

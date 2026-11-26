@@ -184,6 +184,33 @@
       <div class="vdesc" id="vdesc"></div>
     </fieldset>
 
+    <fieldset>
+      <legend>轮播 · 按比赛阶段</legend>
+      <label>切换间隔（秒）</label>
+      <input id="rotate" type="number" min="0" step="5" value="0">
+      <div class="hint">0 = 不轮播，固定显示上面选中的视图。填了秒数下面四个阶段才会生效</div>
+
+      <label>赛前（比赛开始前）</label>
+      <input id="before" value="countdown" spellcheck="false">
+      <div class="hint">默认 <code class="inline">countdown</code>（钉住，不轮播）。多个用逗号分隔</div>
+
+      <label>赛中</label>
+      <input id="during" value="standings,problems,chart,fts,tilerank,polar" spellcheck="false">
+      <div class="hint">默认排除 judge（判题队列）和 timeline（每队过题时间轴）。可用：standings judge countdown problems chart fts tilerank polar timeline</div>
+
+      <label>赛末（剩余 ≤ 阈值分钟）</label>
+      <input id="final" value="polar" spellcheck="false">
+      <div class="hint">默认 <code class="inline">polar</code>（大圆盘倒计时，钉住）</div>
+
+      <label>赛后</label>
+      <input id="after" value="standings" spellcheck="false">
+      <div class="hint">默认 <code class="inline">standings</code></div>
+
+      <label>赛末阈值（分钟）</label>
+      <input id="finalMin" type="number" min="0" step="1" value="30">
+      <div class="hint">距离结束还剩多少分钟进入「赛末」阶段，默认 30</div>
+    </fieldset>
+
     <fieldset data-views="standings judge fts tilerank timeline">
       <legend>行数 / 字号</legend>
       <label>屏幕行数</label>
@@ -345,6 +372,11 @@
   ];
 
   const params = new URLSearchParams(location.search);
+  for (const id of ['rotate', 'before', 'during', 'final', 'after', 'finalMin']) {
+    const v = params.get(id);
+    const el = document.getElementById(id);
+    if (v !== null && el) el.value = v;
+  }
   let cur = params.get('view') || 'standings';
 
   // ---- 数据源预设 / 连通检测 ----
@@ -452,6 +484,22 @@
 
     if (relevant('logo') && $('logo').value === '0') p.set('logo', '0');
     if (relevant('logoTag') && $('logoTag').value !== 'dark') p.set('logoTag', $('logoTag').value);
+
+    // 轮播参数是全局的，不受"当前视图"过滤；开了轮播就不带 view
+    const rot = $('rotate').value.trim();
+    if (rot !== '' && rot !== '0') {
+      const putG = (id, dflt) => {
+        const v = $(id).value.trim();
+        if (v !== '' && v !== dflt) p.set(id, v);
+      };
+      p.set('rotate', rot);
+      putG('before', 'countdown');
+      putG('during', 'standings,problems,chart,fts,tilerank,polar');
+      putG('final', 'polar');
+      putG('after', 'standings');
+      putG('finalMin', '30');
+      p.delete('view');
+    }
 
     if (relevant('probColor') && $('probColor').value !== 'data') p.set('probColor', $('probColor').value);
     if (relevant('probPalette') && $('probPalette').value.trim()) p.set('probPalette', $('probPalette').value.trim());

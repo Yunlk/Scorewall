@@ -186,7 +186,9 @@ export function drawPolarCountdown(ctx, W, H, opts = {}) {
 function fmtClockAbs(ms) {
   const neg = ms < 0;
   let sec = Math.floor(Math.abs(ms) / 1000);
-  const h = Math.floor(sec / 3600) % 48;
+  // 源码 AbstractICPCPresentation.getTime 里是 % 48（CCS 假设比赛不超过两天），
+  // 但开放好几天的练习赛 duration 能到 131 小时，取模会把 62:42 显示成 14:42。
+  const h = Math.floor(sec / 3600);
   const m = Math.floor(sec / 60) % 60;
   const s = sec % 60;
   const p = n => String(n).padStart(2, '0');
