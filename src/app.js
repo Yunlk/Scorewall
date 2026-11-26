@@ -408,6 +408,11 @@ function judgeQueue() {
     timeToKeepSolved: Q.has('keepSolved') ? Number(Q.get('keepSolved')) : undefined,
     timeToKeepFailed: Q.has('keepFailed') ? Number(Q.get('keepFailed')) : undefined,
     timeToFadeRecent: Q.has('fadeRecent') ? Number(Q.get('fadeRecent')) : undefined,
+    // 未判提交兜底停留（秒）。默认 120s，够真实判题用；数据源永远不会判的
+    // 幽灵提交（比如牛客那边已经没了但适配器还留着）到时自动淡出，不堵队列。
+    pendingTimeout: Q.has('pendingMax')
+      ? Math.max(0, Number(Q.get('pendingMax')) * 1000)
+      : 120000,
     teamsPerScreen: ROWS_PARAM,
   });
   return judgeQ;

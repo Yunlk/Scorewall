@@ -163,6 +163,9 @@ export class JudgeQueue {
     this.timeToKeepFailed = opts.timeToKeepFailed > 0 ? opts.timeToKeepFailed : TIME_TO_KEEP_FAILED;
     this.timeToKeepSolved = opts.timeToKeepSolved > 0 ? opts.timeToKeepSolved : TIME_TO_KEEP_SOLVED;
     this.timeToFadeRecent = opts.timeToFadeRecent > 0 ? opts.timeToFadeRecent : TIME_TO_FADE_RECENT;
+    // 未判提交的兜底停留上限（毫秒）。0 = 不超时，永远等判题结果（源码行为）。
+    // 数据源永远不会判的提交（牛客那边卡住的）会把队列第一行一直占住，配这个值让它淡出。
+    this.pendingTimeout = opts.pendingTimeout > 0 ? opts.pendingTimeout : 0;
     // AbstractScoreboardPresentation.setNumRows() 对应物：行数直接决定字号
     this.teamsPerScreen = opts.teamsPerScreen > 0 ? opts.teamsPerScreen : TEAMS_PER_SCREEN;
   }
@@ -269,6 +272,9 @@ export class JudgeQueue {
           if (sr.fullAge > TIME_TO_KEEP_RECENT) sr.action = Action.MOVE_OUT;
         } else if (judged && judged(sr.submission)) {
           sr.action = solved && solved(sr.submission) ? Action.MOVE_UP : Action.MOVE_DOWN;
+        } else if (this.pendingTimeout > 0 && sr.fullAge > this.pendingTimeout) {
+          // 一直没等到判题结果：按「离开」淡出，别把整列堵死
+          sr.action = Action.MOVE_OUT;
         }
       } else {
         sr.actionAge += dt;

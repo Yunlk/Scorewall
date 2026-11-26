@@ -215,6 +215,10 @@
       <label>滑出淡出时长</label>
       <input id="fadeRecent" type="number" min="0" step="100" value="2000">
       <div class="hint">毫秒。源码 <code class="inline">TIME_TO_FADE_RECENT</code> = 2000</div>
+
+      <label>未判超时（秒）</label>
+      <input id="pendingMax" type="number" min="0" step="10" value="120">
+      <div class="hint">未判提交最多在队列里挂多久。到期自动淡出，避免数据源永远不会判的提交把第一行堵死。0 = 永不超时（源码行为）</div>
     </fieldset>
 
     <fieldset data-views="standings judge fts tilerank timeline">
@@ -443,6 +447,7 @@
     put('keepSolved', '11000');
     put('keepFailed', '8000');
     put('fadeRecent', '2000');
+    put('pendingMax', '120');
     put('at', '');
 
     if (relevant('logo') && $('logo').value === '0') p.set('logo', '0');
