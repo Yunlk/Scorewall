@@ -186,9 +186,9 @@
 
     <fieldset>
       <legend>轮播 · 按比赛阶段</legend>
-      <label>切换间隔（秒）</label>
-      <input id="rotate" type="number" min="0" step="5" value="0">
-      <div class="hint">0 = 不轮播，固定显示上面选中的视图。填了秒数下面四个阶段才会生效</div>
+      <label>切换方式</label>
+      <input id="rotate" value="auto" spellcheck="false">
+      <div class="hint"><code class="inline">auto</code> = 每个视图演完自己那一轮再切（standings 按屏数×12s、tilerank 按 tileRepeat、problems 按 problemRepeat）；填数字 = 固定秒数；<code class="inline">0</code> = 不轮播</div>
 
       <label>赛前（比赛开始前）</label>
       <input id="before" value="countdown" spellcheck="false">
@@ -372,6 +372,13 @@
   ];
 
   const params = new URLSearchParams(location.search);
+
+  // 托管方（nowcoder-bridge 的 /scorewall/）会注入同源数据源；
+  // 本地直接开文件时才回退到填在 value 里的夹具地址
+  if (window.__SRC_DEFAULT__) {
+    const el = document.getElementById('src');
+    if (el && !params.get('src')) el.value = window.__SRC_DEFAULT__;
+  }
   for (const id of ['rotate', 'before', 'during', 'final', 'after', 'finalMin']) {
     const v = params.get(id);
     const el = document.getElementById(id);
@@ -394,8 +401,11 @@
     badge.className = 'badge busy';
     txt.textContent = '检测中…';
 
+    // 必须带超时：数据源写错或不可达时，浏览器默认要挂很久，页面就一直停在"检测中"
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 5000);
     try {
-      const r = await fetch(src, { cache: 'no-store' });
+      const r = await fetch(src, { cache: 'no-store', signal: ctrl.signal });
       const j = await r.json();
       if (!r.ok || (j && j.error)) throw new Error(j && j.error ? j.error : 'HTTP ' + r.status);
 
@@ -413,7 +423,11 @@
       txt.textContent = `${name} · ${nt} 队 / ${np} 题`;
     } catch (e) {
       badge.className = 'badge err';
-      txt.textContent = '连不上：' + (e.message || e);
+      txt.textContent = e.name === 'AbortError'
+        ? '连不上：5 秒超时（检查地址是否可达）'
+        : '连不上：' + (e.message || e);
+    } finally {
+      clearTimeout(timer);
     }
   }
 

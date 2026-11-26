@@ -975,16 +975,19 @@ let lastDraw = 0;
 /**
  * 自轮播：按比赛阶段自动切视图。
  *
- *   ?rotate=<秒>      切间隔（0 = 关闭）
- *   ?before=<列表>    赛前（elapsed < 0），默认 countdown,polar
- *   ?during=<列表>    赛中，默认 views 或全量
- *   ?final=<列表>     赛末（剩余 <= finalMin 分钟），默认 countdown,judge,standings
- *   ?after=<列表>     赛后（剩余 <= 0），默认 standings,fts
- *   ?finalMin=<分>    赛末阈值，默认 15
+ *   ?rotate=auto     每个视图演完自己那一轮再切（推荐）
+ *   ?rotate=<秒>     固定间隔切
+ *   ?before= ?during= ?final= ?after= ?finalMin=
  *
- * 不整页刷新（会黑一下、还要重新 bootstrap），只换 VIEW 并重置各视图的运行时状态。
+ * 各视图的「一轮」由它自己的分页/滚动周期决定：
+ *   standings  每屏 MS_PER_PAGE，屏数 = ceil(队伍数 / 行数)
+ *   tilerank   tileRepeat()
+ *   problems   problemRepeat()
+ *   其余       一次画完的给固定停留
  */
-const ROTATE_SEC = Math.max(0, Number(Q.get('rotate')) || 0);
+const ROTATE_RAW = (Q.get('rotate') || '').trim();
+const ROTATE_AUTO = ROTATE_RAW === 'auto' || Q.get('auto') === '1';
+const ROTATE_SEC = ROTATE_AUTO ? 0 : Math.max(0, Number(ROTATE_RAW) || 0);
 const FINAL_MIN = Math.max(0, Number(Q.get('finalMin')) || 30);
 
 const parseList = (v, fallback) =>
@@ -1011,6 +1014,30 @@ function currentPhase() {
   return 'during';
 }
 
+/** 这个视图「演完一轮」要多久 */
+function cycleMs(v) {
+  // 首屏数据还没到（bootstrap 是异步的），这时按 0 队 0 题算出来的周期只有十几秒，
+  // 会一连跳好几个视图才稳定下来。给个兜底，等数据齐了再按真实规模算。
+  if (!M.teams.size) return 30000;
+  const nT = Math.max(1, M.teams.size);
+  const nP = Math.max(1, M.problems.size);
+  switch (v) {
+    case 'standings':
+      return Math.ceil(nT / ROWS_PARAM) * MS_PER_PAGE;
+    case 'tilerank':
+      return tileRepeat(nT, ROWS_PARAM, DEFAULT_COLUMNS);
+    case 'problems':
+      return problemRepeat(nP);
+    case 'timeline': return 45000;
+    case 'chart': return 30000;
+    case 'fts': return 30000;
+    case 'judge': return 30000;
+    case 'polar':
+    case 'countdown': return 60000;
+    default: return 24000;
+  }
+}
+
 /** 切换视图时把各模块的缓存/动画状态清掉，否则会接着上一个视图的进度画 */
 function resetViewState() {
   judgeQ = null;
@@ -1027,13 +1054,14 @@ function resetViewState() {
 }
 
 function startRotate() {
-  if (!ROTATE_SEC) return;
+  if (!ROTATE_AUTO && !ROTATE_SEC) return;
+
   let phase = currentPhase();
-  let list = PHASES[phase] || PHASES.during;
+  let list = PHASES[phase] && PHASES[phase].length ? PHASES[phase] : PHASES.during;
   let idx = list.indexOf(VIEW);
   if (idx < 0) idx = 0;
 
-  setInterval(() => {
+  const step = () => {
     const now = currentPhase();
     if (now !== phase) {
       // 阶段变了：换列表并从头开始，别接着上个阶段的进度
@@ -1041,16 +1069,26 @@ function startRotate() {
       list = PHASES[phase] && PHASES[phase].length ? PHASES[phase] : PHASES.during;
       idx = 0;
     }
-    if (list.length < 2) {
-      // 单视图阶段：直接钉住那一个
-      if (VIEW !== list[0]) { VIEW = list[0]; resetViewState(); layout(); }
-      return;
+
+    if (list.length >= 2) {
+      idx = (idx + 1) % list.length;
+      VIEW = list[idx];
+      resetViewState();
+      layout();
+    } else if (VIEW !== list[0]) {
+      // 单视图阶段：钉住那一个
+      VIEW = list[0];
+      resetViewState();
+      layout();
     }
-    idx = (idx + 1) % list.length;
-    VIEW = list[idx];
-    resetViewState();
-    layout();
-  }, ROTATE_SEC * 1000);
+
+    // 切完再按「新视图」的周期排下一次，这样每个视图都能演完自己那一轮
+    const wait = ROTATE_AUTO ? cycleMs(VIEW) : ROTATE_SEC * 1000;
+    setTimeout(step, Math.max(3000, wait));
+  };
+
+  const firstWait = ROTATE_AUTO ? cycleMs(VIEW) : ROTATE_SEC * 1000;
+  setTimeout(step, Math.max(3000, firstWait));
 }
 
 function loop() {
