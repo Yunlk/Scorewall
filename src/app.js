@@ -345,6 +345,8 @@ const paneA = document.getElementById('paneA');
 const paneB = document.getElementById('paneB');
 const hint = document.getElementById('hint');
 let lastMsg = Date.now();
+/** event-feed 统计（debug 用）：证明流有没有在推 */
+let feedLines = 0, feedBeats = 0;
 let dirty = true;
 
 // 出错时把信息显示到页面上（无头截图也能看到）
@@ -494,6 +496,7 @@ function renderJudge(pane) {
     ctx.fillText(`subs=${M.submissions.size} judges=${M.judgements.size} queue=${q.records.length} ` +
       `judged=${judgeStatus.size} types=${M.judgementTypes.size} ` +
       `acts=${q.records.map(r => (r.action || '-')[0]).join('')}`, 20, H - 24);
+    ctx.fillText(`feed=${feedLines}ev/${feedBeats}hb last=${Math.round((Date.now() - lastMsg) / 1000)}s`, 20, H - 72);
     ctx.fillText(`start=${M.contest.start_time} dur=${M.contest.duration} ` +
       `elapsedMs=${Math.round(t.elapsed)} remainMs=${Math.round(t.remain)}`, 20, H - 48);
     ctx.restore();
@@ -936,7 +939,8 @@ async function connect() {
         buf = buf.slice(nl + 1);
         // 空行是心跳：也算「源还活着」，否则 30 秒后会误报「无响应」
         lastMsg = Date.now();
-        if (!line) continue;
+        if (!line) { feedBeats++; continue; }
+        feedLines++;
         try {
           applyEvent(JSON.parse(line));
           dirty = true;
