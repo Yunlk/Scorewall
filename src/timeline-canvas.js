@@ -147,12 +147,18 @@ export function drawTimelineFrame(ctx, L, rows, probs, subsByTeam, times, opts =
   ctx.fillText(times.elapsedText, W / 12, clockAsc);
   ctx.fillText(times.remainText, (W * 11) / 12, clockAsc);
 
-  ctx.fillStyle = '#fff';
-  ctx.font = L.titleFont;
-  ctx.fillText('Current Standings', W / 2, titleAsc);
   ctx.textAlign = 'left';
 
   drawHeader(ctx, L, w199, w199sp, w99, w9999, w9999sp);
+
+  // 标题必须在 drawHeader 之后画：源码 TitledPresentation.paint:142-150 顺序是
+  // paintHeader() → drawString(title)，标题的下伸部分（g/j/p/y）压在表头上。
+  // 反过来 header 的黑底会把它们盖掉。
+  ctx.fillStyle = '#fff';
+  ctx.font = L.titleFont;
+  ctx.textAlign = 'center';
+  ctx.fillText('Current Standings', W / 2, titleAsc);
+  ctx.textAlign = 'left';
 
   ctx.save();
   ctx.beginPath();

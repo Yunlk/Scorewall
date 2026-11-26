@@ -211,7 +211,12 @@ function fitFont(s, px, avail, min = 0.55) {
 
 // ---------------- 总榜视图（canvas） ----------------
 const scroll = { page: 0, lastSwitch: 0, from: 0, to: 0, animStart: 0 };
-const shownAt = performance.now();
+/**
+ * 当前视图开始演的时刻。切视图时必须重置成 performance.now()，
+ * 否则 standings 的 tt = (now - shownAt) % cycle 会落在周期中间，
+ * 第一屏直接跳到第 N 页、没有淡入，看着就像"动画没从头来"。
+ */
+let shownAt = performance.now();
 const FORCE_PAGE = Q.get('page') !== null ? parseInt(Q.get('page'), 10) : null;
 const FORCE_FADE = Q.get('fade') !== null ? Math.max(0, Math.min(1, parseFloat(Q.get('fade')))) : null;
 const FADE_IN_MS = 800;
@@ -1084,6 +1089,8 @@ function cycleMs(v) {
 
 /** 切换视图时把各模块的缓存/动画状态清掉，否则会接着上一个视图的进度画 */
 function resetViewState() {
+  // 每个视图的"动画时钟"都归零，让切换后从第一帧重新演
+  shownAt = performance.now();      // standings / 其它用 shownAt 的滚动与淡入
   judgeQ = null;
   judgePrimed = false;
   judgeSeen.clear();
@@ -1093,7 +1100,12 @@ function resetViewState() {
   tlCache = null;
   chartObj = null;
   chartKey = '';
+  chartStart = 0;                   // chart 的生长动画从 0 开始
   chartLast = 0;
+  ftsQ = null;                      // FTS 的入场动画和已上榜集合也重置
+  ftsPrimed = false;
+  ftsLast = 0;
+  ftsSeen.clear();
   dirty = true;
 }
 

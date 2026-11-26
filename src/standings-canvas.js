@@ -104,9 +104,8 @@ export function drawFrame(ctx, L, rows, probs, times, scrollPx, perProblem, fade
   ctx.textAlign = 'center';
   ctx.fillText(times.elapsedText, W / 12, clockAsc);
   ctx.fillText(times.remainText, W * 11 / 12, clockAsc);
-  ctx.fillStyle = '#fff';
-  ctx.font = titleF;
-  ctx.fillText('Current Standings', W / 2, titleAsc);
+  // 标题文字改到 header 之后画：源码先 paintHeader() 再 drawString(title)，
+  // 标题的下伸部分（g/j/p/y）压在表头上。反过来画的话 header 黑底会把它们盖掉。
   ctx.textAlign = 'left';
 
   // ---------- 表头（drawHeader）—— 位于标题带之下 ----------
@@ -138,6 +137,13 @@ export function drawFrame(ctx, L, rows, probs, times, scrollPx, perProblem, fade
 
   ctx.fillStyle = '#fff';
   ctx.fillRect(0, titleH + headerH - 1, W, 1);
+
+  // 标题（必须在 header 之后：让 g/j/p/y 的下伸部分压在表头上，而不是被黑底盖掉）
+  ctx.fillStyle = '#fff';
+  ctx.font = titleF;
+  ctx.textAlign = 'center';
+  ctx.fillText('Current Standings', W / 2, titleAsc);
+  ctx.textAlign = 'left';
 
   // ---------- 内容区（paintBarsAndScroll） ----------
   const contentTop = titleH + headerH;

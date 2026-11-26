@@ -28,11 +28,9 @@ button {
   padding: 14px 12px; transition: all .12s;
 }
 button:active { transform: scale(.97); }
-button:hover { border-color: #3d4characters; }
 button.on { background: #1b3a2a; border-color: var(--ok); color: #56d364; }
 button.big { font-size: 16px; padding: 18px 12px; }
 .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; }
-.row + .row { border-top: 1px solid var(--line); }
 .sw {
   position: relative; width: 52px; height: 30px; border-radius: 15px;
   background: #30363d; border: none; cursor: pointer; flex: none; transition: background .18s;
@@ -44,7 +42,7 @@ button.big { font-size: 16px; padding: 18px 12px; }
 }
 .sw.on::after { transform: translateX(22px); }
 .status { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--dim); }
-.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--dim); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--dim); flex: none; }
 .dot.ok { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
 .dot.err { background: #f85149; }
 a.view {
@@ -54,7 +52,15 @@ a.view {
 }
 a.view:active { transform: scale(.97); }
 .tip { font-size: 12px; color: var(--dim); margin-top: 10px; }
-code { background: #21262d; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+.site { display: flex; align-items: center; gap: 10px; padding: 9px 0; }
+.site + .site { border-top: 1px solid var(--line); }
+.site .nm { flex: 1; font-size: 14px; }
+.site .nm small { color: var(--dim); font-size: 11px; margin-left: 6px; }
+.st { display: flex; gap: 4px; flex: none; }
+.st button { padding: 6px 10px; font-size: 12px; border-radius: 7px; min-width: 42px; }
+.st button.s0.on { background: #3d1d1d; border-color: #f85149; color: #ff7b72; }
+.st button.s1.on { background: #3a2f14; border-color: var(--warn); color: #e3b341; }
+.st button.s2.on { background: #1b3a2a; border-color: var(--ok); color: #56d364; }
 </style>
 </head>
 <body>
@@ -76,14 +82,20 @@ code { background: #21262d; padding: 1px 5px; border-radius: 4px; font-size: 12p
 </div>
 
 <div class="card">
-  <h2>工位状态</h2>
+  <h2>工位显示</h2>
   <div class="row">
     <div>
       <div>倒计时页显示工位</div>
       <div class="tip" style="margin-top:2px">关掉就只剩大数字和状态文字</div>
     </div>
-    <button class="sw" id="sites"></button>
+    <button class="sw" id="sitesSw"></button>
   </div>
+</div>
+
+<div class="card">
+  <h2>各工位状态</h2>
+  <div id="sitesList"><div class="tip">加载中…</div></div>
+  <div class="tip">点数字直接改：<b>0</b> 未就绪 / <b>1</b> 待定 / <b>2</b> 就绪。大屏 2 秒内跟着变</div>
 </div>
 
 <div class="card">
@@ -110,38 +122,81 @@ code { background: #21262d; padding: 1px 5px; border-radius: 4px; font-size: 12p
 
 <script>
 const API = location.origin + '/api/control';
-let state = { phase: '', sites: true, view: '' };
+let state = { phase: '', sites: true, view: '', seq: 0, sitesList: [] };
 
 const $ = id => document.getElementById(id);
-const dot = $('dot'), msg = $('msg');
+const dotEl = $('dot'), msgEl = $('msg');
 
-function render() {
+function renderPhase() {
   for (const b of document.querySelectorAll('[data-phase]')) {
     b.classList.toggle('on', (b.dataset.phase || '') === state.phase);
   }
-  $('sites').classList.toggle('on', !!state.sites);
+  $('sitesSw').classList.toggle('on', !!state.sites);
   for (const a of document.querySelectorAll('[data-view]')) {
-    a.style.borderColor = (a.dataset.view || '') === state.view ? '#388bfd' : '';
-    a.style.color = (a.dataset.view || '') === state.view ? '#79c0ff' : '';
+    const on = (a.dataset.view || '') === state.view;
+    a.style.borderColor = on ? '#388bfd' : '';
+    a.style.color = on ? '#79c0ff' : '';
   }
+}
+
+function renderSites() {
+  const box = $('sitesList');
+  const list = state.sitesList || [];
+  if (!list.length) {
+    box.innerHTML = '<div class="tip">没有工位数据</div>';
+    return;
+  }
+  box.innerHTML = '';
+  for (const s of list) {
+    const row = document.createElement('div');
+    row.className = 'site';
+
+    const nm = document.createElement('div');
+    nm.className = 'nm';
+    nm.appendChild(document.createTextNode(s.label || s.id));
+    const small = document.createElement('small');
+    small.textContent = s.id;
+    nm.appendChild(small);
+    row.appendChild(nm);
+
+    const st = document.createElement('div');
+    st.className = 'st';
+    for (const v of [0, 1, 2]) {
+      const b = document.createElement('button');
+      b.className = 's' + v + (Number(s.status) === v ? ' on' : '');
+      b.textContent = String(v);
+      b.onclick = () => send({ site: { id: s.id, status: v } });
+      st.appendChild(b);
+    }
+    row.appendChild(st);
+    box.appendChild(row);
+  }
+}
+
+function renderAll() {
+  renderPhase();
+  renderSites();
+}
+
+function setStatus(cls, text) {
+  dotEl.className = 'dot ' + cls;
+  msgEl.textContent = text;
 }
 
 async function load() {
   try {
     const r = await fetch(API, { cache: 'no-store' });
     state = await r.json();
-    dot.className = 'dot ok';
-    msg.textContent = `已连上 · 阶段 ${state.phase || '自动'} · 工位 ${state.sites ? '开' : '关'} · seq ${state.seq}`;
-    render();
+    setStatus('ok', '已连上 · 阶段 ' + (state.phase || '自动') + ' · 工位显示 ' + (state.sites ? '开' : '关') + ' · seq ' + state.seq);
+    renderAll();
   } catch (e) {
-    dot.className = 'dot err';
-    msg.textContent = '连不上适配器：' + (e.message || e);
+    setStatus('err', '连不上适配器：' + (e.message || e));
   }
 }
 
 async function send(patch) {
   Object.assign(state, patch);
-  render();
+  renderAll();
   try {
     const r = await fetch(API, {
       method: 'POST',
@@ -149,19 +204,17 @@ async function send(patch) {
       body: JSON.stringify(patch),
     });
     state = await r.json();
-    dot.className = 'dot ok';
-    msg.textContent = `已下发 · 阶段 ${state.phase || '自动'} · 工位 ${state.sites ? '开' : '关'} · seq ${state.seq}`;
-    render();
+    setStatus('ok', '已下发 · 阶段 ' + (state.phase || '自动') + ' · seq ' + state.seq);
+    renderAll();
   } catch (e) {
-    dot.className = 'dot err';
-    msg.textContent = '下发失败：' + (e.message || e);
+    setStatus('err', '下发失败：' + (e.message || e));
   }
 }
 
 for (const b of document.querySelectorAll('[data-phase]')) {
   b.onclick = () => send({ phase: b.dataset.phase || '' });
 }
-$('sites').onclick = () => send({ sites: !state.sites });
+$('sitesSw').onclick = () => send({ sites: !state.sites });
 for (const a of document.querySelectorAll('[data-view]')) {
   a.onclick = e => { e.preventDefault(); send({ view: a.dataset.view || '' }); };
 }
