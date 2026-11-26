@@ -907,18 +907,44 @@ async function bootstrap() {
   dirty = true;
 }
 
-function connect() {
-  const es = new EventSource(`${SRC}/event-feed?stream=true`);
-  es.onmessage = e => {
-    if (!e.data || !e.data.trim()) return;         // 心跳空行
-    lastMsg = Date.now();
-    try {
-      const ev = JSON.parse(e.data);
-      applyEvent(ev);
-      dirty = true;
-    } catch (_) { /* 忽略坏包 */ }
-  };
-  es.onerror = () => { /* EventSource 自动重连 */ };
+/**
+ * 连 event-feed 收增量事件。
+ *
+ * CCS 规范里 event-feed 是 **NDJSON 流**（每行一个 JSON），不是 SSE ——
+ * 适配器（nowcoder-bridge / ICPC Tools 的 RESTContestSource）都按裸行发。
+ * 用 EventSource 的话它只认 `data: ...` 前缀，onmessage 永远不会触发，
+ * 表现就是「实时提交不进队列、只有刷新页面才更新」。
+ * 所以这里用 fetch + ReadableStream 自己按行切。
+ */
+async function connect() {
+  try {
+    const res = await fetch(`${SRC}/event-feed?stream=true`, { cache: 'no-store' });
+    if (!res.ok || !res.body) throw new Error('feed ' + res.status);
+
+    const reader = res.body.getReader();
+    const dec = new TextDecoder();
+    let buf = '';
+
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+
+      let nl;
+      while ((nl = buf.indexOf('\n')) >= 0) {
+        const line = buf.slice(0, nl).trim();
+        buf = buf.slice(nl + 1);
+        // 空行是心跳：也算「源还活着」，否则 30 秒后会误报「无响应」
+        lastMsg = Date.now();
+        if (!line) continue;
+        try {
+          applyEvent(JSON.parse(line));
+          dirty = true;
+        } catch (_) { /* 忽略坏行 */ }
+      }
+    }
+  } catch (_) { /* 落到下面的重连 */ }
+  setTimeout(connect, 2000);                 // 断线与正常结束都重连
 }
 
 // 心跳检测：30s 没消息就提示（不用 setInterval 做渲染，只做状态灯）
