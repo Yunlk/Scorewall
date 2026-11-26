@@ -84,8 +84,10 @@ function syncJudgeStatus() {
     if (!j.submission_id || !j.judgement_type_id) continue;
     const jt = M.judgementTypes.get(j.judgement_type_id);
     if (!jt) continue;
-    if (jt.solved) judgeStatus.set(j.submission_id, 'solved');
-    else if (jt.penalty) judgeStatus.set(j.submission_id, 'failed');
+    // 只要有 judgement 就是「已判」。不能拿 penalty 当条件：
+    // CE 这类是 penalty=false + solved=false，跳过的话前端会以为它还没判，
+    // 提交会永远卡在判题队列里出不来（IResult.Status 对它们返回 FAILED，不是 SUBMITTED）
+    judgeStatus.set(j.submission_id, jt.solved ? 'solved' : 'failed');
   }
   judgeFtsKey = -1;          // 状态变了，FTS 也要重算
 }
@@ -384,11 +386,37 @@ function draw() {
 /** #56 判题队列（JudgePresentation 状态机） */
 let judgeQ = null, judgeSeen = new Set(), judgeLast = 0, judgePrimed = false;
 
+/**
+ * 判题队列回放（?sim=<倍速>）
+ *
+ * 比赛结束后所有提交都已判完，JudgePresentation 的队列会一直是空的 ——
+ * 它只收 !isJudged(submission) 的提交。想看图就得把历史提交当成刚发生：
+ * simNow 从 0 开始按倍速推进，只把 contest_time 已经走到的提交当成"已判"，
+ * 其余的视为仍在队列里排队。跑到赛末再从头来一遍。
+ */
+let simSpeed = Math.max(0, Number(Q.get('sim')) || 0);
+let simNow = 0;
+let simLast = 0;
+
+function simTick(nowMs) {
+  if (simSpeed <= 0) return;
+  const dt = simLast ? Math.min(250, Math.max(0, nowMs - simLast)) : 0;
+  simLast = nowMs;
+  simNow += dt * simSpeed;
+  const dur = durationMs();
+  if (simNow > dur + 30000) simNow = 0;      // 赛末停 30 秒再从头放
+}
+
 function judgeQueue() {
   if (judgeQ) return judgeQ;
+  const judgedAt = sub => {
+    if (!judgeStatus.has(sub.id)) return false;
+    if (simSpeed <= 0) return true;
+    return rel2sec(sub.contest_time) * 1000 <= simNow;
+  };
   judgeQ = new JudgeQueue({
-    judged: sub => judgeStatus.has(sub.id),
-    solved: sub => judgeStatus.get(sub.id) === 'solved',
+    judged: judgedAt,
+    solved: sub => judgedAt(sub) && judgeStatus.get(sub.id) === 'solved',
     frozen: () => !!(M.state && M.state.isFrozen()),
     // 源码 JudgePresentation:34-37：AC 停 11s、WA 停 8s、淡出 2s
     timeToKeepSolved: Q.has('keepSolved') ? Number(Q.get('keepSolved')) : undefined,
@@ -430,22 +458,32 @@ function renderJudge(pane) {
 
   // JudgePresentation.aboutToShow:87-104
   // 封榜时队列不播种；否则只把「未判」的放进来，其余仅标记为已见
+  // 回放模式（sim>0）下，「已判」要按 simNow 判断：还没走到的提交视为仍在排队
+  const judgedNow = s => {
+    if (!judgeStatus.has(s.id)) return false;
+    if (simSpeed <= 0) return true;
+    return rel2sec(s.contest_time) * 1000 <= simNow;
+  };
+  const arrived = s => simSpeed <= 0 || rel2sec(s.contest_time) * 1000 <= simNow;
+
   if (!judgePrimed && M.submissions.size > 0) {
     if (!frozen) {
       const list = [...M.submissions.values()]
-        .filter(s => !judgeStatus.has(s.id))
+        .filter(s => !judgedNow(s))
         .sort((x, y) => rel2sec(x.contest_time) - rel2sec(y.contest_time))
         .slice(-TEAMS_PER_SCREEN);
       list.forEach(s => q.add(s));
       q.updateTargets(true);          // 直接摆到位，不播入场动画
     }
-    for (const s of M.submissions.values()) judgeSeen.add(s.id);
+    // 回放模式下不要一次把全部提交标记为已见，否则它们永远不会被送进队列
+    if (simSpeed <= 0) for (const s of M.submissions.values()) judgeSeen.add(s.id);
     judgePrimed = true;
     judgeLast = now;
   }
 
   // 新提交进队：起点由 createSubmissionRecord 决定（屏幕下方 14 行），自己滑上来
   for (const sub of M.submissions.values()) {
+    if (!arrived(sub)) continue;              // 回放：还没到时间的先不送
     if (!judgeSeen.has(sub.id)) {
       judgeSeen.add(sub.id);
       q.add(sub);
@@ -911,6 +949,7 @@ setInterval(() => {
 // 渲染循环：rAF 驱动；后台标签页 rAF 会被暂停，用定时器兜底推进时间轴
 let lastDraw = 0;
 function loop() {
+  simTick(performance.now());
   draw();
   lastDraw = performance.now();
   requestAnimationFrame(loop);

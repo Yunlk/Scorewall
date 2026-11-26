@@ -259,8 +259,20 @@ function drawCell(ctx, r, p, stats, colorOf, index) {
   if (!stats) {
     // 无数据：只写四个灰色标签，右对齐
     ctx.fillStyle = css(LIGHT_GRAY);
-    ['Attempts', 'Accepted', 'Rejected', 'First to Solve time'].forEach((s, k) => {
-      ctx.fillText(s, x + w - widthOf(ctx, font, s), y + (h + margin2) * k + fm.asc);
+    // "First to Solve time" 比格子宽时会往左溢出、压到前一格上。
+    // 按最长那行把字号整体缩到装得下（四行共用同一字号，避免忽大忽小）
+    const LABELS = ['Attempts', 'Accepted', 'Rejected', 'First to Solve time'];
+    let legendFont = font;
+    const lw = Math.max(...LABELS.map(s => widthOf(ctx, font, s)));
+    if (lw > w) {
+      const px = parseFloat((String(font).match(/([\d.]+)px/) || [])[1] || 0);
+      if (px > 0) {
+        legendFont = String(font).replace(/[\d.]+px/, `${Math.max(9, Math.floor((px * w) / lw))}px`);
+        ctx.font = legendFont;
+      }
+    }
+    LABELS.forEach((s, k) => {
+      ctx.fillText(s, x + w - widthOf(ctx, legendFont, s), y + (h + margin2) * k + fm.asc);
     });
     ctx.restore();
     return;
