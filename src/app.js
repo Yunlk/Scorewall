@@ -345,6 +345,8 @@ const paneA = document.getElementById('paneA');
 const paneB = document.getElementById('paneB');
 const hint = document.getElementById('hint');
 let lastMsg = Date.now();
+/** event-feed 已消费到第几行（事件序号）。重连时带 since_id，避免每次都重发全量历史 */
+let feedSeq = 0;
 /** event-feed 统计（debug 用）：证明流有没有在推 */
 let feedLines = 0, feedBeats = 0;
 let dirty = true;
@@ -904,6 +906,7 @@ async function bootstrap() {
         for (const line of txt.split('\n')) {
           const s = line.trim();
           if (!s) continue;
+          feedSeq++;                       // 记住消费到哪一行，供 SSE 增量续传
           try { applyEvent(JSON.parse(s)); } catch (_) { /* 坏行跳过 */ }
         }
       }
@@ -926,7 +929,7 @@ async function bootstrap() {
  */
 async function connect() {
   try {
-    const res = await fetch(`${SRC}/event-feed?stream=true`, { cache: 'no-store' });
+    const res = await fetch(`${SRC}/event-feed?stream=true&since_id=${feedSeq}`, { cache: 'no-store' });
     if (!res.ok || !res.body) throw new Error('feed ' + res.status);
 
     const reader = res.body.getReader();
@@ -946,6 +949,7 @@ async function connect() {
         lastMsg = Date.now();
         if (!line) { feedBeats++; continue; }
         feedLines++;
+        feedSeq++;
         try {
           applyEvent(JSON.parse(line));
           dirty = true;
