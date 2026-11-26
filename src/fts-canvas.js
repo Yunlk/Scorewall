@@ -270,10 +270,17 @@ export function drawFtsFrame(ctx, L, rows, times, opts = {}) {
       }
     }
 
-    // 右侧题目 label
+    // 右侧题目 label。源码 TextImage.drawString: 传进去的 x 是文本中心，
+    // 所以这里必须临时切居中，用 left 对齐会把字母推右半个字宽。
+    // 基线同理：上面画格子时把 textBaseline 改成了 alphabetic，
+    // 而 textY 是按 middle 算的，不切回 middle 字母就会顶到表头上。
     ctx.font = fr;
     ctx.fillStyle = '#fff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
     ctx.fillText(r.problemLabel, W - BORDER - (w9999 + widthOf(ctx, fr, r.problemLabel)) / 2, y + textY);
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
 
     ctx.restore();
   }

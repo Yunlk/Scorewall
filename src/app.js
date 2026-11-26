@@ -373,6 +373,9 @@ function layout() {
 }
 
 function draw() {
+  // 校徽预加载放在这里：之前只在 renderStandings 里调，
+  // 直接开 ?view=judge / fts / tilerank 时 logo 从没加载，全是首字占位
+  preloadOrgLogos();
   if (VIEW === 'countdown') { renderCountdown(paneA); dirty = false; return; }
   if (VIEW === 'judge') { renderJudge(paneA); dirty = false; return; }
   if (VIEW === 'problems') { renderProblems(paneA); dirty = false; return; }
@@ -788,8 +791,9 @@ function renderFts(pane) {
     ctx.font = '20px monospace';
     ctx.fillStyle = '#0f0';
     ctx.textAlign = 'left';
-    ctx.fillText(`fts=${q.fts.length} rows=${q.records.length} ` +
-      `ys=${q.records.map(r => r.anim.getValue().toFixed(1)).join(',')}`, 20, H - 24);
+    ctx.fillText(`fts=${q.fts.length} rows=${q.records.length} orgs=${M.orgs.size} showLogo=${LOGO_ON} ` +
+      `team0.org=${t0 && t0.team ? t0.team.organization_id : 'n/a'}`, 20, H - 24);
+    ctx.fillText(`ys=${q.records.map(r => r.anim.getValue().toFixed(1)).join(',')}`, 20, H - 48);
     ctx.restore();
   }
 }
@@ -999,7 +1003,7 @@ const PHASES = {
   before: parseList(Q.get('before'), 'countdown'),
   // 赛中：除了判题队列(judge)和每队过题时间轴(timeline)之外的都轮播
   during: parseList(Q.get('during') || Q.get('views'),
-    'standings,problems,chart,fts,tilerank,polar'),
+    'standings,fts,problems,tilerank,chart'),
   // 赛末：钉住大圆盘倒计时
   final: parseList(Q.get('final'), 'polar'),
   // 赛后：最终榜单
