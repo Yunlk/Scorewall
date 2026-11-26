@@ -1068,7 +1068,9 @@ function currentPhase() {
 function cycleMs(v) {
   // 首屏数据还没到（bootstrap 是异步的），这时按 0 队 0 题算出来的周期只有十几秒，
   // 会一连跳好几个视图才稳定下来。给个兜底，等数据齐了再按真实规模算。
-  if (!M.teams.size) return 12000;
+  // 注意别给得比视图自身周期短：chart 一轮 15s，兜底给 12s 的话就会演到一半被切走，
+  // 下次切回来又从 0 开始 —— 看起来就是"播了两次"。
+  if (!M.teams.size) return v === 'chart' ? CHART_REPEAT : 15000;
   const nT = Math.max(1, M.teams.size);
   const nP = Math.max(1, M.problems.size);
   switch (v) {
@@ -1082,7 +1084,9 @@ function cycleMs(v) {
       return problemRepeat(nP);
     // chart 自己按 CHART_REPEAT 循环重播，停留时间必须等于这个周期，
     // 否则一次停留里会完整重播好几遍（看起来就是"轮了两遍"）
-    case 'chart': return CHART_REPEAT;
+    // 留 600ms 余量：tRepeat 一归零柱子就瞬间缩回 0 再长一遍，
+    // 正好卡在切换边界上会闪一下"第二轮开始"
+    case 'chart': return CHART_REPEAT - 600;
     case 'timeline': return 45000;
     case 'fts': return 30000;
     case 'judge': return 30000;
@@ -1154,14 +1158,20 @@ function startRotate() {
     }
 
     // 切完再按「新视图」的周期排下一次，这样每个视图都能演完自己那一轮
-    const wait = Math.max(3000, ROTATE_AUTO ? cycleMs(VIEW) : ROTATE_SEC * 1000);
+    // 固定秒数模式下取「用户设定」和「视图自身一轮」的较小值：
+    // 设得比周期长的话，视图会在一轮结束后从头重播（chart 的柱子归零再长一遍）
+    const own = cycleMs(VIEW);
+    const want = ROTATE_AUTO ? own : ROTATE_SEC * 1000;
+    const wait = Math.max(3000, Math.min(want, own));
     rotateNextIn = wait;
     rotateAt = Date.now() + wait;
     rotateCount++;
     setTimeout(step, wait);
   };
 
-  const firstWait = Math.max(3000, ROTATE_AUTO ? cycleMs(VIEW) : ROTATE_SEC * 1000);
+  const ownFirst = cycleMs(VIEW);
+  const firstWait = Math.max(3000, Math.min(
+    ROTATE_AUTO ? ownFirst : ROTATE_SEC * 1000, ownFirst));
   rotateNextIn = firstWait;
   rotateAt = Date.now() + firstWait;
   setTimeout(step, firstWait);
