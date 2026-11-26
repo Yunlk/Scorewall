@@ -556,7 +556,11 @@ let tlCache = null;
 /** 按队伍分组提交，并标出每题的首解与 recent */
 function timelineSubs(probs, pidx, elapsedSec) {
   const n = M.submissions.size;
-  if (tlCache && tlCache.n === n && tlCache.elapsed === (elapsedSec | 0)) return tlCache.byTeam;
+  const nj = M.judgements.size;
+  // 判题数也要进 key：只按提交数缓存的话，判题结果晚到会被旧缓存盖住，方块一直显示 pending
+  if (tlCache && tlCache.n === n && tlCache.nj === nj && tlCache.elapsed === (elapsedSec | 0)) {
+    return tlCache.byTeam;
+  }
 
   const all = [];
   for (const sub of M.submissions.values()) {
@@ -591,13 +595,16 @@ function timelineSubs(probs, pidx, elapsedSec) {
   }
   for (const arr of byTeam.values()) arr.sort((a, b) => a.tSec - b.tSec);
 
-  tlCache = { n, elapsed: elapsedSec | 0, byTeam };
+  tlCache = { n, nj, elapsed: elapsedSec | 0, byTeam };
   return byTeam;
 }
 
 function renderTimeline(pane) {
   const { ctx, W, H } = ensureCanvas(pane);
   if (!W || !H) return;
+
+  // judgeStatus 是懒重建的，timeline 也得先触发一次，否则方块全是 pending
+  syncJudgeStatus();
 
   const at = freezeAtSec(durationMs(), freezeMs());
   const data = computeStandings(M, {
@@ -785,6 +792,10 @@ function renderChart(pane) {
     chartObj = makeProblemChart(W, H, data.probs, stats, problemColorFn);
     chartKey = key;
     chartStart = now;
+    // aboutToShow 的等价物：先把数据灌进去，再把最大刻度直接对齐，
+    // 否则从 0 慢慢长上来，数据量大的比赛（单题 200+ 次提交）前半分钟柱子会冲出顶部
+    chartObj.updateData([stats.map(s => s[0]), stats.map(s => s[1])]);
+    chartObj.resetAnim();
   } else {
     if (chartObj.W !== W || chartObj.H !== H) chartObj.resize(W, H);
     chartObj.updateData([stats.map(s => s[0]), stats.map(s => s[1])]);
