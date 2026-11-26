@@ -551,6 +551,7 @@ function renderJudge(pane) {
       `acts=${q.records.map(r => (r.action || '-')[0]).join('')}`, 20, H - 24);
     ctx.fillText(`feed=${feedLines}ev/${feedBeats}hb last=${Math.round((Date.now() - lastMsg) / 1000)}s`, 20, H - 72);
     ctx.fillText(`view=${VIEW} rotate=${ROTATE_AUTO ? 'auto' : ROTATE_SEC} next=${Math.round(rotateNextIn / 1000)}s fired=${rotateCount}`, 20, H - 96);
+    ctx.fillText(`phase=${rotatePhaseNow} idx=${rotateIdxNow} list=[${rotateListNow.join(', ')}]`, 20, H - 120);
     ctx.fillText(`start=${M.contest.start_time} dur=${M.contest.duration} ` +
       `elapsedMs=${Math.round(t.elapsed)} remainMs=${Math.round(t.remain)}`, 20, H - 48);
     ctx.restore();
@@ -1072,13 +1073,17 @@ function cycleMs(v) {
   const nP = Math.max(1, M.problems.size);
   switch (v) {
     case 'standings':
-      return Math.ceil(nT / ROWS_PARAM) * MS_PER_PAGE;
+      // getRepeat() = MS_PER_PAGE * pages + INITIAL_DELAY_MS + FADE_OUT_MS
+      // 漏掉首屏停留和淡出的话，切走时正好卡在淡出中间
+      return Math.ceil(nT / ROWS_PARAM) * MS_PER_PAGE + 3000 + 1000;
     case 'tilerank':
       return tileRepeat(nT, ROWS_PARAM, DEFAULT_COLUMNS);
     case 'problems':
       return problemRepeat(nP);
+    // chart 自己按 CHART_REPEAT 循环重播，停留时间必须等于这个周期，
+    // 否则一次停留里会完整重播好几遍（看起来就是"轮了两遍"）
+    case 'chart': return CHART_REPEAT;
     case 'timeline': return 45000;
-    case 'chart': return 30000;
     case 'fts': return 30000;
     case 'judge': return 30000;
     case 'polar':
@@ -1110,13 +1115,15 @@ function resetViewState() {
 }
 
 /** debug 用：下一次切换还要多久 */
-let rotateNextIn = 0, rotateCount = 0, rotateAt = 0;
+let rotateNextIn = 0, rotateCount = 0, rotateAt = 0, rotatePhaseNow = '', rotateListNow = [], rotateIdxNow = 0;
 
 function startRotate() {
   if (!ROTATE_AUTO && !ROTATE_SEC) return;
 
   let phase = currentPhase();
   let list = PHASES[phase] && PHASES[phase].length ? PHASES[phase] : PHASES.during;
+  rotatePhaseNow = phase;
+  rotateListNow = list;
   // 当前视图不在这个阶段的列表里（比如 ?view=judge 但 judge 不参与轮播）：
   // 置 -1，让第一次 step() 落到 list[0] 上，而不是跳过第一个
   let idx = list.indexOf(VIEW);
@@ -1128,11 +1135,14 @@ function startRotate() {
       // 阶段变了：换列表并从头开始，别接着上个阶段的进度
       phase = now;
       list = PHASES[phase] && PHASES[phase].length ? PHASES[phase] : PHASES.during;
+      rotatePhaseNow = phase;
+      rotateListNow = list;
       idx = 0;
     }
 
     if (list.length >= 2) {
       idx = (idx + 1) % list.length;
+      rotateIdxNow = idx;
       VIEW = list[idx];
       resetViewState();
       layout();

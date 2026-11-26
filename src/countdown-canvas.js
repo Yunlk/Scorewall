@@ -8,9 +8,38 @@
 
 import { fmtClock } from './scoring.js';
 import { drawDigital, digitalWidth } from './digital-font.js';
+import { Animator, Movement } from './judge-queue.js';
+
+/**
+ * StatusCountdownPresentation 的滑块动画：
+ *   private static final Movement SLIDER_ANIM = new Movement(150, 300);
+ *   private Map<String, Animator> animMap;
+ *   update: an.setTarget(status==0 ? NO : status==1 ? UNDECIDED : YES); an.incrementTimeMs(dt)
+ *   draw  : val = an.getValue()  → 0 红 / 50 橙 / 100 绿，圆点沿滑轨移动
+ *
+ * 首次见到某个工位时按源码 aboutToShow() 的做法直接 reset 到位，不播入场动画。
+ */
+const SLIDER_ANIM = new Movement(150, 300);
+const NO = 0, UNDECIDED = 50, YES = 100;
+const sliderAnim = new Map();
+let sliderLastMs = 0;
+
+function sliderValue(key, status, dt) {
+  let an = sliderAnim.get(key);
+  const target = status === 0 ? NO : status === 1 ? UNDECIDED : YES;
+  if (!an) {
+    an = new Animator(0, SLIDER_ANIM);
+    an.reset(target);                 // 首次直接到位（aboutToShow）
+    sliderAnim.set(key, an);
+    return an.getValue();
+  }
+  an.setTarget(target);
+  an.incrementTimeMs(dt);
+  return an.getValue();
+}
 
 /** 工位滑块：三档 NO(0) / UNDECIDED(1) / YES(2) —— StatusCountdownPresentation.drawStatus */
-function drawStatus(ctx, W, H, px, py, label, status, fontPx) {
+function drawStatus(ctx, W, H, px, py, label, status, fontPx, dt) {
   const o = Math.floor(W / 75);
   const x0 = px - o / 2;
   const y = py - o / 2;
@@ -26,8 +55,8 @@ function drawStatus(ctx, W, H, px, py, label, status, fontPx) {
   ctx.arc(x0 + o * 3 + o / 2, y + o / 2, o / 2, 0, Math.PI * 2);
   ctx.stroke();
 
-  // 填充圈：val 0..100 映射到 0..3o 的横向位置
-  const val = status === 0 ? 0 : status === 1 ? 50 : 100;
+  // 填充圈：val 0..100 映射到 0..3o 的横向位置（走 Animator，状态变化时滑过去）
+  const val = sliderValue(label, status, dt || 0);
   const col = val < 5 ? 'red' : val > 95 ? 'lime' : 'orange';
   const fx = x0 + Math.round(val * o * 3 / 100);
   ctx.fillStyle = col;
@@ -59,6 +88,12 @@ function drawStatus(ctx, W, H, px, py, label, status, fontPx) {
  * @param running 比赛是否进行中
  */
 export function drawCountdown(ctx, W, H, sites, remainMs, running, verticalOffset = 0) {
+  // 滑块动画用的帧间隔（和 Java 那边 incrementTimeMs(dt) 一个意思；
+  // 夹个上限，避免标签页被挂起后一次跳太远）
+  const nowMs = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+  const dt = sliderLastMs ? Math.min(200, Math.max(0, nowMs - sliderLastMs)) : 0;
+  sliderLastMs = nowMs;
+
   ctx.fillStyle = '#000';
   ctx.fillRect(0, 0, W, H);
   ctx.textAlign = 'left';
@@ -98,7 +133,7 @@ export function drawCountdown(ctx, W, H, sites, remainMs, running, verticalOffse
   sites.forEach((it, n) => {
     const px = Math.floor(W / 20 + (n % 3) * W * 3 / 10);
     const py = Math.floor(40 + Math.floor(n / 3) * (H / 18));
-    drawStatus(ctx, W, H, px, py, it.label, it.status, fontPx);
+    drawStatus(ctx, W, H, px, py, it.label, it.status, fontPx, dt);
   });
 
   // 右下角也放个 logo（源码用 contest logo，没有就跳过）
