@@ -504,6 +504,7 @@ function renderJudge(pane) {
       `judged=${judgeStatus.size} types=${M.judgementTypes.size} ` +
       `acts=${q.records.map(r => (r.action || '-')[0]).join('')}`, 20, H - 24);
     ctx.fillText(`feed=${feedLines}ev/${feedBeats}hb last=${Math.round((Date.now() - lastMsg) / 1000)}s`, 20, H - 72);
+    ctx.fillText(`view=${VIEW} rotate=${ROTATE_AUTO ? 'auto' : ROTATE_SEC} next=${Math.round(rotateNextIn / 1000)}s fired=${rotateCount}`, 20, H - 96);
     ctx.fillText(`start=${M.contest.start_time} dur=${M.contest.duration} ` +
       `elapsedMs=${Math.round(t.elapsed)} remainMs=${Math.round(t.remain)}`, 20, H - 48);
     ctx.restore();
@@ -1018,7 +1019,7 @@ function currentPhase() {
 function cycleMs(v) {
   // 首屏数据还没到（bootstrap 是异步的），这时按 0 队 0 题算出来的周期只有十几秒，
   // 会一连跳好几个视图才稳定下来。给个兜底，等数据齐了再按真实规模算。
-  if (!M.teams.size) return 30000;
+  if (!M.teams.size) return 12000;
   const nT = Math.max(1, M.teams.size);
   const nP = Math.max(1, M.problems.size);
   switch (v) {
@@ -1053,13 +1054,18 @@ function resetViewState() {
   dirty = true;
 }
 
+/** debug 用：下一次切换还要多久 */
+let rotateNextIn = 0, rotateCount = 0, rotateAt = 0;
+
 function startRotate() {
   if (!ROTATE_AUTO && !ROTATE_SEC) return;
 
   let phase = currentPhase();
   let list = PHASES[phase] && PHASES[phase].length ? PHASES[phase] : PHASES.during;
+  // 当前视图不在这个阶段的列表里（比如 ?view=judge 但 judge 不参与轮播）：
+  // 置 -1，让第一次 step() 落到 list[0] 上，而不是跳过第一个
   let idx = list.indexOf(VIEW);
-  if (idx < 0) idx = 0;
+  if (idx < 0) idx = -1;
 
   const step = () => {
     const now = currentPhase();
@@ -1083,12 +1089,17 @@ function startRotate() {
     }
 
     // 切完再按「新视图」的周期排下一次，这样每个视图都能演完自己那一轮
-    const wait = ROTATE_AUTO ? cycleMs(VIEW) : ROTATE_SEC * 1000;
-    setTimeout(step, Math.max(3000, wait));
+    const wait = Math.max(3000, ROTATE_AUTO ? cycleMs(VIEW) : ROTATE_SEC * 1000);
+    rotateNextIn = wait;
+    rotateAt = Date.now() + wait;
+    rotateCount++;
+    setTimeout(step, wait);
   };
 
-  const firstWait = ROTATE_AUTO ? cycleMs(VIEW) : ROTATE_SEC * 1000;
-  setTimeout(step, Math.max(3000, firstWait));
+  const firstWait = Math.max(3000, ROTATE_AUTO ? cycleMs(VIEW) : ROTATE_SEC * 1000);
+  rotateNextIn = firstWait;
+  rotateAt = Date.now() + firstWait;
+  setTimeout(step, firstWait);
 }
 
 function loop() {
