@@ -23,7 +23,10 @@ import { timelineLayout, drawTimelineFrame } from './timeline-canvas.js';
 import { FtsQueue, drawFtsFrame } from './fts-canvas.js';
 
 const Q = new URLSearchParams(location.search);
-const SRC = (Q.get('src') || 'http://127.0.0.1:8081/api/contests/144333').replace(/\/$/, '');
+// ?src= 优先；其次用托管方注入的默认值（nowcoder-bridge 的 /scorewall/ 会设成同源 API）；
+// 最后才退回本地适配器地址
+const SRC = (Q.get('src') || window.__SRC_DEFAULT__ || 'http://127.0.0.1:8081/api/contests/144333')
+  .replace(/\/$/, '');
 const VIEW = Q.get('view') || 'standings';
 /** AbstractScoreboardPresentation.setNumRows() —— 行数直接决定字号（源码支持 rows: 属性） */
 const ROWS_PARAM = Math.max(1, Number(Q.get('rows')) || 12);
@@ -386,37 +389,18 @@ function draw() {
 /** #56 判题队列（JudgePresentation 状态机） */
 let judgeQ = null, judgeSeen = new Set(), judgeLast = 0, judgePrimed = false;
 
-/**
- * 判题队列回放（?sim=<倍速>）
- *
- * 比赛结束后所有提交都已判完，JudgePresentation 的队列会一直是空的 ——
- * 它只收 !isJudged(submission) 的提交。想看图就得把历史提交当成刚发生：
- * simNow 从 0 开始按倍速推进，只把 contest_time 已经走到的提交当成"已判"，
- * 其余的视为仍在队列里排队。跑到赛末再从头来一遍。
- */
-let simSpeed = Math.max(0, Number(Q.get('sim')) || 0);
-let simNow = 0;
-let simLast = 0;
-
-function simTick(nowMs) {
-  if (simSpeed <= 0) return;
-  const dt = simLast ? Math.min(250, Math.max(0, nowMs - simLast)) : 0;
-  simLast = nowMs;
-  simNow += dt * simSpeed;
+/** 赛外提交：contest_time 超过 duration。牛客赛后可继续交，这些不该进判题队列/时间轴 */
+function isAfterContest(sub) {
   const dur = durationMs();
-  if (simNow > dur + 30000) simNow = 0;      // 赛末停 30 秒再从头放
+  if (!dur) return false;
+  return rel2sec(sub.contest_time) * 1000 > dur;
 }
 
 function judgeQueue() {
   if (judgeQ) return judgeQ;
-  const judgedAt = sub => {
-    if (!judgeStatus.has(sub.id)) return false;
-    if (simSpeed <= 0) return true;
-    return rel2sec(sub.contest_time) * 1000 <= simNow;
-  };
   judgeQ = new JudgeQueue({
-    judged: judgedAt,
-    solved: sub => judgedAt(sub) && judgeStatus.get(sub.id) === 'solved',
+    judged: sub => judgeStatus.has(sub.id),
+    solved: sub => judgeStatus.get(sub.id) === 'solved',
     frozen: () => !!(M.state && M.state.isFrozen()),
     // 源码 JudgePresentation:34-37：AC 停 11s、WA 停 8s、淡出 2s
     timeToKeepSolved: Q.has('keepSolved') ? Number(Q.get('keepSolved')) : undefined,
@@ -430,6 +414,8 @@ function judgeQueue() {
 function renderJudge(pane) {
   const { ctx, W, H } = ensureCanvas(pane);
   if (!W || !H) return;
+
+  syncJudgeStatus();
 
   const at = freezeAtSec(durationMs(), freezeMs());
   const data = computeStandings(M, {
@@ -458,32 +444,26 @@ function renderJudge(pane) {
 
   // JudgePresentation.aboutToShow:87-104
   // 封榜时队列不播种；否则只把「未判」的放进来，其余仅标记为已见
-  // 回放模式（sim>0）下，「已判」要按 simNow 判断：还没走到的提交视为仍在排队
-  const judgedNow = s => {
-    if (!judgeStatus.has(s.id)) return false;
-    if (simSpeed <= 0) return true;
-    return rel2sec(s.contest_time) * 1000 <= simNow;
-  };
-  const arrived = s => simSpeed <= 0 || rel2sec(s.contest_time) * 1000 <= simNow;
+  const judgedNow = s => judgeStatus.has(s.id);
+  const arrived = s => !isAfterContest(s);   // 赛外提交（赛后练习）不进队列
 
   if (!judgePrimed && M.submissions.size > 0) {
     if (!frozen) {
       const list = [...M.submissions.values()]
-        .filter(s => !judgedNow(s))
+        .filter(s => !judgedNow(s) && !isAfterContest(s))   // 赛外提交（赛后练习）不进队列
         .sort((x, y) => rel2sec(x.contest_time) - rel2sec(y.contest_time))
         .slice(-TEAMS_PER_SCREEN);
       list.forEach(s => q.add(s));
       q.updateTargets(true);          // 直接摆到位，不播入场动画
     }
-    // 回放模式下不要一次把全部提交标记为已见，否则它们永远不会被送进队列
-    if (simSpeed <= 0) for (const s of M.submissions.values()) judgeSeen.add(s.id);
+    for (const s of M.submissions.values()) judgeSeen.add(s.id);
     judgePrimed = true;
     judgeLast = now;
   }
 
   // 新提交进队：起点由 createSubmissionRecord 决定（屏幕下方 14 行），自己滑上来
   for (const sub of M.submissions.values()) {
-    if (!arrived(sub)) continue;              // 回放：还没到时间的先不送
+    if (!arrived(sub)) continue;              // 赛外提交跳过
     if (!judgeSeen.has(sub.id)) {
       judgeSeen.add(sub.id);
       q.add(sub);
@@ -514,6 +494,8 @@ function renderJudge(pane) {
     ctx.fillText(`subs=${M.submissions.size} judges=${M.judgements.size} queue=${q.records.length} ` +
       `judged=${judgeStatus.size} types=${M.judgementTypes.size} ` +
       `acts=${q.records.map(r => (r.action || '-')[0]).join('')}`, 20, H - 24);
+    ctx.fillText(`start=${M.contest.start_time} dur=${M.contest.duration} ` +
+      `elapsedMs=${Math.round(t.elapsed)} remainMs=${Math.round(t.remain)}`, 20, H - 48);
     ctx.restore();
   }
 }
@@ -603,7 +585,7 @@ function timelineSubs(probs, pidx, elapsedSec) {
   const all = [];
   for (const sub of M.submissions.values()) {
     const pi = pidx.has(sub.problem_id) ? pidx.get(sub.problem_id) : -1;
-    if (pi < 0) continue;
+    if (pi < 0 || isAfterContest(sub)) continue;   // 赛外提交不上时间轴
     all.push({
       sub, pi,
       sec: rel2sec(sub.contest_time),
@@ -949,7 +931,6 @@ setInterval(() => {
 // 渲染循环：rAF 驱动；后台标签页 rAF 会被暂停，用定时器兜底推进时间轴
 let lastDraw = 0;
 function loop() {
-  simTick(performance.now());
   draw();
   lastDraw = performance.now();
   requestAnimationFrame(loop);

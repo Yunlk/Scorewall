@@ -16,7 +16,11 @@ export function fmtClock(ms, floor = true) {
   sec = floor ? Math.floor(sec) : Math.round(sec);
   const neg = sec < 0;
   const a = Math.abs(sec);
-  const h = Math.floor(a / 3600) % 48;
+  // 源码这里是 % 48（CCS 的 contest_time 最多两天）。但那种开放好几天的
+  // 练习赛/热身赛 duration 能到 131 小时，取模会把 61:42 显示成 13:42。
+  // 只有超过 48 小时才保留完整小时数。
+  const rawH = Math.floor(a / 3600);
+  const h = rawH < 48 ? rawH : rawH;
   const m = Math.floor(a / 60) % 60;
   const s = Math.floor(a) % 60;
   const p = n => String(n).padStart(2, '0');
@@ -59,10 +63,18 @@ export function computeStandings(model, opts = {}) {
   const subs = [...submissions.values()]
     .sort((a, b) => rel2sec(a.contest_time) - rel2sec(b.contest_time));
 
+  // 赛外提交不计入榜单：牛客这类平台比赛结束后还能继续交（练习/补题），
+  // 不过滤罚时会变成几万分钟、排名全乱
+  const dparts = String(contest.duration || '').split(':');
+  const durSec = dparts.length >= 2
+    ? (+dparts[0]) * 3600 + (+dparts[1]) * 60 + (+dparts[2] || 0)
+    : 0;
+
   for (const sub of subs) {
     const ti = cells.get(sub.team_id);
     const pi = pidx.get(sub.problem_id);
     if (!ti || pi === undefined) continue;
+    if (durSec > 0 && rel2sec(sub.contest_time) > durSec) continue;   // 赛外
 
     let j = verdict.get(sub.id);
     if (j && hideJudgement(sub)) j = null;      // 封榜隐藏
