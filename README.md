@@ -9,9 +9,10 @@
 </p>
 
 <p align="center">
-  <a href="#部署"><img src="https://img.shields.io/badge/%E9%83%A8%E7%BD%B2-%E9%9D%99%E6%80%81%E6%96%87%E4%BB%B6-2ea043" alt="部署"></a>
-  <a href="#部署"><img src="https://img.shields.io/badge/%E4%BE%9D%E8%B5%96-%E9%9B%B6-388bfd" alt="零依赖"></a>
-  <a href="#画面"><img src="https://img.shields.io/badge/%E7%94%BB%E9%9D%A2-9-d29922" alt="九画面"></a>
+  <a href="#deploy"><img src="https://img.shields.io/badge/deploy-static%20files-2ea043" alt="deploy"></a>
+  <a href="#deploy"><img src="https://img.shields.io/badge/dependencies-zero-388bfd" alt="zero dependencies"></a>
+  <a href="#views"><img src="https://img.shields.io/badge/views-9-d29922" alt="9 views"></a>
+  <a href="https://github.com/icpctools/icpctools"><img src="https://img.shields.io/badge/visual%20reference-ICPC%20Tools-8957e5" alt="ICPC Tools"></a>
 </p>
 
 ---
@@ -37,6 +38,8 @@ ICPC Tools 是 Java2D 应用，实际用下来坑很固定：
 网页版把这些全部绕开：切视图是瞬时的，分屏是 CSS，字体随便挂。
 
 ---
+
+<a id="views"></a>
 
 ## 画面
 
@@ -121,6 +124,8 @@ https://你的域名/scorewall/config.html
 - 轮播各阶段的视图列表
 
 ---
+
+<a id="deploy"></a>
 
 ## 部署
 
