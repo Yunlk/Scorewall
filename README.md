@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="docs/logo.png" width="150" alt="Scorecast">
+  <img src="docs/logo.png" width="150" alt="Scorewall">
 </p>
 
-<h1 align="center">Scorecast</h1>
+<h1 align="center">Scorewall</h1>
 
 <p align="center">
   ICPC 赛场大屏的网页实现 · 九个画面 · 零构建
@@ -16,7 +16,7 @@
 
 ---
 
-**Scorecast** 把 [ICPC Tools](https://github.com/icpctools/icpctools) 那套赛场大屏视觉搬到了浏览器里。
+**Scorewall** 把 [ICPC Tools](https://github.com/icpctools/icpctools) 那套赛场大屏视觉搬到了浏览器里。
 
 尺寸、颜色、字号、动画曲线全部从上游 Java 源码抄——不自己设计。
 
