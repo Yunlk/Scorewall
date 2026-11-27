@@ -1,6 +1,22 @@
-# Scorewall
+<p align="center">
+  <img src="docs/logo.png" width="150" alt="Scorecast">
+</p>
 
-ICPC Tools 赛场大屏视觉的**网页重实现**。九个画面，零构建，浏览器里跑。
+<h1 align="center">Scorecast</h1>
+
+<p align="center">
+  ICPC 赛场大屏的网页实现 · 九个画面 · 零构建
+</p>
+
+<p align="center">
+  <a href="#部署"><img src="https://img.shields.io/badge/%E9%83%A8%E7%BD%B2-%E9%9D%99%E6%80%81%E6%96%87%E4%BB%B6-2ea043" alt="部署"></a>
+  <a href="#部署"><img src="https://img.shields.io/badge/%E4%BE%9D%E8%B5%96-%E9%9B%B6-388bfd" alt="零依赖"></a>
+  <a href="#画面"><img src="https://img.shields.io/badge/%E7%94%BB%E9%9D%A2-9-d29922" alt="九画面"></a>
+</p>
+
+---
+
+**Scorecast** 把 [ICPC Tools](https://github.com/icpctools/icpctools) 那套赛场大屏视觉搬到了浏览器里。
 
 尺寸、颜色、字号、动画曲线全部从上游 Java 源码抄——不自己设计。
 
