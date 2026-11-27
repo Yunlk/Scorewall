@@ -1,76 +1,191 @@
-# icpc-bigscreen
+# Scorewall
 
-ICPC Tools 那套赛场大屏视觉的**网页重实现**。不依赖 Java，换画面不掉线。
+ICPC Tools 赛场大屏视觉的**网页重实现**。九个画面，零构建，浏览器里跑。
 
-## 为什么
+尺寸、颜色、字号、动画曲线全部从上游 Java 源码抄——不自己设计。
+
+---
+
+## 为什么不用 ICPC Tools
 
 ICPC Tools 是 Java2D 应用，实际用下来坑很固定：
 
 | 坑 | 现象 |
 |---|---|
 | 换画面要重启进程 | 黑屏 30~40 秒 |
-| `--display` 是「编号+模式字母」 | 写成 `1x` 会把 1280×720 的屏切成 4K，布局算出负数宽高、画面堆叠越界 |
-| 图片按 URL 缓存 | 换 logo 必须清 `%TEMP%\org.icpc.tools.cache.*`，否则永远旧图 |
+| `--display` 是「编号+模式字母」 | 写成 `1x` 会把 1280×720 的屏切成 4K，布局算出负数宽高 |
+| 图片按 URL 缓存 | 换 logo 必须清 `%TEMP%\org.icpc.tools.cache.*` |
 | 中文字体 | 必须设 `ICPC_FONT=DengXian`，否则全方块 |
-| 一个进程只能一个画面 | 左右分屏要开两个进程，时间线切换就失效 |
+| 一个进程只能一个画面 | 左右分屏要开两个进程 |
 
 网页版把这些全部绕开：切视图是瞬时的，分屏是 CSS，字体随便挂。
 
-## 目标
+---
 
-1. **视觉对齐 ICPC Tools** —— 尺寸/颜色全部从源码抄，不自己设计
-2. **一个页面搞定左右屏** —— 左屏轮播、右屏固定判题队列
-3. **对接任意 CCS 数据源** —— `http://…/api/contests/<id>` 或 NDJSON 事件流
-4. **可离线** —— 静态文件即可部署
+## 画面
 
-## 数据结构
+九个视图，`?view=<名字>` 直接访问：
 
-输入是 CCS Contest API（我们的 `nowcoder-bridge` 已经实现）：
+| 视图 | 内容 | 上游对应 |
+|---|---|---|
+| `standings` | 实时榜单，12 行分页 | `AbstractScrollingScoreboardPresentation` |
+| `judge` | 判题队列，滑入/停留/淡出 | `JudgePresentation` |
+| `countdown` | 大倒计时 + 工位状态滑块 | `StatusCountdownPresentation` |
+| `polar` | 圆环倒计时（赛末用） | `PolarCountdownPresentation` |
+| `problems` | 单题统计色块 | `ProblemSummaryPresentation` |
+| `chart` | 题目柱状图（提交/通过） | `ProblemSummaryChart` |
+| `fts` | First to Solve 首杀榜 | `FirstToSolvePresentation` |
+| `tilerank` | 每队一个方块的排名 | `TeamTileHelper` |
+| `timeline` | 每队过题时间轴 | `TimelinePresentation` |
 
-```
-GET /api/contests/<id>                 比赛元信息（logo/banner/duration/penalty）
-GET /api/contests/<id>/event-feed       NDJSON 事件流（team/problem/submission/judgement…）
-GET /api/contests/<id>/teams|problems|submissions|judgements|organizations
-```
+---
 
-## 画面清单（按 plan.md）
+## 轮播
 
-| 阶段 | 画面 | 编号 | 状态 |
-| --- | --- | --- | --- |
-| 赛前 | 带工位状态的倒计时 | 15 | 待做 |
-| 赛中 | 题目柱状图（提交/通过） | 10 | 待做 |
-| 赛中 | 题目汇总色块 | 29 | 已在旧版实现，待移植 |
-| 赛中 | 总榜（12 行分页） | 58 | 已在旧版实现，待移植 |
-| 赛中 | 一血 | 54 | 待做 |
-| 赛末 30 分 | 圆形倒计时 | 16 | 待做 |
-| 全程右屏 | 判题队列 | 56 | 已在旧版实现，待移植 |
-
-「旧版」= `C:\Users\Yunlk\Desktop\重要\screen-service`，可作参考实现。
-
-## 布局约定
+按比赛阶段自动切换，不需要 OBS 场景。
 
 ```
-左屏 = 轮播（按时间/阶段切换视图）
-右屏 = 固定判题队列
+赛前（还没开始）      countdown                      钉住
+赛中（进行中）        standings,fts,problems,
+                      tilerank,chart                 轮播
+赛末（剩 30 分钟内）  polar                          钉住
+赛后（已结束）        standings                      钉住
 ```
 
-一个页面两个 pane，`display: flex`；每个 pane 各自按自己的尺寸跑公式
-（ICPC Tools 的布局全部相对高度 `H` 计算，所以 pane 宽度不同也不影响比例）。
+**`?rotate=auto`** 每个视图演完自己那一轮再切，一轮的长度由视图自身决定：
+
+| 视图 | 一轮 |
+|---|---|
+| `standings` | 屏数 × 12s + 4s（淡入停留淡出） |
+| `problems` | (题数+1) × 1s + 5s |
+| `chart` | 15s（`AbstractChartPresentation.getRepeat()`） |
+| `tilerank` | `tileRepeat()` 滚动一轮 |
+
+`?rotate=25` 也能固定秒数，但不会超过视图自身周期——否则会重播（chart 的柱子归零再长一遍）。
+
+**自定义阶段**：
+
+```
+?before=countdown,polar
+&during=standings,judge,problems
+&final=countdown
+&after=standings
+&finalMin=30
+```
+
+---
+
+## 远控
+
+OBS 里填好地址就不用管了，切换都在手机上点：
+
+```
+https://你的域名/control
+```
+
+- **比赛阶段**：赛前 / 赛中 / 赛中后期 / 赛后 / 自动
+- **工位状态**：九个工位逐个切 0（未就绪）/ 1（待定）/ 2（就绪）
+- **直接切视图**：绕过轮播，钉在某个画面上
+
+大屏每 2 秒轮询一次，点完就跟着变，不用刷新。
+
+---
+
+## 配置页
+
+```
+https://你的域名/scorewall/config.html
+```
+
+按视图分组，改完实时预览生成的 URL：
+
+- 数据源地址 + 连通检测
+- 行数、校徽开关、题目配色
+- 判题队列停留时长、未判超时
+- 轮播各阶段的视图列表
+
+---
+
+## 部署
+
+零构建，静态文件即可。`src/` 整个目录扔到 nginx 后面就行。
+
+**需要**：一个实现 CCS Contest API 的数据源。我们用 [nowcoder-bridge](https://github.com/Yunlk/nowcoder-bridge) 把牛客的比赛转成 CCS 格式。
+
+```
+GET /api/contests/<id>                       比赛元信息
+GET /api/contests/<id>/event-feed            NDJSON 事件流
+GET /api/contests/<id>/teams|problems|…
+```
+
+`?src=http://host/api/contests/<id>` 指定数据源；同源托管时适配器会注入默认值，不用手填。
+
+**本地跑**：
+
+```bash
+node test/serve-fixtures.mjs      # http://127.0.0.1:8090
+```
+
+夹具自带实时模拟：每 3 秒一条提交，判题机串行判题，能看到判题队列完整动画。
+
+---
+
+## URL 参数
+
+| 参数 | 说明 |
+|---|---|
+| `src` | CCS 数据源 |
+| `view` | 固定视图 |
+| `rotate` | `auto` 或秒数，轮播间隔 |
+| `phase` | 锁定阶段，覆盖时间判定 |
+| `sites` | `0` 关闭工位状态 |
+| `rows` | 每屏行数，默认 12 |
+| `logo` | `0` 关闭校徽 |
+| `freeze` | 封榜时长 |
+| `debug` | `1` 显示调试信息（收包数、队列状态、轮播列表） |
+
+---
+
+## 结构
+
+```
+src/
+  index.html            入口，只引 app.js
+  board.css             布局 + 字体（ICPC 自带 Helvetica）
+  app.js                主循环、数据同步、视图分发、轮播、远控
+  scoring.js            榜单计算、一血、时间格式化
+  state.js              事件模型（applyEvent）
+  *-canvas.js           九个视图，每个对应一个 Java presentation
+  judge-queue.js        判题队列状态机 + Animator/Movement
+  digital-font.js       七段数字字体
+  team-logo.js          校徽加载与缩放
+  config.html           配置页
+  control.html          远控页
+test/
+  serve-fixtures.mjs    假 CCS 服务 + 实时模拟
+  *.test.mjs            单元测试
+docs/
+  presentation-constants.md   从源码扒的全部数值
+  pitfalls.md                 对接 CCS 踩过的坑
+```
+
+---
+
+## 已知差异
+
+对比上游，这几处是有意为之：
+
+- **`% 48` 去掉了**。源码 `getTime()` 里对小时取模 48（假设比赛不超过两天），但开放好几天的练习赛 duration 能到 131 小时，`62:42` 会被显示成 `14:42`。
+- **未判超时可配**。源码信任数据源一定会给 judgement，但实际会遇到永远不判的提交，堵住队列第一行。默认 120 秒后自动淡出，`?pendingMax=0` 恢复源码行为。
+
+---
 
 ## 参考
 
-- `docs/presentation-constants.md` —— 从 ICPC Tools 源码扒出来的全部数值
-- `docs/pitfalls.md` —— 对接 CCS 时踩过的坑
-- 源码：https://github.com/icpctools/icpctools
-- 上游文档：`C:\Users\Yunlk\Desktop\重要\nowcoder-bridge\docs\icpc-tools-presentation.md`
-
-## 技术选型（待定）
-
-优先考虑**零构建**：纯 HTML + CSS + 原生 JS。
-理由：这套东西是"像素对齐"，不需要框架抽象，反而少一层干扰；部署就是静态文件。
-
-如果后期要做复杂的状态管理再考虑引入。
+- [ICPC Tools](https://github.com/icpctools/icpctools) — 视觉基准
+- [CCS Contest API](https://ccs-specs.icpc.io/) — 数据格式
+- [nowcoder-bridge](https://github.com/Yunlk/nowcoder-bridge) — 牛客转 CCS
 
 ## 许可
 
-待定（若开源，参考上游 ICPC Tools 的许可条款）
+待定。
