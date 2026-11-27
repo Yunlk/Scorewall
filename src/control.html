@@ -99,7 +99,7 @@ a.view:active { transform: scale(.97); }
 </div>
 
 <div class="card">
-  <h2>直接切视图</h2>
+  <h2>投放画面</h2>
   <div class="grid">
     <a class="view" href="#" data-view="">轮播</a>
     <a class="view" href="#" data-view="standings">榜单</a>
@@ -112,12 +112,13 @@ a.view:active { transform: scale(.97); }
     <a class="view" href="#" data-view="polar">圆盘</a>
     <a class="view" href="#" data-view="timeline">时间轴</a>
   </div>
-  <div class="tip">「轮播」= 解除强制，回到按阶段自动轮播</div>
+  <div class="tip" id="viewHint">选中后大屏锁在这个画面上，轮播暂停；选「轮播」恢复按阶段自动切换</div>
 </div>
 
 <div class="card">
   <h2>状态</h2>
   <div class="status"><span class="dot" id="dot"></span><span id="msg">连接中…</span></div>
+  <div class="status" style="margin-top:8px"><span id="castInfo" style="color:#8b949e">投放：轮播中</span></div>
 </div>
 
 <script>
@@ -136,6 +137,13 @@ function renderPhase() {
     const on = (a.dataset.view || '') === state.view;
     a.style.borderColor = on ? '#388bfd' : '';
     a.style.color = on ? '#79c0ff' : '';
+  }
+  const info = $('castInfo');
+  if (info) {
+    info.textContent = state.view
+      ? '投放：' + (state.view) + '（锁定，轮播已暂停）'
+      : '投放：轮播中（按阶段自动切换）';
+    info.style.color = state.view ? '#56d364' : '#8b949e';
   }
 }
 

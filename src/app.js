@@ -37,6 +37,8 @@ const LOGO_TAG = Q.get('logoTag') || 'dark';
 let SITES_ON = Q.get('sites') !== '0';
 /** 手动锁定阶段（?phase=before|during|final|after）；空 = 按时间自动判定 */
 let FORCE_PHASE = (Q.get('phase') || '').trim();
+/** 投放锁：远控指定具体视图时置真，轮播暂停在这个视图上 */
+let ROTATE_LOCK = false;
 /** 远控端点（适配器的 /api/control） */
 const CONTROL_URL = SRC.replace(/\/api\/contests\/.*$/, '') + '/api/control';
 
@@ -362,7 +364,6 @@ async function pollControl() {
     if (!r.ok) return;
     const j = await r.json();
     if (j.seq === ctrlSeq) return;              // 没变化
-    const first = ctrlSeq < 0;
     ctrlSeq = j.seq;
 
     if (typeof j.sites === 'boolean' && j.sites !== SITES_ON) {
@@ -374,11 +375,20 @@ async function pollControl() {
       FORCE_PHASE = ph;
       dirty = true;
     }
+    // 投放：远控指定了具体视图就锁住轮播，钉在这个视图上；
+    // 清空（选「轮播」）就解除，回到按阶段自动切。
+    // 注意首次轮询也要生效 —— 投放是用户明确的意图，不能因为"刚加载"就忽略，
+    // 否则大屏开着的时候改投放，要等下一次轮播提醒才跟上。
     const v = (j.view || '').trim();
-    if (!first && v && v !== VIEW) {
-      VIEW = v;
-      resetViewState();
-      layout();
+    if (v) {
+      ROTATE_LOCK = true;
+      if (v !== VIEW) {
+        VIEW = v;
+        resetViewState();
+        layout();
+      }
+    } else {
+      ROTATE_LOCK = false;
     }
   } catch (_) { /* 适配器没起或跨域，忽略 */ }
 }
@@ -1134,6 +1144,13 @@ function startRotate() {
   if (idx < 0) idx = -1;
 
   const step = () => {
+    // 投放模式：钉在当前视图，只重排下一次检查，不切走
+    if (ROTATE_LOCK) {
+      rotateNextIn = 1000;
+      setTimeout(step, 1000);
+      return;
+    }
+
     const now = currentPhase();
     if (now !== phase) {
       // 阶段变了：换列表并从头开始，别接着上个阶段的进度
