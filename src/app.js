@@ -17,7 +17,7 @@ import { judgeLayout, drawJudgeFrame, seedRows, rowOf } from './judge-canvas.js'
 import { JudgeQueue, TEAMS_PER_SCREEN } from './judge-queue.js';
 import { problemLayout, drawProblemFrame, problemStats, problemRepeat, makeColorFn } from './problem-canvas.js';
 import { makeProblemChart, CHART_REPEAT } from './chart-canvas.js';
-import { tileLayout, buildGroups, drawTileRank, tileRepeat, scrollOffset, DEFAULT_ROWS as TILE_ROWS, DEFAULT_COLUMNS } from './tilerank-canvas.js';
+import { tileLayout, buildGroups, drawTileRank, tileRepeat, scrollOffset, groupSizesOf, DEFAULT_ROWS as TILE_ROWS, DEFAULT_COLUMNS } from './tilerank-canvas.js';
 import { drawPolarCountdown } from './polar-canvas.js';
 import { timelineLayout, drawTimelineFrame } from './timeline-canvas.js';
 import { FtsQueue, drawFtsFrame } from './fts-canvas.js';
@@ -743,9 +743,12 @@ function renderTileRank(pane) {
 
   const now = performance.now();
   if (!tileStart) tileStart = now;
-  const repeat = tileRepeat(data.rows.length, TILE_ROWS, DEFAULT_COLUMNS);
+  // 分档之间各留 0.25 行间距，实际内容高度取决于「分了几档」。
+  // 只用 ceil(队伍数/列数)+3 估算会少算，滚到底时最后一行压不进屏幕。
+  const sizes = groupSizesOf(groups);
+  const repeat = tileRepeat(data.rows.length, TILE_ROWS, DEFAULT_COLUMNS, sizes);
   const t = (now - tileStart) % repeat;
-  const scrollPx = scrollOffset(t, H, TILE_ROWS, DEFAULT_COLUMNS, data.rows.length);
+  const scrollPx = scrollOffset(t, H, TILE_ROWS, DEFAULT_COLUMNS, data.rows.length, sizes);
 
   drawTileRank(ctx, L, groups, data.probs, scrollPx, {
     frozen: !!(M.state && M.state.isFrozen()),
@@ -1113,6 +1116,7 @@ function cycleMs(v) {
       // 漏掉首屏停留和淡出的话，切走时正好卡在淡出中间
       return Math.ceil(nT / ROWS_PARAM) * MS_PER_PAGE + 3000 + 1000;
     case 'tilerank':
+      // 轮播周期按真实分组算（榜单数据这里不一定有，取不到就退回估算公式）
       return tileRepeat(nT, TILE_ROWS, DEFAULT_COLUMNS);
     case 'problems':
       return problemRepeat(nP);

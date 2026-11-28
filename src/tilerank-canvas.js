@@ -92,14 +92,40 @@ export function buildGroups(sortedRows, columns = DEFAULT_COLUMNS) {
   return groups;
 }
 
-/** getNumRows（TileRank 版）= ceil(teams/columns) + 3 */
-export function totalTileRows(teamCount, columns = DEFAULT_COLUMNS) {
-  return Math.ceil(teamCount / columns) + 3;
+/**
+ * 内容占用的总行数（含每档之间的 RANK_GAP）。
+ *
+ * 源码 AbstractTileScoreboardPresentation.getNumRows() 只是个估算值，
+ * TileRank 版再 +3 当余量（TileRankScoreboardPresentation.java:36-38）。
+ * 那个 +3 假定分档不多，但实际每换一档就多 RANK_GAP(0.25) 行：
+ *   125 队 / 每行 2 个 / 9 档 → 实际要 69 行，固定公式只给 66 行，
+ *   滚动上限因此偏小，最后一行永远压不到屏幕里。
+ *
+ * 这里按 buildGroups 的真实布局算：Σ(numRows) + RANK_GAP × 换档次数。
+ */
+export function totalTileRows(teamCount, columns = DEFAULT_COLUMNS, groupSizes = null) {
+  if (!groupSizes || !groupSizes.length) {
+    // 没有分组信息时退回源码公式（保守估计，宁可多留一点）
+    return Math.ceil(teamCount / columns) + 3;
+  }
+  let n = 0;
+  for (let i = 0; i < groupSizes.length; i++) {
+    n += Math.ceil(groupSizes[i] / columns);
+    if (i < groupSizes.length - 1) n += RANK_GAP;   // 最后一档后面不留间隙
+  }
+  // 不取整：取整会多出最多 1 行，滚到底时底下留一条空白
+  return n;
+}
+
+/** 从 buildGroups 的结果取出各组人数，喂给 totalTileRows */
+export function groupSizesOf(groups) {
+  return groups.map(g => g.teams.length);
 }
 
 /** 一轮循环时长：INITIAL_DELAY_MS + MS_PER_SCREEN * (总行数 / 每屏行数) */
-export function tileRepeat(teamCount, rows = DEFAULT_ROWS, columns = DEFAULT_COLUMNS) {
-  return INITIAL_DELAY_MS + Math.trunc(MS_PER_SCREEN * (totalTileRows(teamCount, columns) / rows));
+export function tileRepeat(teamCount, rows = DEFAULT_ROWS, columns = DEFAULT_COLUMNS, groupSizes = null) {
+  const total = totalTileRows(teamCount, columns, groupSizes);
+  return INITIAL_DELAY_MS + Math.trunc(MS_PER_SCREEN * (total / rows));
 }
 
 /**
@@ -114,11 +140,12 @@ export function tileRepeat(teamCount, rows = DEFAULT_ROWS, columns = DEFAULT_COL
  * 之前写了 `totalTileRows/rows - 1`，等于把「总行数」当成「屏数」多减了一屏，
  * 队伍一多就只能滚一点点，永远到不了底。
  */
-export function scrollOffset(tMs, H, rows = DEFAULT_ROWS, columns = DEFAULT_COLUMNS, teamCount = 0) {
+export function scrollOffset(tMs, H, rows = DEFAULT_ROWS, columns = DEFAULT_COLUMNS, teamCount = 0, groupSizes = null) {
   if (tMs <= INITIAL_DELAY_MS) return 0;
   const screens = (tMs - INITIAL_DELAY_MS) / MS_PER_SCREEN;
   // 到底就不再往下滚：内容总高 = 总行数屏，可视只有 rows 行
-  const maxScreens = Math.max(0, totalTileRows(teamCount, columns) - rows) / rows;
+  const total = totalTileRows(teamCount, columns, groupSizes);
+  const maxScreens = Math.max(0, total - rows) / rows;
   return Math.min(screens, maxScreens) * H;
 }
 
