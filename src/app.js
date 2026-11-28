@@ -17,7 +17,7 @@ import { judgeLayout, drawJudgeFrame, seedRows, rowOf } from './judge-canvas.js'
 import { JudgeQueue, TEAMS_PER_SCREEN } from './judge-queue.js';
 import { problemLayout, drawProblemFrame, problemStats, problemRepeat, makeColorFn } from './problem-canvas.js';
 import { makeProblemChart, CHART_REPEAT } from './chart-canvas.js';
-import { tileLayout, buildGroups, drawTileRank, tileRepeat, scrollOffset, DEFAULT_COLUMNS } from './tilerank-canvas.js';
+import { tileLayout, buildGroups, drawTileRank, tileRepeat, scrollOffset, DEFAULT_ROWS as TILE_ROWS, DEFAULT_COLUMNS } from './tilerank-canvas.js';
 import { drawPolarCountdown } from './polar-canvas.js';
 import { timelineLayout, drawTimelineFrame } from './timeline-canvas.js';
 import { FtsQueue, drawFtsFrame } from './fts-canvas.js';
@@ -114,6 +114,12 @@ function syncJudgeFts() {
   const best = new Map();          // problem_id -> { sec, id }
   for (const s of M.submissions.values()) {
     if (judgeStatus.get(s.id) !== 'solved') continue;
+    // 队伍不存在的提交不算首杀：适配器可以把某队从 teams 里摘掉
+    // （staff 误提交、测试账号），但它的 submission 事件还在流里。
+    // 不过滤的话这里会把已删除队伍的首杀挑出来，前端查不到队名就退化成显示
+    // team_id，一血那格会变成一个数字。computeStandings 是从 teams 建行的，
+    // 只过滤这一处就能让两边对齐。
+    if (!M.teams.has(s.team_id)) continue;
     const sec = rel2sec(s.contest_time);
     const cur = best.get(s.problem_id);
     if (!cur || sec < cur.sec) best.set(s.problem_id, { sec, id: s.id });
@@ -730,14 +736,16 @@ function renderTileRank(pane) {
   });
   if (!data.rows.length) return;
 
-  const L = tileLayout(W, H, ROWS_PARAM, DEFAULT_COLUMNS);
+  // 方块视图用自己的每屏行数（源码 DEFAULT_ROWS=14），不是榜单的 ROWS_PARAM(12)。
+  // 混用会让 totalTileRows 和实际可视行数对不上：滚动量算出来偏小，永远滚不到底。
+  const L = tileLayout(W, H, TILE_ROWS, DEFAULT_COLUMNS);
   const groups = buildGroups(data.rows, DEFAULT_COLUMNS);
 
   const now = performance.now();
   if (!tileStart) tileStart = now;
-  const repeat = tileRepeat(data.rows.length, ROWS_PARAM, DEFAULT_COLUMNS);
+  const repeat = tileRepeat(data.rows.length, TILE_ROWS, DEFAULT_COLUMNS);
   const t = (now - tileStart) % repeat;
-  const scrollPx = scrollOffset(t, H, ROWS_PARAM, DEFAULT_COLUMNS, data.rows.length);
+  const scrollPx = scrollOffset(t, H, TILE_ROWS, DEFAULT_COLUMNS, data.rows.length);
 
   drawTileRank(ctx, L, groups, data.probs, scrollPx, {
     frozen: !!(M.state && M.state.isFrozen()),
@@ -1105,7 +1113,7 @@ function cycleMs(v) {
       // 漏掉首屏停留和淡出的话，切走时正好卡在淡出中间
       return Math.ceil(nT / ROWS_PARAM) * MS_PER_PAGE + 3000 + 1000;
     case 'tilerank':
-      return tileRepeat(nT, ROWS_PARAM, DEFAULT_COLUMNS);
+      return tileRepeat(nT, TILE_ROWS, DEFAULT_COLUMNS);
     case 'problems':
       return problemRepeat(nP);
     // chart 自己按 CHART_REPEAT 循环重播，停留时间必须等于这个周期，

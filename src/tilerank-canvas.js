@@ -102,12 +102,24 @@ export function tileRepeat(teamCount, rows = DEFAULT_ROWS, columns = DEFAULT_COL
   return INITIAL_DELAY_MS + Math.trunc(MS_PER_SCREEN * (totalTileRows(teamCount, columns) / rows));
 }
 
-/** 滚动位置（屏数 → 像素） */
+/**
+ * 滚动位置（屏数 → 像素）。
+ *
+ * 源码 ScrollingTileScoreboardPresentation.updateScrollTarget:139 是
+ *     vScroll.setTarget((time - INITIAL_DELAY_MS) / MS_PER_SCREEN, ...)
+ * 也就是「滚过的屏数 = 经过时间 / 每屏时长」，没有额外的上限。
+ * 配合 getRepeat():131 = INITIAL_DELAY_MS + MS_PER_SCREEN * (getNumRows() / rows)，
+ * 一轮下来正好滚 getNumRows()/rows 屏，把最后一行带到屏幕底部。
+ *
+ * 之前写了 `totalTileRows/rows - 1`，等于把「总行数」当成「屏数」多减了一屏，
+ * 队伍一多就只能滚一点点，永远到不了底。
+ */
 export function scrollOffset(tMs, H, rows = DEFAULT_ROWS, columns = DEFAULT_COLUMNS, teamCount = 0) {
   if (tMs <= INITIAL_DELAY_MS) return 0;
   const screens = (tMs - INITIAL_DELAY_MS) / MS_PER_SCREEN;
-  const max = Math.max(0, totalTileRows(teamCount, columns) / rows - 1);
-  return Math.min(screens, max) * H;
+  // 到底就不再往下滚：内容总高 = 总行数屏，可视只有 rows 行
+  const maxScreens = Math.max(0, totalTileRows(teamCount, columns) - rows) / rows;
+  return Math.min(screens, maxScreens) * H;
 }
 
 /** 单个队伍瓦片（TeamTileHelper.paintTile 的简化版） */
