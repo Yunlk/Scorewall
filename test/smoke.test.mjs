@@ -26,10 +26,15 @@ test('RelativeTime 解析', () => {
   assert.equal(rel2sec('1:02:03.500'), 3723);
 });
 
-test('时钟格式（负值只在 h===0 时加负号）', () => {
+test('时钟格式（负值一律带负号）', () => {
   assert.equal(fmtClock(-57000), '-0:00:57');
-  assert.equal(fmtClock(-3700000), '1:01:40');   // h>0 不加负号（源码如此）
+  // 源码 AbstractICPCPresentation.getTime:98 是 `ms < 0 && h == 0` 才加负号，
+  // 那样 -1:01:40 会输出成 "1:01:40"，赛前倒计时看着像正计时。
+  // 这里有意偏离：负数一律带符号。
+  assert.equal(fmtClock(-3700000), '-1:01:40');
   assert.equal(fmtClock(57000), '0:00:57');
+  // 131 小时那种长比赛不能被 %48 截断
+  assert.equal(fmtClock(61.7 * 3600 * 1000), '61:42:00');
 });
 
 test('URL 解析对齐 getResolvedURL', () => {

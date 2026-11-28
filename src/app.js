@@ -919,15 +919,31 @@ function renderCountdown(pane) {
     label: x.label || x.id,
     status: Number(x.status) || 0,
   }));
-  // 比赛已开始则显示已用时间，否则显示剩余（负数=还没开始）
+  // 源码 CountdownPresentation.getRemainingMillis:76-110 + ClockPresentation.paint:69-75
+  //
+  //   getRemainingMillis():
+  //     未开始  → start - now            （正数，随时间递减）
+  //     进行中  → duration - (now-start) （正数，随时间递减）
+  //     已结束  → 负数
+  //   getClock() 的是 -getRemainingMillis()，ClockPresentation 再对正数补 '+'：
+  //     赛前/赛中  → 负数 → 显示 "-10:23:45"（倒计时）
+  //     已结束     → 正数 → 显示 "+00:12:30"（超时多久）
+  //
+  // 之前把 remain 夹在 [0, duration]，赛前被压成恒定 duration 就不走了 —— 那是 bug。
   const start = M.contest.start_time ? Date.parse(M.contest.start_time) : Date.now();
   const d = String(M.contest.duration || '5:00:00').split(':');
   const dur = (+d[0] * 3600 + +d[1] * 60 + (+d[2] || 0)) * 1000;
-  let remain = start + dur - Date.now();
-  remain = Math.max(0, Math.min(dur, remain));       // 夹在 [0, duration]，避免 %48 回绕
+  const now = Date.now();
+  const elapsedMs = now - start;
+  // getRemainingMillis()
+  const remainingMs = elapsedMs < 0
+    ? -elapsedMs                      // 赛前：距开赛还有多久
+    : dur - elapsedMs;                // 赛中/赛后
+  // getClock() = -getRemainingMillis()
+  const clockMs = -remainingMs;
   // 源码：if (contest.getState().isRunning()) s = "Status: Contest started"
   const running = !!(M.state && M.state.isRunning());
-  drawCountdown(ctx, W, H, SITES_ON ? sites : [], remain, running);
+  drawCountdown(ctx, W, H, SITES_ON ? sites : [], clockMs, running);
 }
 
 async function bootstrap() {

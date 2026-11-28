@@ -24,7 +24,10 @@ export function fmtClock(ms, floor = true) {
   const m = Math.floor(a / 60) % 60;
   const s = Math.floor(a) % 60;
   const p = n => String(n).padStart(2, '0');
-  return (neg && h === 0 ? '-' : '') + h + ':' + p(m) + ':' + p(s);
+  // 源码 AbstractICPCPresentation.getTime:98 是 `if (ms < 0 && h == 0) append("-")`，
+  // 也就是只有小时为 0 才带负号 —— 那么 -09:46:21 会输出成 "9:46:21"，倒计时看着像正计时。
+  // 这里对负数一律带符号，语义才立得住。
+  return (neg ? '-' : '') + h + ':' + p(m) + ':' + p(s);
 }
 
 /** RESTContestSource.getResolvedURL 对齐 */
